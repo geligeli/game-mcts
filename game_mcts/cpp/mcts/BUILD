@@ -136,7 +136,8 @@ cc_proto_library(
 )
 
 # Python bindings for mcts_tree.proto (PyMcts.export_tree());
-# lands at bazel-bin/cpp/mcts/mcts_tree_pb2.py.
+# lands at bazel-bin/game_mcts/cpp/mcts/mcts_tree_pb2.py (or under
+# external/game_mcts/... when consumed from another repo).
 py_proto_library(
     name = "mcts_tree_py_proto",
     visibility = ["//visibility:public"],
