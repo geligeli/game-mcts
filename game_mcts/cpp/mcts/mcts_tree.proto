@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package mcts.proto;
+
+// Generic export of an MCTS search tree. The action payloads stay opaque
+// bytes (the game-specific action proto, serialized via the game's
+// serialization trait) so this schema does not depend on any game's protos;
+// consumers parse the nested message lazily.
+
+message MctsEdge {
+  uint64 child_node_index = 1;  // index into MctsTree.nodes
+  bytes action = 2;  // serialized game-specific action proto
+}
+
+message MctsNode {
+  uint32 num_visits = 1;
+  repeated double total_value = 2;  // one component per player
+  bool is_chance = 3;
+  repeated MctsEdge edges = 4;  // sorted by child_node_index
+}
+
+message MctsTree {
+  // Every node of the tree, in the engine's node_storage order; index 0 is
+  // the root.
+  repeated MctsNode nodes = 1;
+}

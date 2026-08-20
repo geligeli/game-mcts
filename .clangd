@@ -1,0 +1,8 @@
+CompileFlags:
+  Remove:
+    - -fno-canonical-system-headers
+---
+If:
+  PathMatch: .*\.inl
+CompileFlags:
+  Add: [-xc++-header]

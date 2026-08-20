@@ -1,0 +1,30 @@
+# MODULE.bazel
+
+bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "rules_python", version = "1.6.3")
+bazel_dep(name = "rules_cc", version = "0.2.14")
+bazel_dep(name = "pybind11_bazel", version = "3.0.0")
+bazel_dep(name = "googletest", version = "1.17.0")
+bazel_dep(name = "google_benchmark", version = "1.9.2")
+bazel_dep(name = "abseil-cpp", version = "20250814.1")
+bazel_dep(name = "protobuf", version = "32.1")
+bazel_dep(name = "boost.math", version = "1.89.0.bcr.2")
+bazel_dep(name = "boost.multiprecision", version = "1.89.0.bcr.2")
+bazel_dep(name = "boost.random", version = "1.89.0.bcr.2")
+bazel_dep(name = "boost.iterator", version = "1.89.0.bcr.2")
+
+# Workaround for https://github.com/protocolbuffers/protobuf/issues/22386:
+# @protobuf//python/dist loads @protobuf_pip_deps//:requirements.bzl, but that
+# repo is only created by a dev_dependency extension, so it is missing when
+# protobuf is not the root module. The patch drops the load (only used for
+# building protobuf's own wheels, which we don't do).
+single_version_override(
+    module_name = "protobuf",
+    patches = [
+        "//:protobuf_python_dist_build.patch",
+        "//:protobuf_python_dist_bzl.patch",
+    ],
+    patch_strip = 1,
+)
+
+register_toolchains("@rules_python//python/runtime_env_toolchains:all")

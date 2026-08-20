@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package tictactoe.proto;
+
+// tictactoe::TicTacToe: the 18-bit board (two 9-bit occupancy masks) plus the
+// player to move.
+message TicTacToeState {
+  uint32 board_state = 1;
+  int32 current_player = 2;
+}
+
+// tictactoe::TicTacToe::action_t: the cell to play, 0..8.
+message TicTacToeAction {
+  int32 cell = 1;
+}
