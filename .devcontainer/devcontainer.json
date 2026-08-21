@@ -1,0 +1,23 @@
+{
+    // "image": "takumi.city/jax-cpu-training",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.autopep8",
+                "GitHub.copilot-chat",
+                "GitHub.copilot",
+                "ms-python.python",
+                "ms-toolsai.jupyter",
+                "BazelBuild.vscode-bazel",
+                "llvm-vs-code-extensions.vscode-clangd",
+                "moonshot-ai.kimi-code"
+            ]
+        }
+    },
+    "runArgs": ["--network=host"],
+    "workspaceMount": "source=/home/geli/game-mcts,target=/large_nfs/game-mcts,type=bind",
+    "workspaceFolder": "/large_nfs/game-mcts"
+}
