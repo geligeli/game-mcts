@@ -49,7 +49,7 @@ bazel run //game_mcts/cpp/mcts:mcts_convergence_speed
 
 ## Consuming this repo
 
-Bazel labels look like `@game_mcts//game_mcts/cpp/mcts:mcts`; headers are
+Bazel labels look like `//game_mcts/cpp/mcts:mcts`; headers are
 included with the `game_mcts/cpp/...` prefix, e.g.
 `#include "game_mcts/cpp/mcts/mcts.h"`.
 

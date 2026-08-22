@@ -514,7 +514,7 @@ protobuf-text `RiskState` and `a` dumps the ascii board (both into the
 working directory), `q` quits. Run it with:
 
 ```
-bazel run @risk_game_ai//cpp/risk:risk_mcts_selfplay -- --iterations_per_move=100 --delay_ms=200
+bazel run @risk_game_ai//game_mcts/cpp/risk:risk_mcts_selfplay -- --iterations_per_move=100 --delay_ms=200
 ```
 
 ### 4. (Optional) Faster rollouts via shortcuts

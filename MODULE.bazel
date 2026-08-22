@@ -8,15 +8,18 @@ module(
 bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_python", version = "1.6.3")
 bazel_dep(name = "rules_cc", version = "0.2.14")
+bazel_dep(name = "rules_shell", version = "0.7.1")
 bazel_dep(name = "pybind11_bazel", version = "3.0.0")
 bazel_dep(name = "googletest", version = "1.17.0")
 bazel_dep(name = "google_benchmark", version = "1.9.2")
+bazel_dep(name = "re2", version = "2025-11-05.bcr.1")
 bazel_dep(name = "abseil-cpp", version = "20250814.1")
 bazel_dep(name = "protobuf", version = "32.1")
 bazel_dep(name = "boost.math", version = "1.89.0.bcr.2")
 bazel_dep(name = "boost.multiprecision", version = "1.89.0.bcr.2")
 bazel_dep(name = "boost.random", version = "1.89.0.bcr.2")
 bazel_dep(name = "boost.iterator", version = "1.89.0.bcr.2")
+bazel_dep(name = "grpc", version = "1.74.1")
 
 # Workaround for https://github.com/protocolbuffers/protobuf/issues/22386:
 # @protobuf//python/dist loads @protobuf_pip_deps//:requirements.bzl, but that
@@ -33,3 +36,67 @@ single_version_override(
 )
 
 register_toolchains("@rules_python//python/runtime_env_toolchains:all")
+
+
+
+
+
+# bazel_dep(name = "platforms", version = "1.0.0")
+# bazel_dep(name = "rules_python", version = "1.6.3")
+# bazel_dep(name = "rules_cc", version = "0.2.14")
+# bazel_dep(name = "rules_shell", version = "0.7.1")
+# bazel_dep(name = "pybind11_bazel", version = "3.0.0")
+# bazel_dep(name = "re2", version = "2025-11-05.bcr.1")
+# bazel_dep(name = "googletest", version = "1.17.0")
+# bazel_dep(name = "google_benchmark", version = "1.9.2")
+# bazel_dep(name = "abseil-cpp", version = "20250814.1")
+# bazel_dep(name = "protobuf", version = "32.1")
+# bazel_dep(name = "grpc", version = "1.74.1")
+# bazel_dep(name = "game_mcts", version = "0.1.0")
+
+# # Workaround for https://github.com/protocolbuffers/protobuf/issues/22386:
+# # @protobuf//python/dist loads @protobuf_pip_deps//:requirements.bzl, but that
+# # repo is only created by a dev_dependency extension, so it is missing when
+# # protobuf is not the root module. The patch drops the load (only used for
+# # building protobuf's own wheels, which we don't do).
+# single_version_override(
+#     module_name = "protobuf",
+#     patches = [
+#         "//:protobuf_python_dist_build.patch",
+#         "//:protobuf_python_dist_bzl.patch",
+#     ],
+#     patch_strip = 1,
+# )
+# # The generic game framework (MCTS, game runner, example games) lives in the
+# # game-mcts repo (https://github.com/geligeli/game-mcts). Locally it is
+# # consumed from the sibling checkout; on machines without that path (CI)
+# # swap this for an archive_override pinned to a game-mcts commit.
+# local_path_override(
+#     module_name = "game_mcts",
+#     path = "/large_nfs/game-mcts",
+# )
+
+# bazel_dep(name = "rules_cuda", version = "0.3.0")
+# bazel_dep(name = "boost.math", version = "1.89.0.bcr.2")
+# bazel_dep(name = "boost.multiprecision", version = "1.89.0.bcr.2")
+# bazel_dep(name = "boost.random", version = "1.89.0.bcr.2")
+# bazel_dep(name = "boost.iterator", version = "1.89.0.bcr.2")
+
+# cuda_toolchain = use_extension("@rules_cuda//cuda:extensions.bzl", "toolchain")
+# cuda_toolchain.toolkit(
+#     name = "cuda",
+#     toolkit_path = "/usr/local/cuda",
+# )
+# use_repo(cuda_toolchain, "cuda")
+
+# register_toolchains("@cuda//toolchain:nvcc-local-toolchain")
+
+# jaxlib_extension = use_extension("//:jaxlib_extension.bzl", "jaxlib_ext")
+# use_repo(jaxlib_extension, "cuda_headers", "jaxlib_ffi")
+
+# system_python_cc_ext = use_extension("//:system_python_ext.bzl", "system_python_cc_ext")
+# use_repo(system_python_cc_ext, "system_python_cc")
+
+# register_toolchains("@system_python_cc//:py_cc_toolchain")
+
+# register_toolchains("@rules_python//python/runtime_env_toolchains:all")

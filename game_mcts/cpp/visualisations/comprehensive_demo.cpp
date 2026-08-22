@@ -44,9 +44,9 @@ auto main(int argc, char* argv[]) -> int {
     fig.save("comprehensive_demo.html");
     std::cout << "\nTo serve via HTTP instead:" << std::endl;
     std::cout
-        << "  bazel run //cpp/visualisations:comprehensive_demo -- --serve"
+        << "  bazel run //game_mcts/cpp/visualisations:comprehensive_demo -- --serve"
         << std::endl;
-    std::cout << "  bazel run //cpp/visualisations:comprehensive_demo -- "
+    std::cout << "  bazel run //game_mcts/cpp/visualisations:comprehensive_demo -- "
                  "--serve-continuous"
               << std::endl;
   }

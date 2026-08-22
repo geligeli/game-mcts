@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package risk_game.proto;
+
+// One territory on the Risk board.
+message Territory {
+  int32 owner = 1;  // -1 = unowned, otherwise the owning player index
+  uint32 units = 2;
+}
+
+// Full state of risk_game::RiskState<NUM_PLAYERS>. |num_players| records the
+// template arity so deserialization can validate it against the target type.
+message RiskState {
+  repeated uint32 reserves = 1;  // one entry per player
+  repeated Territory territories = 2;  // exactly 42 entries
+  bool initial_placement = 3;
+  uint64 num_initial_placements = 4;
+  bool first_attack_of_turn = 5;
+  int32 current_player = 6;  // -1 at chance nodes
+  uint32 turn_count = 7;
+  optional QueueAttackAction queued_attack = 8;
+  optional QueueDefenseAction queued_defense = 9;
+  uint32 num_players = 10;
+}
+
+message InitialPlaceAction {
+  int32 territory = 1;
+}
+
+// Dense per-territory placement, indexed by territory ID (42 entries).
+message ReinforceAction {
+  repeated uint32 units_to_place = 1;
+}
+
+message QueueAttackAction {
+  int32 source = 1;
+  int32 target = 2;
+  int32 num_attack_dice = 3;
+}
+
+message QueueDefenseAction {
+  int32 num_defend_dice = 1;
+}
+
+message FortifyAction {
+  int32 source = 1;
+  int32 target = 2;
+  int32 num_units = 3;
+}
+
+// Unused roll slots are 0 (e.g. attacker_rolls[2] when num_attack_dice < 3).
+message RollDiceAction {
+  repeated int32 attacker_rolls = 1;  // 3 entries
+  repeated int32 defender_rolls = 2;  // 2 entries
+}
+
+// One decision-node step of Risk: optional reinforcement plus optional attack.
+message PlayerAction {
+  optional ReinforceAction reinforce_action = 1;
+  optional QueueAttackAction attack_action = 2;
+}
+
+// risk_game::RiskAction (the std::variant) as a oneof.
+message RiskAction {
+  oneof action {
+    InitialPlaceAction initial_place = 1;
+    PlayerAction player_action = 2;
+    QueueDefenseAction queue_defense = 3;
+    FortifyAction fortify = 4;
+    RollDiceAction roll_dice = 5;
+  }
+}
+
+// One applied action in a recorded game. |player| is the deciding player, or
+// -1 for chance steps (dice rolls).
+message TrajectoryStep {
+  int32 player = 1;
+  RiskAction action = 2;
+}
+
+message RiskTrajectory {
+  RiskState initial_state = 1;
+  repeated TrajectoryStep steps = 2;
+
+  enum Result {
+    ONGOING = 0;
+    DRAW = 1;
+    WIN = 2;
+  }
+  Result result = 3;
+  int32 winning_player = 4;  // meaningful iff result == WIN
+}
