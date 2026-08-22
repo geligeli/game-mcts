@@ -7,9 +7,9 @@
 #include "absl/debugging/failure_signal_handler.h"
 #include "absl/debugging/symbolize.h"
 #include "absl/log/log.h"
-#include "cpp/risk/risk_game.h"
-#include "cpp/risk/strategies/risk_proposer.h"
-#include "cpp/risk/strategies/risk_rollout_shortcuts.h"
+#include "game_mcts/cpp/risk/risk_game.h"
+#include "game_mcts/cpp/risk/strategies/risk_proposer.h"
+#include "game_mcts/cpp/risk/strategies/risk_rollout_shortcuts.h"
 #include "game_mcts/cpp/mcts/mcts.inl"
 
 namespace risk_game {

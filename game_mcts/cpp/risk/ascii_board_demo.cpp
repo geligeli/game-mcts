@@ -12,7 +12,7 @@
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
-#include "cpp/risk/ascii_board.h"
+#include "game_mcts/cpp/risk/ascii_board.h"
 
 ABSL_FLAG(int, text_width, 3, "Digits reserved for troop counts (2 or 3)");
 

@@ -1,10 +1,10 @@
-#include "cpp/risk/risk_game_state_sampling.h"
+#include "game_mcts/cpp/risk/risk_game_state_sampling.h"
 
 #include <gtest/gtest.h>
 
 #include <variant>
 
-#include "cpp/risk/risk_game.h"
+#include "game_mcts/cpp/risk/risk_game.h"
 
 namespace risk_game {
 

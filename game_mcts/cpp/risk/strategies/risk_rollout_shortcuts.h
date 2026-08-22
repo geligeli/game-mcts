@@ -8,8 +8,8 @@
 #include <optional>
 #include <random>
 
-#include "cpp/risk/risk_game.h"
-#include "cpp/risk/strategies/expected_battle_outcomes.h"
+#include "game_mcts/cpp/risk/risk_game.h"
+#include "game_mcts/cpp/risk/strategies/expected_battle_outcomes.h"
 
 namespace risk_game {
 

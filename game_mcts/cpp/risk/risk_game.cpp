@@ -1,4 +1,4 @@
-#include "cpp/risk/risk_game.h"
+#include "game_mcts/cpp/risk/risk_game.h"
 
 #include <algorithm>
 #include <cstring>  // for memcmp

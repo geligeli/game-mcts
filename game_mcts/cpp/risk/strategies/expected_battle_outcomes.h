@@ -1,6 +1,6 @@
 #ifndef RISK_GAME_AI_CPP_RISK_STRATEGIES_EXPECTED_BATTLE_OUTCOMES_H
 #define RISK_GAME_AI_CPP_RISK_STRATEGIES_EXPECTED_BATTLE_OUTCOMES_H
-#include "cpp/risk/strategies/predict_battle_outcome.h"
+#include "game_mcts/cpp/risk/strategies/predict_battle_outcome.h"
 
 namespace risk_game {
 

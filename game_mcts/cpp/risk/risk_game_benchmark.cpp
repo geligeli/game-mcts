@@ -11,9 +11,9 @@
 
 #include <random>
 
-#include "cpp/risk/risk_game.h"
-#include "cpp/risk/strategies/risk_proposer.h"
-#include "cpp/risk/strategies/risk_rollout_shortcuts.h"
+#include "game_mcts/cpp/risk/risk_game.h"
+#include "game_mcts/cpp/risk/strategies/risk_proposer.h"
+#include "game_mcts/cpp/risk/strategies/risk_rollout_shortcuts.h"
 #include "game_mcts/cpp/mcts/mcts.inl"
 
 namespace risk_game {

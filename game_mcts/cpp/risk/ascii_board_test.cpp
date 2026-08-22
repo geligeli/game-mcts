@@ -1,4 +1,4 @@
-#include "cpp/risk/ascii_board.h"
+#include "game_mcts/cpp/risk/ascii_board.h"
 
 #include <gtest/gtest.h>
 

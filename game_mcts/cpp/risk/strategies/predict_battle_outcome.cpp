@@ -1,4 +1,4 @@
-#include "cpp/risk/strategies/predict_battle_outcome.h"
+#include "game_mcts/cpp/risk/strategies/predict_battle_outcome.h"
 
 #include <algorithm>
 #include <vector>

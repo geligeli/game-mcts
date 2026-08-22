@@ -34,11 +34,11 @@
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
-#include "cpp/risk/risk.pb.h"
-#include "cpp/risk/risk_game.h"
-#include "cpp/risk/risk_serialization.h"
-#include "cpp/risk/strategies/risk_proposer.h"
-#include "cpp/risk/strategies/risk_rollout_shortcuts.h"
+#include "game_mcts/cpp/risk/risk.pb.h"
+#include "game_mcts/cpp/risk/risk_game.h"
+#include "game_mcts/cpp/risk/risk_serialization.h"
+#include "game_mcts/cpp/risk/strategies/risk_proposer.h"
+#include "game_mcts/cpp/risk/strategies/risk_rollout_shortcuts.h"
 #include "game_mcts/cpp/mcts/mcts.inl"
 #include "google/protobuf/text_format.h"
 

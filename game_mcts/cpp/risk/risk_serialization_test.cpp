@@ -1,4 +1,4 @@
-#include "cpp/risk/risk_serialization.h"
+#include "game_mcts/cpp/risk/risk_serialization.h"
 
 #include <gtest/gtest.h>
 
@@ -6,8 +6,8 @@
 #include <limits>
 #include <random>
 
-#include "cpp/risk/risk_game.h"
-#include "cpp/risk/strategies/risk_proposer.h"
+#include "game_mcts/cpp/risk/risk_game.h"
+#include "game_mcts/cpp/risk/strategies/risk_proposer.h"
 
 namespace risk_game {
 namespace {

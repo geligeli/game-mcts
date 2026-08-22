@@ -3,7 +3,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "cpp/risk/strategies/predict_battle_outcome.h"
+#include "game_mcts/cpp/risk/strategies/predict_battle_outcome.h"
 
 using namespace risk_game;
 
@@ -50,7 +50,7 @@ int main() {
 
   std::cout << "#include <array>\n";
   std::cout << "#include <cstdint>\n";
-  std::cout << "#include \"cpp/risk/strategies/expected_battle_outcomes.h\"\n";
+  std::cout << "#include \"game_mcts/cpp/risk/strategies/expected_battle_outcomes.h\"\n";
   std::cout << "namespace risk_game {\n";
   std::cout << remaining_attackers_table.str() << std::endl;
   std::cout << remaining_defenders_table.str() << std::endl;

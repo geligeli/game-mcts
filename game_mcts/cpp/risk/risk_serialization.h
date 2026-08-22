@@ -3,8 +3,8 @@
 
 #include <cstddef>
 
-#include "cpp/risk/risk.pb.h"
-#include "cpp/risk/risk_game.h"
+#include "game_mcts/cpp/risk/risk.pb.h"
+#include "game_mcts/cpp/risk/risk_game.h"
 #include "game_mcts/cpp/mcts/serialization.h"
 
 // Opts RiskState<NUM_PLAYERS> into mcts serialization: states convert to/from

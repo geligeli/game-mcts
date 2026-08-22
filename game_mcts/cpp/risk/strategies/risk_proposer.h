@@ -18,8 +18,8 @@
 #include <limits>
 #include <random>
 
-#include "cpp/risk/risk_board.h"
-#include "cpp/risk/risk_game.h"
+#include "game_mcts/cpp/risk/risk_board.h"
+#include "game_mcts/cpp/risk/risk_game.h"
 #include "game_mcts/cpp/mcts/game_traits.h"
 
 namespace risk_game {

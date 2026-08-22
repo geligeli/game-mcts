@@ -35,7 +35,8 @@ single_version_override(
     patch_strip = 1,
 )
 
-register_toolchains("@rules_python//python/runtime_env_toolchains:all")
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(python_version = "3.12")
 
 
 

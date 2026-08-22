@@ -28,8 +28,8 @@
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
-#include "cpp/risk/ascii_board.h"
-#include "cpp/risk/risk_board.h"
+#include "game_mcts/cpp/risk/ascii_board.h"
+#include "game_mcts/cpp/risk/risk_board.h"
 #include "game_mcts/cpp/mcts/game_traits.h"
 #include "game_mcts/cpp/mcts/overloaded.h"
 

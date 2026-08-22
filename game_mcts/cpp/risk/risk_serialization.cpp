@@ -1,4 +1,4 @@
-#include "cpp/risk/risk_serialization.h"
+#include "game_mcts/cpp/risk/risk_serialization.h"
 
 #include <cstddef>
 #include <cstdint>
