@@ -13,11 +13,25 @@
                 "ms-toolsai.jupyter",
                 "BazelBuild.vscode-bazel",
                 "llvm-vs-code-extensions.vscode-clangd",
-                "moonshot-ai.kimi-code"
+                "moonshot-ai.kimi-code",
+                "pbkit.vscode-pbkit",
+                "Tyriar.sort-lines"
             ]
         }
     },
-    "runArgs": ["--network=host"],
+    "runArgs": [
+        "--network=host"
+    ],
     "workspaceMount": "source=/home/geli/game-mcts,target=/large_nfs/game-mcts,type=bind",
+    "mounts": [
+        "source=${localEnv:HOME}/.cache,target=/home/ubuntu/.cache,type=bind"
+    ],
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "version": "latest",
+            "enableNonRootDocker": "true",
+            "moby": "true"
+        }
+    },
     "workspaceFolder": "/large_nfs/game-mcts"
 }
