@@ -15,7 +15,8 @@
                 "llvm-vs-code-extensions.vscode-clangd",
                 "moonshot-ai.kimi-code",
                 "pbkit.vscode-pbkit",
-                "Tyriar.sort-lines"
+                "Tyriar.sort-lines",
+                "anthropic.claude-code"
             ]
         }
     },
