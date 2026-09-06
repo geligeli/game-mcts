@@ -18,7 +18,7 @@
 #include "absl/log/check.h"
 #include "game_mcts/core/mcts/game_traits.h"
 #include "game_mcts/core/mcts/serialization.h"
-#include "game_mcts/tournament_server/referee/game_session.h"
+#include "game_arena/referee/game_session.h"
 
 namespace tournament_broker {
 

@@ -8,7 +8,7 @@ package(
 # Client-side strategy code for the game_mcts games: everything that runs in a
 # player's process and talks to the broker over the Play stream. The
 # game-agnostic reference client lives in
-# //game_mcts/tournament_server/client.
+# @game_arena//game_arena/client.
 
 # Stock TournamentPolicy adapters (ProposerPolicy, MctsPolicy). Split from
 # remote_client so a strategy can be defined without pulling in gRPC.
@@ -33,7 +33,7 @@ cc_library(
         "//game_mcts/core/mcts:mcts",
         "//game_mcts/core/mcts:serialization",
         "//game_mcts/core/mcts:tournament",
-        "//game_mcts/tournament_server/proto:tournament_broker_cc_grpc",
+        "@game_arena//game_arena/proto:tournament_broker_cc_grpc",
         "@abseil-cpp//absl/log",
         "@grpc//:grpc++",
     ],
@@ -48,7 +48,7 @@ cc_binary(
         "//game_mcts/games/risk:risk_serialization",
         "//game_mcts/games/risk/strategies:risk_proposer",
         "//game_mcts/games/risk/strategies:risk_rollout_shortcuts",
-        "//game_mcts/tournament_server/proto:tournament_broker_cc_grpc",
+        "@game_arena//game_arena/proto:tournament_broker_cc_grpc",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
         "@abseil-cpp//absl/log",

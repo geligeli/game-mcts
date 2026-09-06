@@ -53,7 +53,7 @@ cc_binary(
     deps = [
         ":candidate_api",
         "//game_mcts/arena/client:remote_client",
-        "//game_mcts/tournament_server/proto:tournament_broker_cc_grpc",
+        "@game_arena//game_arena/proto:tournament_broker_cc_grpc",
         "//game_mcts/arena/candidates/dev:strategy",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",

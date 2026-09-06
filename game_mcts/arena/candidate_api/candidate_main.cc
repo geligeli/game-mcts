@@ -22,7 +22,7 @@
 #include "absl/log/log.h"
 #include "game_mcts/arena/candidate_api/candidate_api.h"
 #include "game_mcts/arena/client/remote_client.h"
-#include "game_mcts/tournament_server/proto/tournament_broker.grpc.pb.h"
+#include "game_arena/proto/tournament_broker.grpc.pb.h"
 
 #ifndef CANDIDATE_ENTRY_HEADER
 #error "CANDIDATE_ENTRY_HEADER must name the candidate's strategy header"

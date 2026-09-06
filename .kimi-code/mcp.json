@@ -2,18 +2,12 @@
   "mcpServers": {
     "risk-engine": {
       "command": "bazel",
-      "args": ["run", "//mcp_servers/risk_mcp:server"],
+      "args": [
+        "run",
+        "//mcp_servers/risk_mcp:server"
+      ],
       "cwd": "/large_nfs/game-mcts",
       "toolTimeoutMs": 600000
-    },
-    "arena": {
-      "command": "bazel",
-      "args": ["run", "//mcp_servers/arena_mcp:server"],
-      "cwd": "/large_nfs/game-mcts",
-      "env": {
-        "ARENA_MCP_TARGET": "localhost:50051"
-      },
-      "toolTimeoutMs": 300000
     }
   }
 }

@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include "game_mcts/tournament_server/server/problem_config.h"
+#include "game_arena/server/problem_config.h"
 
 namespace tournament_arena {
 namespace {

@@ -28,7 +28,7 @@
 #include "game_mcts/core/mcts/game_traits.h"
 #include "game_mcts/core/mcts/serialization.h"
 #include "game_mcts/core/mcts/tournament.h"
-#include "game_mcts/tournament_server/proto/tournament_broker.grpc.pb.h"
+#include "game_arena/proto/tournament_broker.grpc.pb.h"
 
 namespace tournament_broker {
 

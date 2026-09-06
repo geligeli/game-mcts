@@ -5,8 +5,8 @@
 # to keep the grading path honest as to be run: if only match problems have a
 # real config, the grade path rots.
 #
-#   bazel run //game_mcts/tournament_server/server:problem_server -- \
-#       --problem_config=$PWD/game_mcts/tournament_server/problems/mcts_bench.textproto \
+#   bazel run @game_arena//game_arena/server:problem_server -- \
+#       --problem_config=$PWD/game_mcts/arena/problems/mcts_bench.textproto \
 #       --data_dir=$PWD/bench_data --clients=$PWD/clients.textproto
 
 problem_id: "mcts-bench"

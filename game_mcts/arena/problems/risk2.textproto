@@ -1,7 +1,7 @@
 # The existing arena, expressed as a problem: write a Risk strategy, get rated
 # against everyone else's.
 #
-#   bazel run //game_mcts/tournament_server/server:problem_server -- \
+#   bazel run @game_arena//game_arena/server:problem_server -- \
 #       --problem_config=$PWD/game_mcts/arena/problems/risk2.textproto \
 #       --data_dir=$PWD/tournament_data --clients=$PWD/clients.textproto
 
@@ -47,7 +47,7 @@ submission {
     api_dep: "//game_mcts/arena/candidate_api:candidate_api"
     main_src: "//game_mcts/arena/candidate_api:candidate_main.cc"
     bot_deps: "//game_mcts/arena/client:remote_client"
-    bot_deps: "//game_mcts/tournament_server/proto:tournament_broker_cc_grpc"
+    bot_deps: "@game_arena//game_arena/proto:tournament_broker_cc_grpc"
     bot_deps: "@abseil-cpp//absl/flags:flag"
     bot_deps: "@abseil-cpp//absl/flags:parse"
     bot_deps: "@abseil-cpp//absl/log"

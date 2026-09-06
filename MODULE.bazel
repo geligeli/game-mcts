@@ -26,6 +26,21 @@ bazel_dep(name = "grpc", version = "1.74.1")
 # Version matched to what grpc resolves, so this adds no new fetch.
 bazel_dep(name = "boringssl", version = "0.20241024.0")
 
+# The arena: the problem-running framework the tournament server became. It
+# depends on nothing here -- this repo supplies its games through a registry
+# linked at build time (see //game_mcts/arena).
+bazel_dep(name = "game_arena", version = "0.1.0")
+local_path_override(
+    module_name = "game_arena",
+    path = "/large_nfs/game-arena",
+)
+# On a machine without that sibling checkout (CI), pin a commit instead:
+# git_override(
+#     module_name = "game_arena",
+#     remote = "https://github.com/geligeli/game-arena.git",
+#     commit = "<sha>",
+# )
+
 # Workaround for https://github.com/protocolbuffers/protobuf/issues/22386:
 # @protobuf//python/dist loads @protobuf_pip_deps//:requirements.bzl, but that
 # repo is only created by a dev_dependency extension, so it is missing when
@@ -51,45 +66,6 @@ pip.parse(
     requirements_lock = "//mcp_servers:requirements.txt",
 )
 use_repo(pip, "mcp_pip_deps")
-
-
-
-
-
-# bazel_dep(name = "platforms", version = "1.0.0")
-# bazel_dep(name = "rules_python", version = "1.6.3")
-# bazel_dep(name = "rules_cc", version = "0.2.14")
-# bazel_dep(name = "rules_shell", version = "0.7.1")
-# bazel_dep(name = "pybind11_bazel", version = "3.0.0")
-# bazel_dep(name = "re2", version = "2025-11-05.bcr.1")
-# bazel_dep(name = "googletest", version = "1.17.0")
-# bazel_dep(name = "google_benchmark", version = "1.9.2")
-# bazel_dep(name = "abseil-cpp", version = "20250814.1")
-# bazel_dep(name = "protobuf", version = "32.1")
-# bazel_dep(name = "grpc", version = "1.74.1")
-# bazel_dep(name = "game_mcts", version = "0.1.0")
-
-# # Workaround for https://github.com/protocolbuffers/protobuf/issues/22386:
-# # @protobuf//python/dist loads @protobuf_pip_deps//:requirements.bzl, but that
-# # repo is only created by a dev_dependency extension, so it is missing when
-# # protobuf is not the root module. The patch drops the load (only used for
-# # building protobuf's own wheels, which we don't do).
-# single_version_override(
-#     module_name = "protobuf",
-#     patches = [
-#         "//:protobuf_python_dist_build.patch",
-#         "//:protobuf_python_dist_bzl.patch",
-#     ],
-#     patch_strip = 1,
-# )
-# # The generic game framework (MCTS, game runner, example games) lives in the
-# # game-mcts repo (https://github.com/geligeli/game-mcts). Locally it is
-# # consumed from the sibling checkout; on machines without that path (CI)
-# # swap this for an archive_override pinned to a game-mcts commit.
-# local_path_override(
-#     module_name = "game_mcts",
-#     path = "/large_nfs/game-mcts",
-# )
 
 # bazel_dep(name = "rules_cuda", version = "0.3.0")
 # bazel_dep(name = "boost.math", version = "1.89.0.bcr.2")

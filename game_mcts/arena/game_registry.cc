@@ -1,4 +1,4 @@
-#include "game_mcts/tournament_server/referee/game_registry.h"
+#include "game_arena/referee/game_registry.h"
 
 #include <string_view>
 

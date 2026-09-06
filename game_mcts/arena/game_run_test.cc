@@ -6,7 +6,7 @@
 // by standing up a server and misbehaving over the network, which is why most
 // of them had no coverage at all.
 
-#include "game_mcts/tournament_server/referee/game_run.h"
+#include "game_arena/referee/game_run.h"
 
 #include <unistd.h>
 
@@ -25,7 +25,7 @@
 
 #include "game_mcts/games/tictactoe/tictactoe.h"
 #include "game_mcts/games/tictactoe/tictactoe_serialization.h"
-#include "game_mcts/tournament_server/referee/game_registry.h"
+#include "game_arena/referee/game_registry.h"
 #include "gtest/gtest.h"
 
 namespace tournament_broker {

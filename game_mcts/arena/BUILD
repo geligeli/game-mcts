@@ -8,7 +8,7 @@ package(
 
 # Everything that binds this framework to the arena.
 #
-# The arena (//game_mcts/tournament_server) is game-agnostic: it speaks
+# The arena (@game_arena) is game-agnostic: it speaks
 # serialized states and actions and gets its rules from a GameRegistry it only
 # declares. This package supplies that registry for the game_mcts games, plus
 # the adapter that lets any mcts::SerializableGame be one. Nothing here is
@@ -21,7 +21,7 @@ cc_library(
     deps = [
         "//game_mcts/core/mcts:game_traits",
         "//game_mcts/core/mcts:serialization",
-        "//game_mcts/tournament_server/referee:game_session",
+        "@game_arena//game_arena/referee:game_session",
         "@abseil-cpp//absl/log:check",
     ],
 )
@@ -36,7 +36,7 @@ cc_library(
         "//game_mcts/core/mcts:game_traits",
         "//game_mcts/core/mcts:minimax",
         "//game_mcts/core/mcts:serialization",
-        "//game_mcts/tournament_server/referee:game_session",
+        "@game_arena//game_arena/referee:game_session",
     ],
 )
 
@@ -60,7 +60,7 @@ cc_library(
         "//game_mcts/games/risk/strategies:risk_rollout_shortcuts",
         "//game_mcts/games/tictactoe:tictactoe",
         "//game_mcts/games/tictactoe:tictactoe_serialization",
-        "//game_mcts/tournament_server/referee:game_registry",
+        "@game_arena//game_arena/referee:game_registry",
     ],
 )
 
@@ -70,7 +70,7 @@ cc_binary(
     name = "match_referee",
     deps = [
         ":game_registry",
-        "//game_mcts/tournament_server/referee:referee_main",
+        "@game_arena//game_arena/referee:referee_main",
     ],
 )
 
@@ -78,7 +78,7 @@ cc_binary(
     name = "broker_server",
     deps = [
         ":game_registry",
-        "//game_mcts/tournament_server/referee:broker_server_main",
+        "@game_arena//game_arena/referee:broker_server_main",
     ],
 )
 
@@ -86,7 +86,7 @@ cc_binary(
     name = "random_client",
     deps = [
         ":game_registry",
-        "//game_mcts/tournament_server/client:random_client_main",
+        "@game_arena//game_arena/client:random_client_main",
     ],
 )
 
@@ -95,7 +95,7 @@ cc_test(
     srcs = ["shipped_problems_test.cc"],
     data = ["//game_mcts/arena/problems:configs"],
     deps = [
-        "//game_mcts/tournament_server/server:problem_config",
+        "@game_arena//game_arena/server:problem_config",
         "@googletest//:gtest_main",
     ],
 )
@@ -112,7 +112,7 @@ cc_test(
         "//game_mcts/games/tictactoe:tictactoe",
         "//game_mcts/games/tictactoe:tictactoe_cc_proto",
         "//game_mcts/games/tictactoe:tictactoe_serialization",
-        "//game_mcts/tournament_server/referee:game_registry",
+        "@game_arena//game_arena/referee:game_registry",
         "@googletest//:gtest_main",
     ],
 )
@@ -127,12 +127,12 @@ cc_test(
         "//game_mcts/games/tictactoe:tictactoe",
         "//game_mcts/games/tictactoe:tictactoe_cc_proto",
         "//game_mcts/games/tictactoe:tictactoe_serialization",
-        "//game_mcts/tournament_server/referee:client_handle",
-        "//game_mcts/tournament_server/referee:game_registry",
-        "//game_mcts/tournament_server/referee:game_run",
-        "//game_mcts/tournament_server/referee:worker_pool",
-        "//game_mcts/tournament_server/server:elo_store",
-        "//game_mcts/tournament_server/server:game_history",
+        "@game_arena//game_arena/referee:client_handle",
+        "@game_arena//game_arena/referee:game_registry",
+        "@game_arena//game_arena/referee:game_run",
+        "@game_arena//game_arena/referee:worker_pool",
+        "@game_arena//game_arena/server:elo_store",
+        "@game_arena//game_arena/server:game_history",
         "@googletest//:gtest_main",
     ],
 )
@@ -145,15 +145,15 @@ cc_test(
         "//game_mcts/arena/client:remote_client",
         "//game_mcts/games/tictactoe:tictactoe",
         "//game_mcts/games/tictactoe:tictactoe_serialization",
-        "//game_mcts/tournament_server/proto:tournament_broker_cc_grpc",
-        "//game_mcts/tournament_server/referee:broker_service",
-        "//game_mcts/tournament_server/referee:client_handle",
-        "//game_mcts/tournament_server/referee:game_registry",
-        "//game_mcts/tournament_server/referee:matchmaker",
-        "//game_mcts/tournament_server/server:elo_standings",
-        "//game_mcts/tournament_server/server:elo_store",
-        "//game_mcts/tournament_server/server:game_history",
-        "//game_mcts/tournament_server/server:http_leaderboard",
+        "@game_arena//game_arena/proto:tournament_broker_cc_grpc",
+        "@game_arena//game_arena/referee:broker_service",
+        "@game_arena//game_arena/referee:client_handle",
+        "@game_arena//game_arena/referee:game_registry",
+        "@game_arena//game_arena/referee:matchmaker",
+        "@game_arena//game_arena/server:elo_standings",
+        "@game_arena//game_arena/server:elo_store",
+        "@game_arena//game_arena/server:game_history",
+        "@game_arena//game_arena/server:http_leaderboard",
         "@googletest//:gtest_main",
         "@grpc//:grpc++",
     ],

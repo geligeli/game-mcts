@@ -15,9 +15,9 @@ Strict separation, enforced by concepts in
 - **Search** — `MctsRunner` (tree + selection/rollout/backprop).
 
 Dependency direction: `common` <- `core` <- `games` <- `arena`, `tools` at the
-top (nothing may depend on `tools`). `tournament_server` (the arena) sits
-outside that chain and depends on nothing else in this repo; `game_mcts/arena`
-is the only thing that joins the two.
+top (nothing may depend on `tools`). `game_mcts/arena` is this repo's side of
+`@game_arena` (the problem-running framework, its own repo), which depends on
+nothing here.
 
 New to the framework? Read `game_mcts/core/mcts/README.md` (contracts +
 step-by-step for a new game) and copy `game_mcts/games/tictactoe/`
@@ -132,45 +132,44 @@ bazel run //game_mcts/tools/bench:mcts_bench
   with `TournamentPolicy` / `AnyPolicy` wrappers (reference:
   `risk_tournament.cpp` + `example_tournament.cfg`).
 
-## Tournament server / arena (agents)
+## The arena (agents)
 
-- Broker protocol and flags are documented in
-  `game_mcts/tournament_server/README.md`; the agent submission loop in
-  `game_mcts/tournament_server/ARENA.md`. A candidate id is its broker
-  player name; `player:<name>` rendezvous pairs specific players.
-- **The arena is game-agnostic and is being split into its own repo.** It
-  speaks serialized states/actions as byte strings and never names a game.
-  Do not add an `#include`, a bazel label or a hardcoded path under
-  `game_mcts/tournament_server/` that points at `core/`, `games/` or
-  `arena/` — that is the coupling the split exists to remove. Strings count:
-  a bazel label in a generated BUILD or a game name in the coordinator is the
-  same mistake as a dep.
-- Rules reach the arena through `tournament_broker::GameRegistry()`, which
-  `referee/game_registry.h` **declares and never defines**. A referee, broker
-  or client binary is assembled as "a registry + an entry-point library"
-  (`referee:referee_main`, `referee:broker_server_main`,
-  `client:random_client_main`) — see `//game_mcts/arena:match_referee` and
-  `//game_mcts/tournament_server/testgame:match_referee`. Registry libraries
-  need `alwayslink = 1`; nothing depends on them by label.
-- Anything problem-specific belongs in the problem's `.textproto`, not in the
-  coordinator: `submission.harness` carries the labels a generated candidate
-  BUILD is written against, `submission.allowed_dep_prefixes` the deps a
-  solution may name, `match.referee_target` the referee to build.
-- `server:no_problem_code_test` nm-scans `problem_server` for
-  `GameRegistry`/`GameSession`; it must keep passing.
-- `//game_mcts/tournament_server/testgame` (Nim) is the arena's own game, so
-  the broker can be tested with no game framework in the build. Use it when
-  adding arena-side coverage; use `game_mcts/arena` for coverage that needs a
-  real game.
-- `PlayRemoteGames` owns the `Play`-stream protocol (including
-  drain-before-`Finish`); hand-rolled clients must replicate that.
-- Prefer the MCP tools (`arena_rules()` first, then submit by **paths**,
-  never pasted code) and the `dev_bot` local loop over hand-rolling gRPC.
-- `random_client.cc` is the reference client; `risk_mcts_client.cc` the
-  reference C++ bot.
+The arena is `@game_arena`, a separate repo
+(https://github.com/geligeli/game-arena) consumed as a bazel module via
+`local_path_override` to a sibling checkout at `/large_nfs/game-arena`. It is a
+general problem-running framework and knows nothing about this repo.
+
+- `game_mcts/arena/` is the whole binding: `game_session_impl.h` (the
+  `mcts::SerializableGame` -> `GameSession` adapter), `builtins.h`, and
+  `game_registry.cc`, which **defines** the `GameRegistry()` that
+  `@game_arena//game_arena/referee:game_registry` only declares.
+- Binaries are "a registry + an entry-point library":
+  `//game_mcts/arena:match_referee` is `:game_registry` plus
+  `@game_arena//game_arena/referee:referee_main`. Same for `:broker_server` and
+  `:random_client`. `:game_registry` needs `alwayslink = 1` — nothing depends
+  on it by label.
+- **Adding a game to the arena means adding one `GameDescriptor` entry to
+  `game_mcts/arena/game_registry.cc`.** Do not change anything in game-arena
+  for that; if you think you have to, the seam is wrong.
+- Problem-specific settings live in `game_mcts/arena/problems/*.textproto`, not
+  in arena code: `match.referee_target`, `submission.harness` (the labels a
+  generated candidate BUILD is written against), and
+  `submission.allowed_dep_prefixes` (what a solution may depend on).
+- Broker protocol and flags: `game_mcts/arena/README.md`; the agent submission
+  loop: `game_mcts/arena/ARENA.md`. A candidate id is its broker player name;
+  `player:<name>` rendezvous pairs specific players.
+- `PlayRemoteGames` (`arena/client/remote_client.h`) owns the `Play`-stream
+  protocol including drain-before-`Finish`; hand-rolled clients must replicate
+  that.
+- Prefer the `dev_bot` local loop over hand-rolling gRPC. The arena MCP server
+  moved to the game-arena repo; run it from there.
+- `arena/client/risk_mcts_client.cc` is the reference C++ bot.
 
 ## Do not
 
+- Do not push game_mcts code into game-arena, and do not reach into
+  `@game_arena` internals from here beyond the published libraries. The split
+  exists so the arena can host problems that are not games.
 - Do not add virtuals to the game/search hot path; do not put policy
   inside the game class; do not approximate inside
   `sample_chance_action` or the tree (shortcuts are rollout-only).

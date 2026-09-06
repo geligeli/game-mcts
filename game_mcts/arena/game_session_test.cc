@@ -7,7 +7,7 @@
 #include "game_mcts/games/tictactoe/tictactoe.h"
 #include "game_mcts/games/tictactoe/tictactoe.pb.h"
 #include "game_mcts/games/tictactoe/tictactoe_serialization.h"
-#include "game_mcts/tournament_server/referee/game_registry.h"
+#include "game_arena/referee/game_registry.h"
 #include "gtest/gtest.h"
 
 namespace tournament_broker {
