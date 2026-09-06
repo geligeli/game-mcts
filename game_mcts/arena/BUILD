@@ -48,6 +48,7 @@ cc_library(
     srcs = ["game_registry.cc"],
     alwayslink = 1,
     deps = [
+        "@abseil-cpp//absl/log",
         ":builtins",
         ":game_session_impl",
         "//game_mcts/arena/benchgame:bench_game",

@@ -1,7 +1,11 @@
 #include "game_arena/referee/game_registry.h"
 
+#include <charconv>
+#include <map>
+#include <string>
 #include <string_view>
 
+#include "absl/log/log.h"
 #include "game_mcts/arena/benchgame/bench_game.h"
 #include "game_mcts/arena/benchgame/bench_serialization.h"
 #include "game_mcts/arena/builtins.h"
@@ -127,8 +131,25 @@ auto MakeBenchBuiltin(std::string_view spec,
 
 }  // namespace
 
-void SetDefaultMctsIterations(int iterations) {
-  g_default_mcts_iterations = iterations;
+void SetRegistryOptions(const std::map<std::string, std::string> &options) {
+  // The arena hands these over untouched; reading the keys we understand and
+  // ignoring the rest is the contract. An unparsable or absent value leaves
+  // the compiled-in default, because a bad option is not worth failing an
+  // order that would otherwise run.
+  const auto it = options.find("mcts_iterations");
+  if (it == options.end()) {
+    return;
+  }
+  int iterations = 0;
+  const char *begin = it->second.data();
+  const char *end = begin + it->second.size();
+  const std::from_chars_result parsed = std::from_chars(begin, end, iterations);
+  if (parsed.ec == std::errc{} && parsed.ptr == end && iterations > 0) {
+    g_default_mcts_iterations = iterations;
+  } else {
+    LOG(WARNING) << "ignoring registry option mcts_iterations='" << it->second
+                 << "': want a positive integer";
+  }
 }
 
 auto GameRegistry() -> const std::map<std::string, GameDescriptor> & {

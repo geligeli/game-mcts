@@ -89,7 +89,10 @@ match {
   # strategy can burn ten seconds on each of thousands of moves.
   game_time_budget_ms: 120000
   max_moves_per_game: 50000
-  mcts_iterations: 400
+  # Handed to the referee's registry verbatim; game_registry.cc reads it. This
+  # is where a knob that only one registry understands belongs -- the arena has
+  # no field for it and should not.
+  registry_options { key: "mcts_iterations" value: "400" }
   timeout_s: 1800
 }
 
