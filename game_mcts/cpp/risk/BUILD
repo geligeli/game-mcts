@@ -5,7 +5,7 @@ load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
 load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
-load("@rules_python//python:defs.bzl", "py_test")
+load("@rules_python//python:defs.bzl", "py_library", "py_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -50,13 +50,29 @@ pybind_extension(
     ],
 )
 
+# pybind_extension produces a bare .so (no PyInfo); wrap it in a py_library
+# so it can be imported by name, per the pybind11_bazel examples.
+py_library(
+    name = "risk_engine_lib",
+    data = [":risk_engine"],
+    imports = ["."],
+)
+
+# py_proto_library doesn't add its package dir to the Python import path, so
+# wrap it to make "import risk_pb2" work for consumers.
+py_library(
+    name = "risk_py",
+    deps = [":risk_py_proto"],
+    imports = ["."],
+)
+
 py_test(
     name = "risk_engine_test",
     srcs = ["risk_engine_test.py"],
-    data = [
-        ":risk_engine.so",
-        ":risk_py_proto",
-        "//game_mcts/cpp/mcts:mcts_tree_py_proto",
+    deps = [
+        ":risk_engine_lib",
+        ":risk_py",
+        "//game_mcts/cpp/mcts:mcts_tree_py",
     ],
     python_version = "PY3",
 )

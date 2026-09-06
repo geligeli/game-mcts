@@ -5,6 +5,7 @@ load("@pybind11_bazel//:build_defs.bzl", "pybind_library")
 load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
+load("@rules_python//python:defs.bzl", "py_library")
 
 package(
     default_visibility = ["//visibility:public"],
@@ -142,6 +143,15 @@ py_proto_library(
     name = "mcts_tree_py_proto",
     visibility = ["//visibility:public"],
     deps = [":mcts_tree_proto"],
+)
+
+# py_proto_library doesn't add its package dir to the Python import path, so
+# wrap it to make "import mcts_tree_pb2" work for consumers.
+py_library(
+    name = "mcts_tree_py",
+    visibility = ["//visibility:public"],
+    deps = [":mcts_tree_py_proto"],
+    imports = ["."],
 )
 
 cc_library(
