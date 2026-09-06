@@ -30,7 +30,12 @@
         "source=${localEnv:HOME}/.claude,target=/home/ubuntu/.claude,type=bind",
         // Same for Kimi Code. Mounted off to the side, NOT over ~/.kimi-code:
         // that dir holds the container's own kimi binary, which is on PATH.
-        "source=${localEnv:HOME}/.kimi-code,target=/home/ubuntu/.kimi-shared,type=bind"
+        "source=${localEnv:HOME}/.kimi-code,target=/home/ubuntu/.kimi-shared,type=bind",
+        // opencode needs no credentials (it talks to the local llama.cpp server
+        // over --network=host), but its sessions live here and would otherwise
+        // be lost on every rebuild.
+        "source=${localEnv:HOME}/.local/share/opencode,target=/home/ubuntu/.local/share/opencode,type=bind",
+        "source=${localEnv:HOME}/.local/state/opencode,target=/home/ubuntu/.local/state/opencode,type=bind"
     ],
     "containerEnv": {
         // Keep .claude.json (project state) inside the mounted dir too, so no
