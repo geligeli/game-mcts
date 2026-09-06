@@ -22,16 +22,29 @@ bazel_dep(name = "grpc", version = "1.74.1")
 # The arena: the problem-running framework the tournament server became. It
 # depends on nothing here -- this repo supplies its games through a registry
 # linked at build time (see //game_mcts/arena).
+#
+# Pinned rather than pointed at a sibling checkout so a build needs nothing but
+# this repo. It also suits the sandbox fleet: candidates are built in a
+# container with no egress, so the image has to carry a warm bazel repository
+# cache either way, and a pinned commit is one more entry in it -- whereas a
+# path override would have to be bind-mounted into every container.
+#
+# Bump this when the arena changes; the two repos are versioned independently
+# on purpose.
 bazel_dep(name = "game_arena", version = "0.1.0")
-local_path_override(
+git_override(
     module_name = "game_arena",
-    path = "/large_nfs/game-arena",
+    remote = "https://github.com/geligeli/game-arena.git",
+    commit = "a5b5e28e84f8849ad55ad32c9af0c3ddbc8c6548",
 )
-# On a machine without that sibling checkout (CI), pin a commit instead:
-# git_override(
+
+# For co-developing the two repos, swap the override above for this one. It
+# needs the sibling checkout visible to bazel, which inside the devcontainer
+# means widening workspaceMount in .devcontainer/devcontainer.json to
+# /large_nfs -- the default mount is this repo only.
+# local_path_override(
 #     module_name = "game_arena",
-#     remote = "https://github.com/geligeli/game-arena.git",
-#     commit = "<sha>",
+#     path = "/large_nfs/game-arena",
 # )
 
 # Workaround for https://github.com/protocolbuffers/protobuf/issues/22386:

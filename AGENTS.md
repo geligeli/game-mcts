@@ -135,9 +135,14 @@ bazel run //game_mcts/tools/bench:mcts_bench
 ## The arena (agents)
 
 The arena is `@game_arena`, a separate repo
-(https://github.com/geligeli/game-arena) consumed as a bazel module via
-`local_path_override` to a sibling checkout at `/large_nfs/game-arena`. It is a
-general problem-running framework and knows nothing about this repo.
+(https://github.com/geligeli/game-arena) consumed as a bazel module, pinned to
+a commit with `git_override` in `MODULE.bazel`. A build needs nothing but this
+repo. It is a general problem-running framework and knows nothing about this
+repo.
+
+Changing the arena means landing it there and bumping the pin here; the two
+repos are versioned independently on purpose. To iterate on both at once, swap
+in the commented `local_path_override` (see `MODULE.bazel`).
 
 - `game_mcts/arena/` is the whole binding: `game_session_impl.h` (the
   `mcts::SerializableGame` -> `GameSession` adapter), `builtins.h`, and
