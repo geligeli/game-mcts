@@ -1,6 +1,6 @@
 """Risk engine MCP server: drive Risk games and MCTS searches.
 
-Wraps the risk_engine pybind module (//game_mcts/cpp/risk:risk_engine, built
+Wraps the risk_engine pybind module (//game_mcts/games/risk:risk_engine, built
 by bazel)
 which exposes mcts::PyGame (rules-only driving via serialized protos) and
 mcts::PyMcts (MCTS with RiskProposer, exact or expected-outcome rollouts).
@@ -18,8 +18,8 @@ Actions are given as proto-text of risk_game.proto.RiskAction, e.g.:
   fortify { source: 1 target: 2 num_units: 4 }
 
 Run with the shared venv:  mcp_servers/.venv/bin/python server.py
-Requires: bazel build //game_mcts/cpp/risk:risk_engine \
-              //game_mcts/cpp/risk:risk_py_proto
+Requires: bazel build //game_mcts/games/risk:risk_engine \
+              //game_mcts/games/risk:risk_py_proto
 """
 
 import itertools
@@ -33,7 +33,7 @@ from mcp.server.fastmcp import FastMCP
 REPO_ROOT = Path(
     os.environ.get("RISK_MCP_REPO_ROOT", Path(__file__).resolve().parents[2])
 )
-for rel in ("game_mcts/cpp/risk", "game_mcts/cpp/mcts"):
+for rel in ("game_mcts/games/risk", "game_mcts/core/mcts"):
     sys.path.insert(0, str(REPO_ROOT / "bazel-bin" / rel))
 
 try:
@@ -43,21 +43,21 @@ try:
 except ImportError as e:  # pragma: no cover - environment setup issue
     raise SystemExit(
         f"{e}\nArtifacts missing? Run:\n"
-        "  bazel build //game_mcts/cpp/risk:risk_engine"
-        " //game_mcts/cpp/risk:risk_py_proto"
+        "  bazel build //game_mcts/games/risk:risk_engine"
+        " //game_mcts/games/risk:risk_py_proto"
     )
 
 MAX_MCTS_ITERATIONS = 200_000
 
 # ---------------------------------------------------------------------------
-# Territory names, parsed from game_mcts/cpp/risk/risk_board.h (single source
+# Territory names, parsed from game_mcts/games/risk/risk_board.h (single source
 # of truth).
 # Territory index i in RiskState == i-th entry of the Country enum.
 # ---------------------------------------------------------------------------
 
 
 def _load_territory_names() -> list[str]:
-    header = (REPO_ROOT / "game_mcts/cpp/risk/risk_board.h").read_text()
+    header = (REPO_ROOT / "game_mcts/games/risk/risk_board.h").read_text()
     # Enum order defines the territory index.
     enum_block = re.search(
         r"enum class Country[^{]*\{(.*?)\}", header, re.DOTALL

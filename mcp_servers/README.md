@@ -6,7 +6,7 @@ only):
 
 - **risk-engine** (`risk_mcp/server.py`) — drives Risk games and MCTS
   through the `risk_engine` pybind module
-  (`//game_mcts/cpp/risk:risk_engine`): apply/check actions (proto-text
+  (`//game_mcts/games/risk:risk_engine`): apply/check actions (proto-text
   `RiskAction`), roll chance nodes, describe the board with territory names,
   query the MCTS visit-count policy, or let MCTS play a move. Positions can be
   loaded from proto-text `RiskState` dumps (the self-play binary's `s` key).
@@ -32,7 +32,7 @@ mcp_servers/.venv/bin/pip install "mcp>=1.0,<2" "protobuf==6.32.1" \
 ```
 
 The arena server needs generated gRPC stubs (git-ignored; regenerate after
-changing `game_mcts/tournament_server/arena.proto`). This workspace has
+changing `game_mcts/tournament_server/proto/arena.proto`). This workspace has
 `py_proto_library` but no Python gRPC rules, so codegen is a script rather than
 a bazel target:
 
@@ -44,7 +44,7 @@ The risk-engine server needs the bazel-built artifacts (rebuild after C++
 changes; the .so is loaded from `bazel-bin`):
 
 ```sh
-bazel build //game_mcts/cpp/risk:risk_engine //game_mcts/cpp/risk:risk_py_proto
+bazel build //game_mcts/games/risk:risk_engine //game_mcts/games/risk:risk_py_proto
 ```
 
 ## Smoke test
