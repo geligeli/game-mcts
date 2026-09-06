@@ -30,8 +30,13 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
-REPO_ROOT = Path(
-    os.environ.get("RISK_MCP_REPO_ROOT", Path(__file__).resolve().parents[2])
+# Under `bazel run`, BUILD_WORKSPACE_DIRECTORY points at the checkout and the
+# bazel-bin path inserts below are no-ops (the .so comes from runfiles).
+_repo_root = os.environ.get("RISK_MCP_REPO_ROOT") or os.environ.get(
+    "BUILD_WORKSPACE_DIRECTORY"
+)
+REPO_ROOT = (
+    Path(_repo_root) if _repo_root else Path(__file__).resolve().parents[2]
 )
 for rel in ("game_mcts/games/risk", "game_mcts/core/mcts"):
     sys.path.insert(0, str(REPO_ROOT / "bazel-bin" / rel))

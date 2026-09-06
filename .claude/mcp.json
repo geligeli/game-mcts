@@ -1,18 +1,16 @@
 {
   "mcpServers": {
     "risk": {
-      "command": "/large_nfs/game-mcts/mcp_servers/.venv/bin/python",
-      "args": ["/large_nfs/game-mcts/mcp_servers/risk_mcp/server.py"],
-      "env": {
-        "RISK_MCP_REPO_ROOT": "/large_nfs/game-mcts"
-      },
+      "command": "bazel",
+      "args": ["run", "//mcp_servers/risk_mcp:server"],
+      "cwd": "/large_nfs/game-mcts",
       "toolTimeoutMs": 600000
     },
     "arena": {
-      "command": "/large_nfs/game-mcts/mcp_servers/.venv/bin/python",
-      "args": ["/large_nfs/game-mcts/mcp_servers/arena_mcp/server.py"],
+      "command": "bazel",
+      "args": ["run", "//mcp_servers/arena_mcp:server"],
+      "cwd": "/large_nfs/game-mcts",
       "env": {
-        "ARENA_MCP_REPO_ROOT": "/large_nfs/game-mcts",
         "ARENA_MCP_TARGET": "localhost:50051"
       },
       "toolTimeoutMs": 300000
