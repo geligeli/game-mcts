@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_CPP_MCTS_GAME_RUNNER_H
-#define GAME_MCTS_GAME_MCTS_CPP_MCTS_GAME_RUNNER_H
+#ifndef GAME_MCTS_GAME_MCTS_CORE_MCTS_GAME_RUNNER_H
+#define GAME_MCTS_GAME_MCTS_CORE_MCTS_GAME_RUNNER_H
 #include "game_mcts/core/mcts/game_traits.h"
 
 namespace mcts {
@@ -46,4 +46,4 @@ void RunGame(POLICY_TYPE &&...policies) {
 
 }  // namespace mcts
 
-#endif  // GAME_MCTS_GAME_MCTS_CPP_MCTS_GAME_RUNNER_H
+#endif  // GAME_MCTS_GAME_MCTS_CORE_MCTS_GAME_RUNNER_H

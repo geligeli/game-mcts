@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_CPP_MCTS_MCTS_H
-#define GAME_MCTS_GAME_MCTS_CPP_MCTS_MCTS_H
+#ifndef GAME_MCTS_GAME_MCTS_CORE_MCTS_MCTS_H
+#define GAME_MCTS_GAME_MCTS_CORE_MCTS_MCTS_H
 
 #include <array>
 #include <cassert>
@@ -361,4 +361,4 @@ auto PlotHtmlGraph(std::ostream &os, const std::vector<NodeType> &node_storage);
 
 }  // namespace mcts
 
-#endif  // GAME_MCTS_GAME_MCTS_CPP_MCTS_MCTS_H
+#endif  // GAME_MCTS_GAME_MCTS_CORE_MCTS_MCTS_H

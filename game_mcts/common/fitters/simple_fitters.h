@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_CPP_FITTERS_SIMPLE_FITTERS_H
-#define GAME_MCTS_GAME_MCTS_CPP_FITTERS_SIMPLE_FITTERS_H
+#ifndef GAME_MCTS_GAME_MCTS_COMMON_FITTERS_SIMPLE_FITTERS_H
+#define GAME_MCTS_GAME_MCTS_COMMON_FITTERS_SIMPLE_FITTERS_H
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
@@ -53,4 +53,4 @@ FitType choose_best_fit(const std::vector<double>& x,
 
 }  // namespace fitters
 
-#endif  // GAME_MCTS_GAME_MCTS_CPP_FITTERS_SIMPLE_FITTERS_H
+#endif  // GAME_MCTS_GAME_MCTS_COMMON_FITTERS_SIMPLE_FITTERS_H

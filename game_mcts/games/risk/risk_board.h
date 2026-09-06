@@ -1,5 +1,5 @@
-#ifndef RISK_GAME_BOARD_H
-#define RISK_GAME_BOARD_H
+#ifndef GAME_MCTS_GAME_MCTS_GAMES_RISK_RISK_BOARD_H
+#define GAME_MCTS_GAME_MCTS_GAMES_RISK_RISK_BOARD_H
 
 #include <array>
 #include <cstdint>
@@ -386,4 +386,4 @@ static constexpr auto kContinentMasks = internal::_GetContinentMasks();
 
 }  // namespace risk_game
 
-#endif  // RISK_GAME_BOARD_H
+#endif  // GAME_MCTS_GAME_MCTS_GAMES_RISK_RISK_BOARD_H

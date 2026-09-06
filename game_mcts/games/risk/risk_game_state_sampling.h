@@ -1,5 +1,5 @@
-#ifndef RISK_GAME_AI_CPP_RISK_RISK_GAME_STATE_SAMPLING_H
-#define RISK_GAME_AI_CPP_RISK_RISK_GAME_STATE_SAMPLING_H
+#ifndef GAME_MCTS_GAME_MCTS_GAMES_RISK_RISK_GAME_STATE_SAMPLING_H
+#define GAME_MCTS_GAME_MCTS_GAMES_RISK_RISK_GAME_STATE_SAMPLING_H
 #include <algorithm>
 #include <bitset>
 #include <cstdint>
@@ -331,4 +331,4 @@ auto SampleSuccessor(RiskActionSet<NUM_PLAYERS> &action_set, std::mt19937 &gen)
 
 }  // namespace risk_game
 
-#endif  // RISK_GAME_AI_CPP_RISK_RISK_GAME_STATE_SAMPLING_H
+#endif  // GAME_MCTS_GAME_MCTS_GAMES_RISK_RISK_GAME_STATE_SAMPLING_H

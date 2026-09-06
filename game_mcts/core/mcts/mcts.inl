@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_CPP_MCTS_MCTS_INL
-#define GAME_MCTS_GAME_MCTS_CPP_MCTS_MCTS_INL
+#ifndef GAME_MCTS_GAME_MCTS_CORE_MCTS_MCTS_INL
+#define GAME_MCTS_GAME_MCTS_CORE_MCTS_MCTS_INL
 
 #include <algorithm>
 #include <cassert>
@@ -550,4 +550,4 @@ auto PlotHtmlGraph(std::ostream &os,
 
 }  // namespace mcts
 
-#endif
+#endif  // GAME_MCTS_GAME_MCTS_CORE_MCTS_MCTS_INL

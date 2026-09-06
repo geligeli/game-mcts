@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_CPP_MCTS_TOURNAMENT_H
-#define GAME_MCTS_GAME_MCTS_CPP_MCTS_TOURNAMENT_H
+#ifndef GAME_MCTS_GAME_MCTS_CORE_MCTS_TOURNAMENT_H
+#define GAME_MCTS_GAME_MCTS_CORE_MCTS_TOURNAMENT_H
 
 // Multithreaded round-robin tournament runner with ELO ratings for game
 // policies. A policy maps (game, gen) -> PolicyDecision{action, successor};
@@ -294,4 +294,4 @@ inline auto PrintStandings(const std::vector<double> &ratings,
 
 }  // namespace mcts::tournament
 
-#endif  // GAME_MCTS_GAME_MCTS_CPP_MCTS_TOURNAMENT_H
+#endif  // GAME_MCTS_GAME_MCTS_CORE_MCTS_TOURNAMENT_H

@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_CPP_MCTS_DEFAULT_DICT_H
-#define GAME_MCTS_GAME_MCTS_CPP_MCTS_DEFAULT_DICT_H
+#ifndef GAME_MCTS_GAME_MCTS_CORE_UTIL_DEFAULT_DICT_H
+#define GAME_MCTS_GAME_MCTS_CORE_UTIL_DEFAULT_DICT_H
 #include <unordered_map>
 
 namespace mcts {
@@ -20,4 +20,4 @@ class MapDefaultDict {
 
 }  // namespace mcts
 
-#endif  // GAME_MCTS_GAME_MCTS_CPP_MCTS_DEFAULT_DICT_H
+#endif  // GAME_MCTS_GAME_MCTS_CORE_UTIL_DEFAULT_DICT_H

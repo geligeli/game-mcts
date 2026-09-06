@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_CPP_MCTS_PY_MCTS_H
-#define GAME_MCTS_GAME_MCTS_CPP_MCTS_PY_MCTS_H
+#ifndef GAME_MCTS_GAME_MCTS_CORE_PYTHON_PY_MCTS_H
+#define GAME_MCTS_GAME_MCTS_CORE_PYTHON_PY_MCTS_H
 
 #include <algorithm>
 #include <cstddef>
@@ -215,4 +215,4 @@ auto MakePyMcts(const std::string &state_proto, PROPOSER proposer,
 
 }  // namespace mcts
 
-#endif  // GAME_MCTS_GAME_MCTS_CPP_MCTS_PY_MCTS_H
+#endif  // GAME_MCTS_GAME_MCTS_CORE_PYTHON_PY_MCTS_H

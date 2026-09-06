@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_CPP_MCTS_STATE_SPACE_H
-#define GAME_MCTS_GAME_MCTS_CPP_MCTS_STATE_SPACE_H
+#ifndef GAME_MCTS_GAME_MCTS_CORE_UTIL_STATE_SPACE_H
+#define GAME_MCTS_GAME_MCTS_CORE_UTIL_STATE_SPACE_H
 
 #include <algorithm>
 #include <boost/iterator/counting_iterator.hpp>
@@ -197,4 +197,4 @@ void PlaceNElementsIntoKBinsStateSpace::sample(std::mt19937& gen,
 
 }  // namespace mcts
 
-#endif  // GAME_MCTS_GAME_MCTS_CPP_MCTS_STATE_SPACE_H
+#endif  // GAME_MCTS_GAME_MCTS_CORE_UTIL_STATE_SPACE_H

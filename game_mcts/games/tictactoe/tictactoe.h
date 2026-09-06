@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_CPP_TICTACTOE_TICTACTOE_H
-#define GAME_MCTS_GAME_MCTS_CPP_TICTACTOE_TICTACTOE_H
+#ifndef GAME_MCTS_GAME_MCTS_GAMES_TICTACTOE_TICTACTOE_H
+#define GAME_MCTS_GAME_MCTS_GAMES_TICTACTOE_TICTACTOE_H
 #include <array>
 #include <cstdint>
 #include <ostream>
@@ -68,4 +68,4 @@ auto TicTacToe::sample_action(std::uniform_random_bit_generator auto& gen) const
 
 }  // namespace tictactoe
 
-#endif  // GAME_MCTS_GAME_MCTS_CPP_TICTACTOE_TICTACTOE_H
+#endif  // GAME_MCTS_GAME_MCTS_GAMES_TICTACTOE_TICTACTOE_H

@@ -1,5 +1,5 @@
-#ifndef RISK_GAME_AI_CPP_RISK_ASCII_BOARD_H
-#define RISK_GAME_AI_CPP_RISK_ASCII_BOARD_H
+#ifndef GAME_MCTS_GAME_MCTS_GAMES_RISK_ASCII_ASCII_BOARD_H
+#define GAME_MCTS_GAME_MCTS_GAMES_RISK_ASCII_ASCII_BOARD_H
 #include <cstdint>
 #include <span>
 #include <string>
@@ -79,4 +79,4 @@ std::span<const BoardInfo> GetAvailableBoardTemplates();
 
 }  // namespace risk_game
 
-#endif  // RISK_GAME_AI_CPP_RISK_ASCII_BOARD_H
+#endif  // GAME_MCTS_GAME_MCTS_GAMES_RISK_ASCII_ASCII_BOARD_H

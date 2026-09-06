@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_CPP_MCTS_STARTS_AND_BARS_H
-#define GAME_MCTS_GAME_MCTS_CPP_MCTS_STARTS_AND_BARS_H
+#ifndef GAME_MCTS_GAME_MCTS_CORE_UTIL_STARTS_AND_BARS_H
+#define GAME_MCTS_GAME_MCTS_CORE_UTIL_STARTS_AND_BARS_H
 #include <cstddef>
 #include <iterator>
 #include <vector>
@@ -56,4 +56,4 @@ class StarsAndBars {
 
 }  // namespace mcts
 
-#endif  // GAME_MCTS_GAME_MCTS_CPP_MCTS_STARTS_AND_BARS_H
+#endif  // GAME_MCTS_GAME_MCTS_CORE_UTIL_STARTS_AND_BARS_H

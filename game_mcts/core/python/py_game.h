@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_CPP_MCTS_PY_GAME_H
-#define GAME_MCTS_GAME_MCTS_CPP_MCTS_PY_GAME_H
+#ifndef GAME_MCTS_GAME_MCTS_CORE_PYTHON_PY_GAME_H
+#define GAME_MCTS_GAME_MCTS_CORE_PYTHON_PY_GAME_H
 
 #include <cstdint>
 #include <memory>
@@ -186,4 +186,4 @@ auto MakePyGame() -> std::unique_ptr<PyGame> {
 
 }  // namespace mcts
 
-#endif  // GAME_MCTS_GAME_MCTS_CPP_MCTS_PY_GAME_H
+#endif  // GAME_MCTS_GAME_MCTS_CORE_PYTHON_PY_GAME_H

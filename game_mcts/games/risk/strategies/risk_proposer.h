@@ -1,5 +1,5 @@
-#ifndef RISK_GAME_AI_CPP_RISK_STRATEGIES_RISK_PROPOSER_H
-#define RISK_GAME_AI_CPP_RISK_STRATEGIES_RISK_PROPOSER_H
+#ifndef GAME_MCTS_GAME_MCTS_GAMES_RISK_STRATEGIES_RISK_PROPOSER_H
+#define GAME_MCTS_GAME_MCTS_GAMES_RISK_STRATEGIES_RISK_PROPOSER_H
 
 // Action-proposal policy for RiskState (see mcts::ActionProposer).
 //
@@ -351,4 +351,4 @@ static_assert(mcts::ActionProposer<RiskProposer<3>, RiskState<3>>);
 
 }  // namespace risk_game
 
-#endif  // RISK_GAME_AI_CPP_RISK_STRATEGIES_RISK_PROPOSER_H
+#endif  // GAME_MCTS_GAME_MCTS_GAMES_RISK_STRATEGIES_RISK_PROPOSER_H

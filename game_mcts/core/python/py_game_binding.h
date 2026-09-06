@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_CPP_MCTS_PY_GAME_BINDING_H
-#define GAME_MCTS_GAME_MCTS_CPP_MCTS_PY_GAME_BINDING_H
+#ifndef GAME_MCTS_GAME_MCTS_CORE_PYTHON_PY_GAME_BINDING_H
+#define GAME_MCTS_GAME_MCTS_CORE_PYTHON_PY_GAME_BINDING_H
 
 #include <pybind11/pybind11.h>
 
@@ -50,4 +50,4 @@ inline void BindPyGameClass(pybind11::module_ &m, const char *name = "Game") {
 
 }  // namespace mcts
 
-#endif  // GAME_MCTS_GAME_MCTS_CPP_MCTS_PY_GAME_BINDING_H
+#endif  // GAME_MCTS_GAME_MCTS_CORE_PYTHON_PY_GAME_BINDING_H

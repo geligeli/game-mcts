@@ -1,5 +1,5 @@
-#ifndef RISK_GAME_AI_CPP_RISK_STRATEGIES_RISK_ROLLOUT_SHORTCUTS_H
-#define RISK_GAME_AI_CPP_RISK_ROLLOUT_SHORTCUTS_H
+#ifndef GAME_MCTS_GAME_MCTS_GAMES_RISK_STRATEGIES_RISK_ROLLOUT_SHORTCUTS_H
+#define GAME_MCTS_GAME_MCTS_GAMES_RISK_STRATEGIES_RISK_ROLLOUT_SHORTCUTS_H
 
 // Move shortcuts for MCTS rollouts on RiskState (see "Pluggable rollout
 // policies" in the game-mcts repo's mcts.h). These are approximations used
@@ -65,4 +65,4 @@ auto ResolveBattleWithExpectation(const RiskState<NUM_PLAYERS> &state,
 
 }  // namespace risk_game
 
-#endif  // RISK_GAME_AI_CPP_RISK_STRATEGIES_RISK_ROLLOUT_SHORTCUTS_H
+#endif  // GAME_MCTS_GAME_MCTS_GAMES_RISK_STRATEGIES_RISK_ROLLOUT_SHORTCUTS_H

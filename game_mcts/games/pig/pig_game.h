@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_CPP_PIG_GAME_PIG_GAME_H
-#define GAME_MCTS_GAME_MCTS_CPP_PIG_GAME_PIG_GAME_H
+#ifndef GAME_MCTS_GAME_MCTS_GAMES_PIG_PIG_GAME_H
+#define GAME_MCTS_GAME_MCTS_GAMES_PIG_PIG_GAME_H
 #include <string>
 
 #include "game_mcts/core/mcts/game_traits.h"
@@ -62,4 +62,4 @@ static_assert(mcts::ActionProposer<mcts::DefaultProposer<PigGame>, PigGame>);
 
 }  // namespace pig_game
 
-#endif  // GAME_MCTS_GAME_MCTS_CPP_PIG_GAME_PIG_GAME_H
+#endif  // GAME_MCTS_GAME_MCTS_GAMES_PIG_PIG_GAME_H

@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_CPP_MCTS_GAME_TRAITS_H
-#define GAME_MCTS_GAME_MCTS_CPP_MCTS_GAME_TRAITS_H
+#ifndef GAME_MCTS_GAME_MCTS_CORE_MCTS_GAME_TRAITS_H
+#define GAME_MCTS_GAME_MCTS_CORE_MCTS_GAME_TRAITS_H
 #include <array>
 #include <cassert>
 #include <compare>
@@ -347,4 +347,4 @@ concept Policy = Game<G> && requires(T policy, G &game) {
 
 }  // namespace mcts
 
-#endif  // GAME_MCTS_GAME_MCTS_CPP_MCTS_GAME_TRAITS_H
+#endif  // GAME_MCTS_GAME_MCTS_CORE_MCTS_GAME_TRAITS_H

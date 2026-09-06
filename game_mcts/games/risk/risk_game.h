@@ -1,5 +1,5 @@
-#ifndef RISK_GAME_AI_CPP_RISK_RISK_GAME_H
-#define RISK_GAME_AI_CPP_RISK_RISK_GAME_H
+#ifndef GAME_MCTS_GAME_MCTS_GAMES_RISK_RISK_GAME_H
+#define GAME_MCTS_GAME_MCTS_GAMES_RISK_RISK_GAME_H
 #include <sys/types.h>
 
 #include <algorithm>
@@ -865,4 +865,4 @@ static_assert(mcts::InPlaceGame<risk_game::RiskState<2>>);
 
 }  // namespace risk_game
 
-#endif  // RISK_GAME_AI_CPP_RISK_RISK_GAME_H
+#endif  // GAME_MCTS_GAME_MCTS_GAMES_RISK_RISK_GAME_H

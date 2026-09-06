@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_CPP_MCTS_MINIMAX_H
-#define GAME_MCTS_GAME_MCTS_CPP_MCTS_MINIMAX_H
+#ifndef GAME_MCTS_GAME_MCTS_CORE_MCTS_MINIMAX_H
+#define GAME_MCTS_GAME_MCTS_CORE_MCTS_MINIMAX_H
 #include "game_mcts/core/mcts/game_traits.h"
 #include "game_mcts/core/util/overloaded.h"
 
@@ -73,4 +73,4 @@ auto ComputeActionValueBinaryOutcome(mcts::Game auto game, int action,
 
 }  // namespace minimax
 
-#endif  // GAME_MCTS_GAME_MCTS_CPP_MCTS_MINIMAX_H
+#endif  // GAME_MCTS_GAME_MCTS_CORE_MCTS_MINIMAX_H
