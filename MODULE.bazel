@@ -35,7 +35,7 @@ bazel_dep(name = "game_arena", version = "0.1.0")
 git_override(
     module_name = "game_arena",
     remote = "https://github.com/geligeli/game-arena.git",
-    commit = "d900987dda550ef8decd7cbbc8a8191aa17099fc",
+    commit = "d353a9e93267bffe0d5668da6ef3cdbcc578f8ca",
 )
 
 # For co-developing the two repos, swap the override above for this one. It
