@@ -1,13 +1,13 @@
 #!/bin/bash
 
 echo "Building and starting HTTP server demo..."
-cd /large_nfs/risk-game-ai
+cd /large_nfs/game-mcts
 
 # Build
 bazel build //game_mcts/cpp/visualisations:http_server_demo
 
 # Run in background
-bazel-bin/cpp/visualisations/http_server_demo &
+bazel-bin/game_mcts/cpp/visualisations/http_server_demo &
 SERVER_PID=$!
 
 echo "Waiting for server to start..."

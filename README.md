@@ -21,6 +21,14 @@ on the hot path.
 - `game_mcts/cpp/tictactoe/` — minimal deterministic example game; the
   smallest complete example to copy from.
 - `game_mcts/cpp/pig_game/` — minimal game with chance nodes (dice).
+- `game_mcts/cpp/risk/` — a full-size stochastic game (Risk) with a custom
+  action proposer, rollout shortcuts, self-play and tournament binaries.
+- `game_mcts/tournament_server/` — gRPC tournament broker: remote strategies
+  play games over a bidirectional stream, with time limits, persistent ELO,
+  game history and an HTTP leaderboard. On top of it, the **arena** lets an
+  agent submit a strategy that is built in a sandbox and rated against the
+  field. See
+  [game_mcts/tournament_server/ARENA.md](game_mcts/tournament_server/ARENA.md).
 - `game_mcts/cpp/process/` — small subprocess wrapper.
 - `game_mcts/cpp/fitters/` — simple curve fitters.
 - `game_mcts/cpp/visualisations/` — HTML/HTTP plot serving.
@@ -28,10 +36,9 @@ on the hot path.
 
 See [game_mcts/cpp/README.md](game_mcts/cpp/README.md).
 
-A full-size stochastic game (Risk) with a custom action proposer, rollout
-shortcuts, self-play and a gRPC tournament server lives in the
-[risk-game-ai](https://github.com/geligeli/risk-game-ai) repo, which consumes
-this one as a Bazel dependency.
+The board-vision, pose and training pipeline that feeds a physical Risk board
+lives in the [risk-game-ai](https://github.com/geligeli/risk-game-ai) repo,
+which consumes this one as a Bazel dependency.
 
 ## Build and test
 

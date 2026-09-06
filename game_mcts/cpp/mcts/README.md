@@ -4,9 +4,8 @@ A header-only, concept-based (C++20) framework for turn-based games and Monte
 Carlo Tree Search (MCTS). Concrete games built on it live next door:
 `game_mcts/cpp/tictactoe/` and `game_mcts/cpp/pig_game/` (see
 `game_mcts/cpp/README.md` for an overview). A full-size stochastic game
-(Risk) is built on this framework in the
-[risk-game-ai](https://github.com/geligeli/risk-game-ai) repo; references to
-`risk-game-ai:cpp/risk/...` below point at paths in that repo.
+(Risk) is built on this framework in `game_mcts/cpp/risk/`, and is the source
+of the worked examples below.
 
 ## Design overview
 
@@ -122,7 +121,7 @@ exactly how many distinct actions `sample()` can return, or
 `mcts::kUnknownSupport`. Build the generator with
 `mcts::MakeDedupSampler(*this, state)` and the bound is picked up, turning
 exhaustion from a heuristic into a proof — this is the pattern used by
-`risk_game::RiskProposer` (`risk-game-ai:cpp/risk/strategies/risk_proposer.h`).
+`risk_game::RiskProposer` (`game_mcts/cpp/risk/strategies/risk_proposer.h`).
 
 ### `Policy` (game runner) and `TournamentPolicy`
 
@@ -205,7 +204,7 @@ auto action = runner.best_action();
 
 ### Stochastic game with a custom proposer and rollout
 
-This is the idiom used per move in `risk-game-ai:cpp/risk/risk_mcts_selfplay.cpp`:
+This is the idiom used per move in `game_mcts/cpp/risk/risk_mcts_selfplay.cpp`:
 
 ```cpp
 using game_t = risk_game::RiskState<2>;
@@ -241,7 +240,7 @@ if (game.is_chance_node()) {
 ## Step-by-step: implementing a game from scratch
 
 The recipe below follows `game_mcts/cpp/tictactoe/` (deterministic) and notes where
-`game_mcts/cpp/pig_game/` and `risk-game-ai:cpp/risk/` diverge.
+`game_mcts/cpp/pig_game/` and `game_mcts/cpp/risk/` diverge.
 
 ### 1. Define the state class
 
@@ -319,7 +318,7 @@ Approximations belong in rollout shortcuts, never here.
 
 When `valid_moves()` enumeration is impossible or too biased, define a
 proposer in the game's `strategies/` directory (pattern:
-`risk-game-ai:cpp/risk/strategies/risk_proposer.h`):
+`game_mcts/cpp/risk/strategies/risk_proposer.h`):
 
 ```cpp
 struct MyProposer {
@@ -412,7 +411,7 @@ chance sampling, result) and `mcts::PyGameImpl<G>` /
 `game_mcts/cpp/mcts/py_game_binding.h` binds that interface once per module
 (`mcts::BindPyGameClass(m)`).
 
-A game module is then a few lines (pattern: `risk-game-ai:cpp/risk/risk_pybind.cpp`):
+A game module is then a few lines (pattern: `game_mcts/cpp/risk/risk_pybind.cpp`):
 
 ```cpp
 PYBIND11_MODULE(mygame_engine, m) {
@@ -427,7 +426,7 @@ built with `pybind_extension` (deps: `:mygame_serialization`,
 `//game_mcts/cpp/mcts:py_game_binding`). On the Python side, construct the game's proto
 messages with the `py_proto_library` bindings and pass
 `SerializeToString()`/`FromString()` across the boundary — see
-`risk-game-ai:cpp/risk/risk_engine_test.py`.
+`game_mcts/cpp/risk/risk_engine_test.py`.
 
 MCTS is exposed the same way for search debugging and policy evaluation.
 `game_mcts/cpp/mcts/py_mcts.h` provides `mcts::PyMcts` / `mcts::MakePyMcts<G>(root,
@@ -503,7 +502,7 @@ exactly this (plus values) to `proto::MctsTree` for offline analysis.
 ### 3. A self-play loop
 
 Drive the game loop yourself, running MCTS at decision nodes and sampling
-chance nodes directly. `risk-game-ai:cpp/risk/risk_mcts_selfplay.cpp` is the reference
+chance nodes directly. `game_mcts/cpp/risk/risk_mcts_selfplay.cpp` is the reference
 implementation: per-player MCTS parameter overrides via
 `--player_params='iterations=400,rollout=exact;...'`, an alternate-screen
 ascii renderer, move recording into `RiskTrajectory` protobufs
@@ -539,13 +538,13 @@ Wrap each entrant as a `TournamentPolicy` (`policy(game, gen) ->
 PolicyDecision<G>` — an MCTS policy runs `MctsRunner` internally and returns
 `{runner.best_action(), game.apply_action(...)}`), collect them in the
 type-erased `AnyPolicy<G>`, and hand them to the runner.
-`risk-game-ai:cpp/risk/risk_tournament.cpp` is the reference binary, driven by a config
-file (see `risk-game-ai:cpp/risk/example_tournament.cfg`).
+`game_mcts/cpp/risk/risk_tournament.cpp` is the reference binary, driven by a config
+file (see `game_mcts/cpp/risk/example_tournament.cfg`).
 
 ### 6. Benchmarking
 
 `game_mcts/cpp/mcts/mcts_bench.cpp` (google-benchmark) times MCTS on TicTacToe;
-`risk-game-ai:cpp/risk/risk_game_benchmark.cpp` does the same for Risk transitions and
+`game_mcts/cpp/risk/risk_game_benchmark.cpp` does the same for Risk transitions and
 rollouts. Mirror those when you need to check that a new game's
 `apply_action_in_place` / `sample_action` are fast enough for useful
 iteration counts.

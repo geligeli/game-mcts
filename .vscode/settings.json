@@ -66,12 +66,12 @@
         "/opt/flax",
         "/opt/jax",
         "/home/ubuntu/.local/lib/python3.12/site-packages",
-        "/large_nfs/risk-game-ai",
+        "/large_nfs/game-mcts",
     ],
     "python.defaultInterpreterPath": "/usr/bin/python",
     "interactiveWindow.alwaysScrollOnNewCell": false,
     "clangd.arguments": [
-        "--compile-commands-dir=/large_nfs/risk-game-ai"
+        "--compile-commands-dir=/large_nfs/game-mcts"
     ],
     "clangd.fallbackFlags": [
         "-I${workspaceFolder}",
@@ -79,7 +79,7 @@
     ],
     "clangd.enableHover": true,
     "files.exclude": {
-        "bazel-risk-game-ai": true
+        "bazel-game-mcts": true
     },
     "C_Cpp.clang_format_fallbackStyle": "Google",
     "clangd.onConfigChanged.forceEnable": true,
