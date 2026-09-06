@@ -31,7 +31,7 @@ cc_library(
         "//game_mcts/games/risk/strategies:risk_rollout_shortcuts",
         "//game_mcts/games/tictactoe:tictactoe",
         "//game_mcts/games/tictactoe:tictactoe_serialization",
-        "//game_mcts/tournament_server/client:policies",
+        "//game_mcts/arena/client:policies",
     ],
 )
 
@@ -41,20 +41,20 @@ cc_library(
 # from a dependency to its dependents.
 exports_files(["candidate_main.cc"])
 
-# The local iteration loop: builds game_mcts/tournament_server/candidates/dev against
+# The local iteration loop: builds game_mcts/arena/candidates/dev against
 # the same harness the arena uses, so what runs here is what gets submitted.
 cc_binary(
     name = "dev_bot",
     srcs = ["candidate_main.cc"],
     local_defines = [
-        r'CANDIDATE_ENTRY_HEADER=\"game_mcts/tournament_server/candidates/dev/strategy.h\"',
+        r'CANDIDATE_ENTRY_HEADER=\"game_mcts/arena/candidates/dev/strategy.h\"',
         "CANDIDATE_GAME_RISK2",
     ],
     deps = [
         ":candidate_api",
-        "//game_mcts/tournament_server/client:remote_client",
+        "//game_mcts/arena/client:remote_client",
         "//game_mcts/tournament_server/proto:tournament_broker_cc_grpc",
-        "//game_mcts/tournament_server/candidates/dev:strategy",
+        "//game_mcts/arena/candidates/dev:strategy",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
         "@abseil-cpp//absl/log",

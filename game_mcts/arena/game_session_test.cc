@@ -1,7 +1,6 @@
-#include "game_mcts/tournament_server/referee/game_session.h"
-
 #include <random>
 
+#include "game_mcts/arena/game_session_impl.h"
 #include "game_mcts/games/risk/risk_game.h"
 #include "game_mcts/games/risk/risk_serialization.h"
 #include "game_mcts/games/risk/strategies/risk_proposer.h"

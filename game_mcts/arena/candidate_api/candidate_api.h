@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_TOURNAMENT_SERVER_CANDIDATE_API_CANDIDATE_API_H
-#define GAME_MCTS_GAME_MCTS_TOURNAMENT_SERVER_CANDIDATE_API_CANDIDATE_API_H
+#ifndef GAME_MCTS_GAME_MCTS_ARENA_CANDIDATE_API_CANDIDATE_API_H
+#define GAME_MCTS_GAME_MCTS_ARENA_CANDIDATE_API_CANDIDATE_API_H
 
 // The contract between an arena candidate and the harness that runs it.
 //
@@ -29,8 +29,8 @@
 
 #include <string_view>
 
-#include "game_mcts/tournament_server/candidate_api/candidate_params.h"
-#include "game_mcts/tournament_server/client/policies.h"
+#include "game_mcts/arena/candidate_api/candidate_params.h"
+#include "game_mcts/arena/client/policies.h"
 #include "game_mcts/core/mcts/tournament.h"
 
 #if defined(CANDIDATE_GAME_TICTACTOE)
@@ -64,4 +64,4 @@ using policy_t = mcts::tournament::AnyPolicy<game_t>;
 // safe to call repeatedly.
 auto MakePolicy(const candidate::Params &params) -> candidate::policy_t;
 
-#endif  // GAME_MCTS_GAME_MCTS_TOURNAMENT_SERVER_CANDIDATE_API_CANDIDATE_API_H
+#endif  // GAME_MCTS_GAME_MCTS_ARENA_CANDIDATE_API_CANDIDATE_API_H

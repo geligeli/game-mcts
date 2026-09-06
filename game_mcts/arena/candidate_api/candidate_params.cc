@@ -1,4 +1,4 @@
-#include "game_mcts/tournament_server/candidate_api/candidate_params.h"
+#include "game_mcts/arena/candidate_api/candidate_params.h"
 
 namespace candidate {
 

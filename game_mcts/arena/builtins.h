@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_TOURNAMENT_SERVER_REFEREE_BUILTINS_H
-#define GAME_MCTS_GAME_MCTS_TOURNAMENT_SERVER_REFEREE_BUILTINS_H
+#ifndef GAME_MCTS_GAME_MCTS_ARENA_BUILTINS_H
+#define GAME_MCTS_GAME_MCTS_ARENA_BUILTINS_H
 
 // Game-generic built-in strategies, exposed as BuiltinFn (serialized state ->
 // serialized action). Game-specific entries (e.g. Risk MCTS) live in
@@ -11,6 +11,7 @@
 #include <string_view>
 #include <vector>
 
+#include "game_mcts/arena/game_session_impl.h"
 #include "game_mcts/core/mcts/game_traits.h"
 #include "game_mcts/core/mcts/minimax.h"
 #include "game_mcts/core/mcts/serialization.h"
@@ -65,4 +66,4 @@ auto MinimaxBuiltin() -> BuiltinFn {
 
 }  // namespace tournament_broker
 
-#endif  // GAME_MCTS_GAME_MCTS_TOURNAMENT_SERVER_REFEREE_BUILTINS_H
+#endif  // GAME_MCTS_GAME_MCTS_ARENA_BUILTINS_H

@@ -14,8 +14,10 @@ Strict separation, enforced by concepts in
 - **Policy** — external `ActionProposer` choosing moves, never part of the game.
 - **Search** — `MctsRunner` (tree + selection/rollout/backprop).
 
-Dependency direction: `common` <- `core` <- `games` / `tournament_server`,
-`tools` at the top (nothing may depend on `tools`).
+Dependency direction: `common` <- `core` <- `games` <- `arena`, `tools` at the
+top (nothing may depend on `tools`). `tournament_server` (the arena) sits
+outside that chain and depends on nothing else in this repo; `game_mcts/arena`
+is the only thing that joins the two.
 
 New to the framework? Read `game_mcts/core/mcts/README.md` (contracts +
 step-by-step for a new game) and copy `game_mcts/games/tictactoe/`
@@ -109,11 +111,11 @@ bazel run //game_mcts/tools/bench:mcts_bench
   `State/ActionTo/FromProto` functions (pattern:
   `tictactoe_serialization.h`). State/action bytes on the wire and across
   the pybind boundary are always serialized protos.
-- `candidate_api/candidate_api.h` is header-only because the game is
+- `arena/candidate_api/candidate_api.h` is header-only because the game is
   selected at compile time (`CANDIDATE_GAME_RISK2` vs
   `CANDIDATE_GAME_TICTACTOE`); candidates define only
   `MakePolicy(const candidate::Params&)`. Start from
-  `game_mcts/tournament_server/candidates/dev/strategy.h`.
+  `game_mcts/arena/candidates/dev/strategy.h`.
 
 ## Tests
 
@@ -136,6 +138,30 @@ bazel run //game_mcts/tools/bench:mcts_bench
   `game_mcts/tournament_server/README.md`; the agent submission loop in
   `game_mcts/tournament_server/ARENA.md`. A candidate id is its broker
   player name; `player:<name>` rendezvous pairs specific players.
+- **The arena is game-agnostic and is being split into its own repo.** It
+  speaks serialized states/actions as byte strings and never names a game.
+  Do not add an `#include`, a bazel label or a hardcoded path under
+  `game_mcts/tournament_server/` that points at `core/`, `games/` or
+  `arena/` — that is the coupling the split exists to remove. Strings count:
+  a bazel label in a generated BUILD or a game name in the coordinator is the
+  same mistake as a dep.
+- Rules reach the arena through `tournament_broker::GameRegistry()`, which
+  `referee/game_registry.h` **declares and never defines**. A referee, broker
+  or client binary is assembled as "a registry + an entry-point library"
+  (`referee:referee_main`, `referee:broker_server_main`,
+  `client:random_client_main`) — see `//game_mcts/arena:match_referee` and
+  `//game_mcts/tournament_server/testgame:match_referee`. Registry libraries
+  need `alwayslink = 1`; nothing depends on them by label.
+- Anything problem-specific belongs in the problem's `.textproto`, not in the
+  coordinator: `submission.harness` carries the labels a generated candidate
+  BUILD is written against, `submission.allowed_dep_prefixes` the deps a
+  solution may name, `match.referee_target` the referee to build.
+- `server:no_problem_code_test` nm-scans `problem_server` for
+  `GameRegistry`/`GameSession`; it must keep passing.
+- `//game_mcts/tournament_server/testgame` (Nim) is the arena's own game, so
+  the broker can be tested with no game framework in the build. Use it when
+  adding arena-side coverage; use `game_mcts/arena` for coverage that needs a
+  real game.
 - `PlayRemoteGames` owns the `Play`-stream protocol (including
   drain-before-`Finish`); hand-rolled clients must replicate that.
 - Prefer the MCP tools (`arena_rules()` first, then submit by **paths**,

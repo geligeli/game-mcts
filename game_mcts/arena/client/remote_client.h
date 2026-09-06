@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_TOURNAMENT_SERVER_CLIENT_REMOTE_CLIENT_H
-#define GAME_MCTS_GAME_MCTS_TOURNAMENT_SERVER_CLIENT_REMOTE_CLIENT_H
+#ifndef GAME_MCTS_GAME_MCTS_ARENA_CLIENT_REMOTE_CLIENT_H
+#define GAME_MCTS_GAME_MCTS_ARENA_CLIENT_REMOTE_CLIENT_H
 
 // Client-side counterpart of the broker: wraps any typed strategy
 // (mcts::tournament::TournamentPolicy<G>) so it can join a tournament server.
@@ -24,11 +24,11 @@
 #include <vector>
 
 #include "absl/log/log.h"
-#include "game_mcts/tournament_server/client/policies.h"
-#include "game_mcts/tournament_server/proto/tournament_broker.grpc.pb.h"
+#include "game_mcts/arena/client/policies.h"
 #include "game_mcts/core/mcts/game_traits.h"
 #include "game_mcts/core/mcts/serialization.h"
 #include "game_mcts/core/mcts/tournament.h"
+#include "game_mcts/tournament_server/proto/tournament_broker.grpc.pb.h"
 
 namespace tournament_broker {
 
@@ -114,4 +114,4 @@ auto PlayRemoteGames(proto::TournamentBroker::Stub *stub,
 
 }  // namespace tournament_broker
 
-#endif  // GAME_MCTS_GAME_MCTS_TOURNAMENT_SERVER_CLIENT_REMOTE_CLIENT_H
+#endif  // GAME_MCTS_GAME_MCTS_ARENA_CLIENT_REMOTE_CLIENT_H

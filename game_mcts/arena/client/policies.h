@@ -1,5 +1,5 @@
-#ifndef GAME_MCTS_GAME_MCTS_TOURNAMENT_SERVER_CLIENT_POLICIES_H
-#define GAME_MCTS_GAME_MCTS_TOURNAMENT_SERVER_CLIENT_POLICIES_H
+#ifndef GAME_MCTS_GAME_MCTS_ARENA_CLIENT_POLICIES_H
+#define GAME_MCTS_GAME_MCTS_ARENA_CLIENT_POLICIES_H
 
 // Stock TournamentPolicy adapters shared by the broker's clients: wrap a
 // proposer as a uniform-random player, or run game-generic MCTS.
@@ -63,4 +63,4 @@ struct MctsPolicy {
 
 }  // namespace tournament_broker
 
-#endif  // GAME_MCTS_GAME_MCTS_TOURNAMENT_SERVER_CLIENT_POLICIES_H
+#endif  // GAME_MCTS_GAME_MCTS_ARENA_CLIENT_POLICIES_H

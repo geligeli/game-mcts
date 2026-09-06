@@ -128,7 +128,6 @@ cc_test(
     srcs = ["mcts_test.cpp"],
     deps = [
         ":mcts",
-        "//game_mcts/common/process",
         "//game_mcts/games/tictactoe",
         "@googletest//:gtest_main",
     ],

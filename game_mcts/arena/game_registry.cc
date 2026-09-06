@@ -2,6 +2,10 @@
 
 #include <string_view>
 
+#include "game_mcts/arena/benchgame/bench_game.h"
+#include "game_mcts/arena/benchgame/bench_serialization.h"
+#include "game_mcts/arena/builtins.h"
+#include "game_mcts/arena/game_session_impl.h"
 #include "game_mcts/core/mcts/mcts.inl"
 #include "game_mcts/games/risk/risk_game.h"
 #include "game_mcts/games/risk/risk_serialization.h"
@@ -9,9 +13,6 @@
 #include "game_mcts/games/risk/strategies/risk_rollout_shortcuts.h"
 #include "game_mcts/games/tictactoe/tictactoe.h"
 #include "game_mcts/games/tictactoe/tictactoe_serialization.h"
-#include "game_mcts/tournament_server/benchgame/bench_game.h"
-#include "game_mcts/tournament_server/benchgame/bench_serialization.h"
-#include "game_mcts/tournament_server/referee/builtins.h"
 
 namespace tournament_broker {
 

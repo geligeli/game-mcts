@@ -50,8 +50,11 @@ cc_binary(
     name = "throughput_benchmark",
     srcs = ["throughput_benchmark.cc"],
     deps = [
-        "//game_mcts/tournament_server/benchgame:bench_game",
-        "//game_mcts/tournament_server/benchgame:bench_serialization",
+        # Drives the broker directly, so it has to bring a registry of its own:
+        # matchmaker calls GameRegistry(), which the arena only declares.
+        "//game_mcts/arena:game_registry",
+        "//game_mcts/arena/benchgame:bench_game",
+        "//game_mcts/arena/benchgame:bench_serialization",
         "//game_mcts/tournament_server/proto:tournament_broker_cc_grpc",
         "//game_mcts/tournament_server/referee:broker_service",
         "//game_mcts/tournament_server/server:elo_store",

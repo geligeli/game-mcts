@@ -2,7 +2,7 @@
 # against everyone else's.
 #
 #   bazel run //game_mcts/tournament_server/server:problem_server -- \
-#       --problem_config=$PWD/game_mcts/tournament_server/problems/risk2.textproto \
+#       --problem_config=$PWD/game_mcts/arena/problems/risk2.textproto \
 #       --data_dir=$PWD/tournament_data --clients=$PWD/clients.textproto
 
 problem_id: "risk2"
@@ -31,18 +31,41 @@ submission {
   # that is a mistake worth catching before it reaches the fleet.
   max_patch_bytes: 262144
   max_files: 32
-  allow_paths: "game_mcts/tournament_server/candidates/**"
+  allow_paths: "game_mcts/arena/candidates/**"
 
   # Solutions here are a directory of new files, so agents may submit that
   # shape directly and the server turns it into an add-only patch under this
   # directory -- generated BUILD included, which is what keeps the dependency
   # allowlist enforceable. A hand-written patch is still accepted, and is held
   # to the same allow_paths.
-  files_submit_dir: "game_mcts/tournament_server/candidates"
+  files_submit_dir: "game_mcts/arena/candidates"
+
+  # The fixed parts of the BUILD generated around a structured submission.
+  # These live here rather than in the coordinator because they are this
+  # repo's labels: the arena has no opinion on what a solution links against.
+  harness {
+    api_dep: "//game_mcts/arena/candidate_api:candidate_api"
+    main_src: "//game_mcts/arena/candidate_api:candidate_main.cc"
+    bot_deps: "//game_mcts/arena/client:remote_client"
+    bot_deps: "//game_mcts/tournament_server/proto:tournament_broker_cc_grpc"
+    bot_deps: "@abseil-cpp//absl/flags:flag"
+    bot_deps: "@abseil-cpp//absl/flags:parse"
+    bot_deps: "@abseil-cpp//absl/log"
+    bot_deps: "@abseil-cpp//absl/log:initialize"
+    bot_deps: "@grpc//:grpc++"
+    game_define: "CANDIDATE_GAME_RISK2"
+  }
+
+  # What a strategy may additionally depend on. Kept tight on purpose: a dep
+  # on an arbitrary repo is a way to run code during the build.
+  allowed_dep_prefixes: "//game_mcts/core/mcts:"
+  allowed_dep_prefixes: "//game_mcts/games/risk:"
+  allowed_dep_prefixes: "//game_mcts/games/risk/strategies:"
+  allowed_dep_prefixes: "@abseil-cpp//"
 }
 
 build {
-  targets: "//game_mcts/tournament_server/candidates/{submission_id}:bot"
+  targets: "//game_mcts/arena/candidates/{submission_id}:bot"
   bazel_flags: "--config=native"
   timeout_s: 1800
 }
@@ -57,7 +80,7 @@ sandbox {
 
 match {
   game: "risk2"
-  referee_target: "//game_mcts/tournament_server/referee:match_referee"
+  referee_target: "//game_mcts/arena:match_referee"
   games_per_order: 10
   placement_opponents: "builtin:random"
   placement_opponents: "builtin:mcts"

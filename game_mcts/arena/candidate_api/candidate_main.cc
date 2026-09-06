@@ -2,7 +2,7 @@
 // unchanged for every candidate: the arena points CANDIDATE_ENTRY_HEADER at
 // the submitted header, which defines MakePolicy().
 //
-//   bazel run //game_mcts/tournament_server/candidate_api:dev_bot --
+//   bazel run //game_mcts/arena/candidate_api:dev_bot --
 //       --name=me-dev --server=localhost:50051 --opponent=builtin:mcts
 //       --games=5 --params=iterations=800
 //
@@ -10,18 +10,18 @@
 //
 //   RESULT games=5 wins=3 draws=0 losses=2 elo=1512.4
 
+#include <grpcpp/grpcpp.h>
+
 #include <exception>
 #include <random>
 #include <string>
-
-#include <grpcpp/grpcpp.h>
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/log/initialize.h"
 #include "absl/log/log.h"
-#include "game_mcts/tournament_server/candidate_api/candidate_api.h"
-#include "game_mcts/tournament_server/client/remote_client.h"
+#include "game_mcts/arena/candidate_api/candidate_api.h"
+#include "game_mcts/arena/client/remote_client.h"
 #include "game_mcts/tournament_server/proto/tournament_broker.grpc.pb.h"
 
 #ifndef CANDIDATE_ENTRY_HEADER
@@ -31,8 +31,7 @@
 
 ABSL_FLAG(std::string, server, "localhost:50051", "host:port of the broker");
 ABSL_FLAG(std::string, name, "", "Player name; the candidate id in the arena");
-ABSL_FLAG(std::string, opponent, "any",
-          "any | builtin:<spec> | player:<name>");
+ABSL_FLAG(std::string, opponent, "any", "any | builtin:<spec> | player:<name>");
 ABSL_FLAG(int, games, 1, "Number of games to play");
 ABSL_FLAG(std::string, params, "",
           "Tuning knobs for MakePolicy, as key=value,key=value");
@@ -62,8 +61,9 @@ auto main(int argc, char **argv) -> int {
     candidate::policy_t policy =
         MakePolicy(candidate::Params::Parse(absl::GetFlag(FLAGS_params)));
     results = tournament_broker::PlayRemoteGames<candidate::game_t>(
-        stub.get(), absl::GetFlag(FLAGS_name), std::string(candidate::kGameName),
-        absl::GetFlag(FLAGS_opponent), absl::GetFlag(FLAGS_games), policy, gen);
+        stub.get(), absl::GetFlag(FLAGS_name),
+        std::string(candidate::kGameName), absl::GetFlag(FLAGS_opponent),
+        absl::GetFlag(FLAGS_games), policy, gen);
   } catch (const std::exception &error) {
     LOG(ERROR) << error.what();
     return 1;

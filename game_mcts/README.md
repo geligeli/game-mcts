@@ -5,8 +5,9 @@ turn-based games and Monte Carlo Tree Search (MCTS), the games built on it,
 the gRPC tournament server, and supporting tools. Everything is built with
 Bazel (`cc_library` / `cc_binary` / `cc_test`).
 
-Dependency direction: `common` <- `core` <- `games` / `tournament_server`,
-with `tools` at the top (nothing depends on `tools`).
+Dependency direction: `common` <- `core` <- `games` <- `arena`, with `tools` at
+the top (nothing depends on `tools`). `tournament_server` sits outside that
+chain: it depends on nothing here, and `arena` is what connects the two.
 
 - `game_mcts/core/mcts/` — the framework: game concepts, game runner, MCTS,
   rollouts, tournaments, tree export. See
@@ -24,13 +25,18 @@ with `tools` at the top (nothing depends on `tools`).
   action proposer (`strategies/`), ASCII board rendering (`ascii/`), self-play
   and tournament binaries. See
   [game_mcts/games/risk/README.md](games/risk/README.md).
-- `game_mcts/tournament_server/` — gRPC tournament broker: `proto/` (wire
-  formats), `server/` (broker + arena services, matchmaking, ELO, history),
-  `client/` (strategy-side policies and remote client), `sandbox/` (runner +
-  worker for building and rating agent submissions), `candidate_api/`
-  (submission contract), `candidates/` (submitted strategies). See
+- `game_mcts/tournament_server/` — the arena, a game-agnostic problem-running
+  framework: `proto/` (wire formats), `server/` (coordinator: submissions,
+  scheduling, ELO, history, leaderboard), `referee/` (match loop and broker
+  protocol), `sandbox/` (runner + worker for building and rating submissions),
+  `testgame/` (its own game, so it can be tested without a framework). It
+  depends on nothing else in this repo. See
   [README.md](tournament_server/README.md) and
   [ARENA.md](tournament_server/ARENA.md).
+- `game_mcts/arena/` — the binding between this framework and the arena: the
+  `GameSessionImpl` adapter, `builtins.h`, the game registry naming risk2 /
+  tictactoe / bench, the referee and client binaries built from it, plus
+  `client/`, `candidate_api/`, `candidates/`, `benchgame/` and `problems/`.
 - `game_mcts/tools/bench/` — benchmark binaries (MCTS, Risk, broker
   throughput).
 - `game_mcts/tools/viz/` — HTML/HTTP plot serving.

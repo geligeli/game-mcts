@@ -17,9 +17,9 @@
 #include <string>
 #include <thread>
 
+#include "game_mcts/arena/client/remote_client.h"
 #include "game_mcts/games/tictactoe/tictactoe.h"
 #include "game_mcts/games/tictactoe/tictactoe_serialization.h"
-#include "game_mcts/tournament_server/client/remote_client.h"
 #include "game_mcts/tournament_server/proto/tournament_broker.grpc.pb.h"
 #include "game_mcts/tournament_server/referee/broker_service.h"
 #include "game_mcts/tournament_server/referee/matchmaker.h"

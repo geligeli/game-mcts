@@ -24,14 +24,21 @@ on the hot path.
 - `game_mcts/games/pig/` — minimal game with chance nodes (dice).
 - `game_mcts/games/risk/` — a full-size stochastic game (Risk) with a custom
   action proposer, rollout shortcuts, self-play and tournament binaries.
-- `game_mcts/tournament_server/` — gRPC tournament broker (`proto/`, `server/`,
-  `client/`, `sandbox/`, `candidate_api/`, `candidates/`): remote strategies
-  play games over a bidirectional stream, with time limits, persistent ELO,
-  game history and an HTTP leaderboard. On top of it, the **arena** lets an
-  agent submit a strategy that is built in a sandbox and rated against the
-  field. See
+- `game_mcts/tournament_server/` — the **arena**: a general problem-running
+  framework (`proto/`, `server/`, `sandbox/`, `referee/`, `testgame/`).
+  Remote players play games over a bidirectional stream with time limits,
+  persistent ELO, game history and an HTTP leaderboard, and agents submit
+  solutions that are built in a sandbox and rated against the field. It knows
+  nothing about this repo's games: rules reach it through a `GameRegistry` it
+  only declares, and everything else is problem config. See
   [game_mcts/tournament_server/ARENA.md](game_mcts/tournament_server/ARENA.md).
-- `game_mcts/common/process/` — small subprocess wrapper.
+  It is being split into its own repository.
+- `game_mcts/arena/` — what binds this repo to the arena: the
+  `mcts::SerializableGame` adapter, the builtins, the risk2/tictactoe registry
+  and its referee binaries, plus `client/`, `candidate_api/`, `candidates/`
+  and the problem configs whose solutions are game_mcts code.
+- `game_mcts/common/process/` — small subprocess wrapper (used by the arena's
+  sandbox).
 - `game_mcts/common/fitters/` — simple curve fitters.
 - `game_mcts/tools/viz/` — HTML/HTTP plot serving.
 - `game_mcts/tools/bench/` — benchmark binaries.

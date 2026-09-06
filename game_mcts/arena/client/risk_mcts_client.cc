@@ -5,20 +5,20 @@
 //   bazel run //game_mcts/tournament_server/client:risk_mcts_client
 //       -- --name=deep-bot --server=localhost:50051 --iterations=400
 
+#include <grpcpp/grpcpp.h>
+
 #include <random>
 #include <string>
-
-#include <grpcpp/grpcpp.h>
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/log/initialize.h"
 #include "absl/log/log.h"
+#include "game_mcts/arena/client/remote_client.h"
 #include "game_mcts/games/risk/risk_game.h"
 #include "game_mcts/games/risk/risk_serialization.h"
 #include "game_mcts/games/risk/strategies/risk_proposer.h"
 #include "game_mcts/games/risk/strategies/risk_rollout_shortcuts.h"
-#include "game_mcts/tournament_server/client/remote_client.h"
 #include "game_mcts/tournament_server/proto/tournament_broker.grpc.pb.h"
 
 ABSL_FLAG(std::string, server, "localhost:50051", "host:port of the broker");
@@ -42,20 +42,18 @@ auto main(int argc, char **argv) -> int {
 
   auto rollout = mcts::MakeShortcutRollout<game_t, proposer_t>(
       &risk_game::ResolveBattleWithExpectationInPlace<2>);
-  tournament_broker::MctsPolicy<game_t, proposer_t, decltype(rollout)>
-      policy{.iterations = absl::GetFlag(FLAGS_iterations)};
+  tournament_broker::MctsPolicy<game_t, proposer_t, decltype(rollout)> policy{
+      .iterations = absl::GetFlag(FLAGS_iterations)};
 
   auto channel = grpc::CreateChannel(absl::GetFlag(FLAGS_server),
                                      grpc::InsecureChannelCredentials());
-  auto stub =
-      tournament_broker::proto::TournamentBroker::NewStub(channel);
+  auto stub = tournament_broker::proto::TournamentBroker::NewStub(channel);
 
   std::mt19937 gen(std::random_device{}());
   try {
     tournament_broker::PlayRemoteGames<game_t>(
         stub.get(), absl::GetFlag(FLAGS_name), "risk2",
-        absl::GetFlag(FLAGS_opponent), absl::GetFlag(FLAGS_games), policy,
-        gen);
+        absl::GetFlag(FLAGS_opponent), absl::GetFlag(FLAGS_games), policy, gen);
   } catch (const std::exception &e) {
     LOG(ERROR) << e.what();
     return 1;
