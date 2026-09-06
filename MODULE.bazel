@@ -21,6 +21,11 @@ bazel_dep(name = "boost.random", version = "1.89.0.bcr.2")
 bazel_dep(name = "boost.iterator", version = "1.89.0.bcr.2")
 bazel_dep(name = "grpc", version = "1.74.1")
 
+# Already in the graph through grpc; declared directly so the arena's client
+# registry can hash tokens with SHA-256 rather than carry its own copy of one.
+# Version matched to what grpc resolves, so this adds no new fetch.
+bazel_dep(name = "boringssl", version = "0.20241024.0")
+
 # Workaround for https://github.com/protocolbuffers/protobuf/issues/22386:
 # @protobuf//python/dist loads @protobuf_pip_deps//:requirements.bzl, but that
 # repo is only created by a dev_dependency extension, so it is missing when

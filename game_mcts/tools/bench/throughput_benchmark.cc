@@ -22,6 +22,9 @@
 //   bazel run -c opt //game_mcts/tools/bench:throughput_benchmark --
 //       --label=new --games=1,10,100,1000,5000
 
+#include <grpcpp/grpcpp.h>
+#include <grpcpp/support/client_callback.h>
+
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -34,20 +37,17 @@
 #include <thread>
 #include <vector>
 
-#include <grpcpp/grpcpp.h>
-#include <grpcpp/support/client_callback.h>
-
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/log/globals.h"
 #include "absl/log/initialize.h"
 #include "game_mcts/tournament_server/benchgame/bench_game.h"
 #include "game_mcts/tournament_server/benchgame/bench_serialization.h"
-#include "game_mcts/tournament_server/server/broker_service.h"
+#include "game_mcts/tournament_server/proto/tournament_broker.grpc.pb.h"
+#include "game_mcts/tournament_server/referee/broker_service.h"
+#include "game_mcts/tournament_server/referee/matchmaker.h"
 #include "game_mcts/tournament_server/server/elo_store.h"
 #include "game_mcts/tournament_server/server/game_history.h"
-#include "game_mcts/tournament_server/server/matchmaker.h"
-#include "game_mcts/tournament_server/proto/tournament_broker.grpc.pb.h"
 
 ABSL_FLAG(std::string, label, "new",
           "Implementation name recorded in the CSV (e.g. old/new)");
@@ -81,9 +81,8 @@ auto FixedAction() -> const std::string & {
 
 // One load-generating client, driven entirely by gRPC's callback API: it owns
 // no thread, so thousands of them cost memory rather than scheduler pressure.
-class BenchClient final
-    : public grpc::ClientBidiReactor<proto::ClientMessage,
-                                     proto::ServerMessage> {
+class BenchClient final : public grpc::ClientBidiReactor<proto::ClientMessage,
+                                                         proto::ServerMessage> {
  public:
   BenchClient(proto::TournamentBroker::Stub *stub, const std::string &name) {
     auto *hello = out_.mutable_hello();
@@ -281,9 +280,9 @@ auto main(int argc, char **argv) -> int {
     size_t start = 0;
     while (start <= spec.size()) {
       const size_t comma = spec.find(',', start);
-      const std::string token = spec.substr(
-          start,
-          comma == std::string::npos ? std::string::npos : comma - start);
+      const std::string token =
+          spec.substr(start, comma == std::string::npos ? std::string::npos
+                                                        : comma - start);
       if (!token.empty()) {
         sweep.push_back(std::stoi(token));
       }
