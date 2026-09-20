@@ -16,8 +16,8 @@
 #include "game_mcts/core/mcts/mcts.h"
 #include "game_mcts/core/mcts/mcts.inl"
 #include "game_mcts/core/mcts/mcts_export.h"
-#include "game_mcts/core/util/overloaded.h"
 #include "game_mcts/core/python/py_game.h"
+#include "game_mcts/core/util/overloaded.h"
 
 namespace mcts {
 
@@ -185,10 +185,10 @@ class PyMctsImpl final : public PyMcts {
 
 template <typename G, typename PROPOSER, typename ROLLOUT_POLICY>
   requires ProtoSerializableGame<G> && ActionProposer<PROPOSER, G> &&
-               RolloutPolicy<ROLLOUT_POLICY, G>
+           RolloutPolicy<ROLLOUT_POLICY, G>
 auto MakePyMcts(G root, PROPOSER proposer, ROLLOUT_POLICY rollout_policy,
-                double widening_c, double widening_alpha,
-                std::uint32_t seed) -> std::unique_ptr<PyMcts> {
+                double widening_c, double widening_alpha, std::uint32_t seed)
+    -> std::unique_ptr<PyMcts> {
   return std::make_unique<PyMctsImpl<G, PROPOSER, ROLLOUT_POLICY>>(
       std::move(root), std::move(proposer), std::move(rollout_policy),
       widening_c, widening_alpha, seed);
@@ -197,11 +197,11 @@ auto MakePyMcts(G root, PROPOSER proposer, ROLLOUT_POLICY rollout_policy,
 // Root state from serialized proto bytes instead of a native state.
 template <typename G, typename PROPOSER, typename ROLLOUT_POLICY>
   requires ProtoSerializableGame<G> && ActionProposer<PROPOSER, G> &&
-               RolloutPolicy<ROLLOUT_POLICY, G>
+           RolloutPolicy<ROLLOUT_POLICY, G>
 auto MakePyMcts(const std::string &state_proto, PROPOSER proposer,
                 ROLLOUT_POLICY rollout_policy, double widening_c,
-                double widening_alpha,
-                std::uint32_t seed) -> std::unique_ptr<PyMcts> {
+                double widening_alpha, std::uint32_t seed)
+    -> std::unique_ptr<PyMcts> {
   using traits_t = GameSerializationTraits<G>;
   typename traits_t::state_proto_t proto;
   if (!proto.ParseFromString(state_proto)) {

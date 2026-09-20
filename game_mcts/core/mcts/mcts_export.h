@@ -24,9 +24,10 @@ namespace mcts {
 template <Game GAME_STATE, ActionProposer<GAME_STATE> PROPOSER,
           typename ROLLOUT_POLICY, typename OBSERVER>
   requires SerializableGame<GAME_STATE> &&
-               RolloutPolicy<ROLLOUT_POLICY, GAME_STATE>
-auto ExportTree(const MctsRunner<GAME_STATE, PROPOSER, ROLLOUT_POLICY, OBSERVER>
-                    &runner) -> proto::MctsTree {
+           RolloutPolicy<ROLLOUT_POLICY, GAME_STATE>
+auto ExportTree(
+    const MctsRunner<GAME_STATE, PROPOSER, ROLLOUT_POLICY, OBSERVER> &runner)
+    -> proto::MctsTree {
   using Traits = GameSerializationTraits<GAME_STATE>;
 
   proto::MctsTree tree;

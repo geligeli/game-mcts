@@ -28,10 +28,10 @@
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
-#include "game_mcts/games/risk/ascii/ascii_board.h"
-#include "game_mcts/games/risk/risk_board.h"
 #include "game_mcts/core/mcts/game_traits.h"
 #include "game_mcts/core/util/overloaded.h"
+#include "game_mcts/games/risk/ascii/ascii_board.h"
+#include "game_mcts/games/risk/risk_board.h"
 
 namespace risk_game {
 
@@ -122,8 +122,8 @@ struct InitialPlaceAction {
 struct ReinforceAction {
   std::array<uint16_t, kNumTerritories>
       units_to_place;  // Indexed by territory ID
-  constexpr auto operator==(const ReinforceAction &other) const -> bool =
-                                                                       default;
+  constexpr auto operator==(const ReinforceAction &other) const
+      -> bool = default;
   constexpr auto operator<=>(const ReinforceAction &other) const = default;
 };
 
@@ -161,8 +161,8 @@ struct FortifyAction {
 struct RollDiceAction {
   std::array<int, 3> attacker_rolls;
   std::array<int, 2> defender_rolls;
-  constexpr auto operator==(const RollDiceAction &other) const -> bool =
-                                                                      default;
+  constexpr auto operator==(const RollDiceAction &other) const
+      -> bool = default;
   constexpr auto operator<=>(const RollDiceAction &other) const = default;
 };
 
@@ -463,8 +463,8 @@ struct RiskState {
 
   using action_t = RiskAction;
 
-  friend auto operator<<(std::ostream &os,
-                         const RiskState &state) -> std::ostream & {
+  friend auto operator<<(std::ostream &os, const RiskState &state)
+      -> std::ostream & {
     os << RenderRiskState(state);
     return os;
   }
@@ -552,8 +552,8 @@ struct RiskState {
   // legal under the engine's current transition semantics. On failure sets
   // |reason| to a short human-readable explanation; on success leaves it
   // untouched.
-  auto is_valid_action(const action_t &action,
-                       std::string &reason) const -> bool {
+  auto is_valid_action(const action_t &action, std::string &reason) const
+      -> bool {
     return std::visit(
         overloaded{
             [&](const InitialPlaceAction &act) -> bool {

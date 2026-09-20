@@ -58,8 +58,8 @@ auto linear_regression(const std::vector<double>& x,
 }
 }  // anonymous namespace
 
-auto fit_exponential(const std::vector<double>& x,
-                     const std::vector<double>& y) -> ExponentialFitResult {
+auto fit_exponential(const std::vector<double>& x, const std::vector<double>& y)
+    -> ExponentialFitResult {
   ExponentialFitResult result{0.0, 0.0, 0.0, false};
 
   if (x.size() != y.size() || x.size() < 2) {
@@ -99,8 +99,8 @@ auto fit_exponential(const std::vector<double>& x,
   return result;
 }
 
-auto fit_power_law(const std::vector<double>& x,
-                   const std::vector<double>& y) -> PowerLawFitResult {
+auto fit_power_law(const std::vector<double>& x, const std::vector<double>& y)
+    -> PowerLawFitResult {
   PowerLawFitResult result{0.0, 0.0, 0.0, false};
 
   if (x.size() != y.size() || x.size() < 2) {
@@ -141,8 +141,8 @@ auto fit_power_law(const std::vector<double>& x,
   return result;
 }
 
-auto choose_best_fit(const std::vector<double>& x,
-                     const std::vector<double>& y) -> FitType {
+auto choose_best_fit(const std::vector<double>& x, const std::vector<double>& y)
+    -> FitType {
   auto exp_result = fit_exponential(x, y);
   auto pow_result = fit_power_law(x, y);
 

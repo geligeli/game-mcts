@@ -22,8 +22,8 @@ auto TerritoryToProto(const risk_game::Territory &territory)
   return proto;
 }
 
-auto TerritoryFromProto(const rproto::Territory &proto,
-                        int num_players) -> risk_game::Territory {
+auto TerritoryFromProto(const rproto::Territory &proto, int num_players)
+    -> risk_game::Territory {
   CHECK_GE(proto.owner(), -1);
   CHECK_LT(proto.owner(), num_players);
   CHECK_LE(proto.units(), std::numeric_limits<uint16_t>::max());

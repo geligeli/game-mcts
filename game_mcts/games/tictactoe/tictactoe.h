@@ -38,8 +38,8 @@ struct TicTacToe {
   auto valid_moves() const -> mcts::VectorLegalActionSet<action_t>;
   // Legality oracle for referee/debug paths (not hot loops). On failure sets
   // |reason| to a short explanation; on success leaves it untouched.
-  auto is_valid_action(const action_t& action,
-                       std::string& reason) const -> bool;
+  auto is_valid_action(const action_t& action, std::string& reason) const
+      -> bool;
 };
 
 static_assert(mcts::Game<TicTacToe>);

@@ -30,13 +30,13 @@ struct TermSize {
 };
 
 auto GetTermSize() -> TermSize {
-  struct winsize ws {};
+  struct winsize ws{};
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
   return {ws.ws_col, ws.ws_row};
 }
 
 struct RawMode {
-  struct termios orig {};
+  struct termios orig{};
 
   RawMode() {
     tcgetattr(STDIN_FILENO, &orig);
@@ -178,8 +178,8 @@ struct MouseEvent {
   bool press;
 };
 
-auto ParseSGRMouse(const char *buf, int len, int &consumed,
-                   MouseEvent &ev) -> bool {
+auto ParseSGRMouse(const char *buf, int len, int &consumed, MouseEvent &ev)
+    -> bool {
   // Look for \033[< ... M or m
   for (int i = 0; i + 3 < len; ++i) {
     if (buf[i] != '\033' || buf[i + 1] != '[' || buf[i + 2] != '<') continue;
@@ -216,7 +216,7 @@ auto main(int argc, char **argv) -> int {
   RawMode raw_mode;
   EnableMouse();
 
-  struct sigaction sa {};
+  struct sigaction sa{};
   sa.sa_handler = SigwinchHandler;
   sa.sa_flags = SA_RESTART;
   sigaction(SIGWINCH, &sa, nullptr);
@@ -231,9 +231,7 @@ auto main(int argc, char **argv) -> int {
     fd_set fds;
     FD_ZERO(&fds);
     FD_SET(STDIN_FILENO, &fds);
-    struct timeval tv {
-      0, 500000
-    };  // 0.5s
+    struct timeval tv{0, 500000};  // 0.5s
     int ret = select(STDIN_FILENO + 1, &fds, nullptr, nullptr, &tv);
     if (ret <= 0) continue;
 

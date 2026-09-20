@@ -50,15 +50,15 @@ template <mcts::Game G>
 struct AnyPolicy {
   struct Concept {
     virtual ~Concept() = default;
-    virtual auto operator()(const G &game,
-                            std::mt19937 &gen) const -> PolicyDecision<G> = 0;
+    virtual auto operator()(const G &game, std::mt19937 &gen) const
+        -> PolicyDecision<G> = 0;
   };
 
   template <TournamentPolicy<G> P>
   struct Model final : Concept {
     explicit Model(P policy) : policy(std::move(policy)) {}
-    auto operator()(const G &game,
-                    std::mt19937 &gen) const -> PolicyDecision<G> override {
+    auto operator()(const G &game, std::mt19937 &gen) const
+        -> PolicyDecision<G> override {
       return policy(game, gen);
     }
     P policy;
@@ -121,8 +121,8 @@ struct NullStepObserverFactory {
 // Returns the terminal state, or draw_t when |max_moves| is reached first.
 template <mcts::Game G, StepObserver<G> OBSERVER = NullStepObserver>
 auto PlayGame(G game, const AnyPolicy<G> *player0, const AnyPolicy<G> *player1,
-              std::mt19937 &gen, int max_moves,
-              OBSERVER observer = {}) -> mcts::game_state_t {
+              std::mt19937 &gen, int max_moves, OBSERVER observer = {})
+    -> mcts::game_state_t {
   for (int move = 0;
        !mcts::is_terminal(game.current_state()) && move < max_moves; ++move) {
     if constexpr (mcts::ChanceGame<G>) {
@@ -154,8 +154,8 @@ struct Task {
 
 // Every unordered pair plays |games_per_pair| games, alternating seats:
 // game k of a pair seats the lower-indexed policy first when k is even.
-inline auto BuildRoundRobin(int num_policies,
-                            int games_per_pair) -> std::vector<Task> {
+inline auto BuildRoundRobin(int num_policies, int games_per_pair)
+    -> std::vector<Task> {
   std::vector<Task> tasks;
   for (int a = 0; a < num_policies; ++a) {
     for (int b = a + 1; b < num_policies; ++b) {
@@ -179,12 +179,13 @@ inline auto BuildRoundRobin(int num_policies,
 template <mcts::Game G, typename InitialStateFn,
           StepObserverFactory<G> OBSERVER_FACTORY = NullStepObserverFactory>
   requires std::invocable<InitialStateFn> &&
-               std::same_as<std::invoke_result_t<InitialStateFn>, G>
-auto RunTournament(
-    const std::vector<Task> &tasks, InitialStateFn &&initial_state_fn,
-    const std::vector<AnyPolicy<G>> &policies, int num_threads,
-    uint32_t base_seed, int max_moves,
-    OBSERVER_FACTORY observer_factory = {}) -> std::vector<MatchRecord> {
+           std::same_as<std::invoke_result_t<InitialStateFn>, G>
+auto RunTournament(const std::vector<Task> &tasks,
+                   InitialStateFn &&initial_state_fn,
+                   const std::vector<AnyPolicy<G>> &policies, int num_threads,
+                   uint32_t base_seed, int max_moves,
+                   OBSERVER_FACTORY observer_factory = {})
+    -> std::vector<MatchRecord> {
   std::vector<MatchRecord> records(tasks.size());
   std::atomic<std::size_t> next_task{0};
   const int num_workers = std::max(1, num_threads);

@@ -4,7 +4,8 @@
 //       --iterations_per_move=100 --widening_alpha=0.25 --delay_ms=200
 //
 // Per-player overrides and game recording:
-//   bazel run //game_mcts/games/risk:risk_mcts_selfplay -- --record_games=/tmp/games
+//   bazel run //game_mcts/games/risk:risk_mcts_selfplay --
+//   --record_games=/tmp/games
 //       "--player_params=iterations=400,rollout=exact;"
 //
 // Interactive keys: space pauses/resumes; while paused 's' dumps the current
@@ -34,12 +35,12 @@
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "game_mcts/core/mcts/mcts.inl"
 #include "game_mcts/games/risk/risk.pb.h"
 #include "game_mcts/games/risk/risk_game.h"
 #include "game_mcts/games/risk/risk_serialization.h"
 #include "game_mcts/games/risk/strategies/risk_proposer.h"
 #include "game_mcts/games/risk/strategies/risk_rollout_shortcuts.h"
-#include "game_mcts/core/mcts/mcts.inl"
 #include "google/protobuf/text_format.h"
 
 ABSL_FLAG(int, iterations_per_move, 50, "MCTS iterations per decision node");
@@ -128,7 +129,7 @@ struct TerminalInputGuard {
   auto operator=(const TerminalInputGuard &) -> TerminalInputGuard & = delete;
 
  private:
-  struct termios saved_termios_ {};
+  struct termios saved_termios_{};
   int saved_flags_ = -1;
   bool termios_valid_ = false;
   bool flags_valid_ = false;
@@ -184,8 +185,8 @@ auto Trim(const std::string &s) -> std::string {
 
 // Applies one comma-separated key=value --player_params entry on top of
 // |params|. Throws std::runtime_error on unknown keys or malformed values.
-auto ParsePlayerParams(const std::string &spec,
-                       PlayerParams params) -> PlayerParams {
+auto ParsePlayerParams(const std::string &spec, PlayerParams params)
+    -> PlayerParams {
   size_t pos = 0;
   while (pos <= spec.size()) {
     const size_t comma = spec.find(',', pos);
@@ -590,7 +591,7 @@ auto main(int argc, char **argv) -> int {
   std::mt19937 gen(seed_flag >= 0 ? static_cast<uint32_t>(seed_flag)
                                   : std::random_device{}());
 
-  struct sigaction sa {};
+  struct sigaction sa{};
   sa.sa_handler = OnSigInt;
   sa.sa_flags = 0;  // No SA_RESTART: we want blocking calls to interrupt.
   sigaction(SIGINT, &sa, nullptr);

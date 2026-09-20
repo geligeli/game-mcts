@@ -50,8 +50,9 @@ struct MctsNode {
   MctsNode(GAME_STATE state, const PROPOSER &proposer);
   auto operator==(const MctsNode<GAME_STATE, PROPOSER> &other) const
       -> bool = default;
-  auto DebugPrint(const std::vector<MctsNode<GAME_STATE, PROPOSER>>
-                      &node_storage) const -> void;
+  auto DebugPrint(
+      const std::vector<MctsNode<GAME_STATE, PROPOSER>> &node_storage) const
+      -> void;
 
   value_t total_value;
   int num_visits;
@@ -208,8 +209,9 @@ template <Game GAME_STATE,
 struct RandomRollout {
   PROPOSER proposer{};
   int max_steps = kUnlimitedRolloutSteps;
-  auto operator()(GAME_STATE game, std::uniform_random_bit_generator auto &gen)
-      const -> game_state_t {
+  auto operator()(GAME_STATE game,
+                  std::uniform_random_bit_generator auto &gen) const
+      -> game_state_t {
     return Rollout(std::move(game), proposer, gen, max_steps);
   }
 };
@@ -225,8 +227,9 @@ struct ShortcutRollout {
   SHORTCUT shortcut;
   PROPOSER proposer{};
   int max_steps = kUnlimitedRolloutSteps;
-  auto operator()(GAME_STATE game, std::uniform_random_bit_generator auto &gen)
-      const -> game_state_t {
+  auto operator()(GAME_STATE game,
+                  std::uniform_random_bit_generator auto &gen) const
+      -> game_state_t {
     auto state = game.current_state();
     for (int steps = 0; !is_terminal(state); ++steps) {
       if (steps >= max_steps) {
@@ -252,7 +255,7 @@ template <Game GAME_STATE,
           ActionProposer<GAME_STATE> PROPOSER = DefaultProposer<GAME_STATE>,
           typename SHORTCUT>
   requires MoveShortcut<SHORTCUT, GAME_STATE> ||
-               MoveShortcutInPlace<SHORTCUT, GAME_STATE>
+           MoveShortcutInPlace<SHORTCUT, GAME_STATE>
 auto MakeShortcutRollout(SHORTCUT shortcut, PROPOSER proposer = {},
                          int max_steps = kUnlimitedRolloutSteps)
     -> ShortcutRollout<GAME_STATE, SHORTCUT, PROPOSER> {

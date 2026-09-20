@@ -91,8 +91,8 @@ struct VectorLegalActionSet {
   std::vector<action_t> actions;
 
   template <class GameState, class Generator>
-  auto next(const GameState &,
-            Generator &generator) -> std::optional<action_t> {
+  auto next(const GameState &, Generator &generator)
+      -> std::optional<action_t> {
     if (actions.empty()) {
       return std::nullopt;
     }
@@ -115,8 +115,8 @@ struct ArrayLegalActionSet {
   std::size_t size = N;
 
   template <class GameState, class Generator>
-  auto next(const GameState &,
-            Generator &generator) -> std::optional<action_t> {
+  auto next(const GameState &, Generator &generator)
+      -> std::optional<action_t> {
     if (size == 0) {
       return std::nullopt;
     }
@@ -288,8 +288,8 @@ struct DedupSampler {
 // Proposers should call this from propose() rather than aggregate-initializing
 // DedupSampler, so the bound is never silently left unset.
 template <typename SAMPLER, typename G>
-auto MakeDedupSampler(const SAMPLER &sampler,
-                      const G &state) -> DedupSampler<SAMPLER, G> {
+auto MakeDedupSampler(const SAMPLER &sampler, const G &state)
+    -> DedupSampler<SAMPLER, G> {
   DedupSampler<SAMPLER, G> result{.sampler = sampler};
   if constexpr (BoundedProposer<SAMPLER, G>) {
     result.support = sampler.support_size(state);

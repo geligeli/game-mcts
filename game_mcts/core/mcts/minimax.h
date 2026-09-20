@@ -5,8 +5,8 @@
 
 namespace minimax {
 
-auto ComputeActionValue(mcts::Game auto game, int action,
-                        int root_player) -> float {
+auto ComputeActionValue(mcts::Game auto game, int action, int root_player)
+    -> float {
   auto next_game = game.apply_action(action);
   return std::visit(
       overloaded{[&](const mcts::win_t &w) {

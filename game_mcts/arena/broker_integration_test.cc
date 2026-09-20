@@ -17,9 +17,6 @@
 #include <string>
 #include <thread>
 
-#include "game_mcts/arena/client/remote_client.h"
-#include "game_mcts/games/tictactoe/tictactoe.h"
-#include "game_mcts/games/tictactoe/tictactoe_serialization.h"
 #include "game_arena/proto/tournament_broker.grpc.pb.h"
 #include "game_arena/referee/broker_service.h"
 #include "game_arena/referee/matchmaker.h"
@@ -27,6 +24,9 @@
 #include "game_arena/standings/elo_store.h"
 #include "game_arena/standings/game_history.h"
 #include "game_arena/standings/http_leaderboard.h"
+#include "game_mcts/arena/client/remote_client.h"
+#include "game_mcts/games/tictactoe/tictactoe.h"
+#include "game_mcts/games/tictactoe/tictactoe_serialization.h"
 #include "gtest/gtest.h"
 
 namespace tournament_broker {
@@ -192,8 +192,8 @@ class BrokerIntegrationTest : public ::testing::Test {
 
   // Sends only a hello and reports how the server answered. Used for the
   // joins the broker must refuse outright.
-  auto HelloStatus(const std::string &name,
-                   const std::string &opponent) -> grpc::Status {
+  auto HelloStatus(const std::string &name, const std::string &opponent)
+      -> grpc::Status {
     auto channel = grpc::CreateChannel("127.0.0.1:" + std::to_string(port_),
                                        grpc::InsecureChannelCredentials());
     auto stub = proto::TournamentBroker::NewStub(channel);

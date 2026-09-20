@@ -9,10 +9,10 @@
 #include <vector>
 
 #include "absl/log/check.h"
+#include "game_mcts/core/util/overloaded.h"
 #include "game_mcts/games/risk/risk_board.h"
 #include "game_mcts/games/risk/risk_game.h"
 #include "game_mcts/games/risk/strategies/expected_battle_outcomes.h"
-#include "game_mcts/core/util/overloaded.h"
 
 namespace risk_game {
 

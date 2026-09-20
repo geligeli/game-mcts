@@ -46,8 +46,8 @@ struct DiceDuel {
     }
     return mcts::draw_t{};
   }
-  auto is_valid_action(const action_t &action,
-                       std::string &reason) const -> bool {
+  auto is_valid_action(const action_t &action, std::string &reason) const
+      -> bool {
     if (num_rolls >= 4) {
       reason = "game is over";
       return false;

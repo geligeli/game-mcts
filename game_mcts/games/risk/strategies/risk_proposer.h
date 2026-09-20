@@ -18,9 +18,9 @@
 #include <limits>
 #include <random>
 
+#include "game_mcts/core/mcts/game_traits.h"
 #include "game_mcts/games/risk/risk_board.h"
 #include "game_mcts/games/risk/risk_game.h"
-#include "game_mcts/core/mcts/game_traits.h"
 
 namespace risk_game {
 

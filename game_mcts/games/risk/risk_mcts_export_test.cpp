@@ -6,14 +6,14 @@
 #include <variant>
 #include <vector>
 
+#include "game_mcts/core/mcts/mcts.inl"
+#include "game_mcts/core/mcts/mcts_export.h"
+#include "game_mcts/core/util/overloaded.h"
 #include "game_mcts/games/risk/risk.pb.h"
 #include "game_mcts/games/risk/risk_game.h"
 #include "game_mcts/games/risk/risk_serialization.h"
 #include "game_mcts/games/risk/strategies/risk_proposer.h"
 #include "game_mcts/games/risk/strategies/risk_rollout_shortcuts.h"
-#include "game_mcts/core/mcts/mcts.inl"
-#include "game_mcts/core/mcts/mcts_export.h"
-#include "game_mcts/core/util/overloaded.h"
 
 namespace risk_game {
 namespace {

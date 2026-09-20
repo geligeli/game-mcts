@@ -25,8 +25,8 @@ namespace {
 int g_default_mcts_iterations = 400;
 
 // Parses "mcts" or "mcts:iterations=N"; returns false on a malformed spec.
-auto ParseMctsSpec(std::string_view spec, int *iterations,
-                   std::string *error) -> bool {
+auto ParseMctsSpec(std::string_view spec, int *iterations, std::string *error)
+    -> bool {
   *iterations = g_default_mcts_iterations;
   if (spec == "mcts") {
     return true;
@@ -81,8 +81,8 @@ auto RiskMctsBuiltin(int iterations) -> BuiltinFn {
   };
 }
 
-auto MakeRiskBuiltin(std::string_view spec,
-                     std::string *error) -> std::optional<BuiltinFn> {
+auto MakeRiskBuiltin(std::string_view spec, std::string *error)
+    -> std::optional<BuiltinFn> {
   if (spec == "random") {
     return RandomBuiltin<risk_game_t>(risk_proposer_t{});
   }
@@ -102,8 +102,8 @@ auto MakeRiskBuiltin(std::string_view spec,
 
 using tictactoe::TicTacToe;
 
-auto MakeTicTacToeBuiltin(std::string_view spec,
-                          std::string *error) -> std::optional<BuiltinFn> {
+auto MakeTicTacToeBuiltin(std::string_view spec, std::string *error)
+    -> std::optional<BuiltinFn> {
   if (spec == "random") {
     return RandomBuiltin<TicTacToe>(mcts::DefaultProposer<TicTacToe>{});
   }
@@ -120,8 +120,8 @@ auto MakeTicTacToeBuiltin(std::string_view spec,
 
 using benchgame::BenchGame;
 
-auto MakeBenchBuiltin(std::string_view spec,
-                      std::string *error) -> std::optional<BuiltinFn> {
+auto MakeBenchBuiltin(std::string_view spec, std::string *error)
+    -> std::optional<BuiltinFn> {
   if (spec == "random") {
     return RandomBuiltin<BenchGame>(mcts::DefaultProposer<BenchGame>{});
   }

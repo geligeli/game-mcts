@@ -3,9 +3,9 @@
 
 #include <cstddef>
 
+#include "game_mcts/core/mcts/serialization.h"
 #include "game_mcts/games/risk/risk.pb.h"
 #include "game_mcts/games/risk/risk_game.h"
-#include "game_mcts/core/mcts/serialization.h"
 
 // Opts RiskState<NUM_PLAYERS> into mcts serialization: states convert to/from
 // proto::RiskState, actions to/from proto::RiskAction. FromProto validates

@@ -49,8 +49,8 @@ auto PigGame::apply_action(int action) const -> PigGame {
   return next;
 }
 
-auto PigGame::is_valid_action(const action_t &action,
-                              std::string &reason) const -> bool {
+auto PigGame::is_valid_action(const action_t &action, std::string &reason) const
+    -> bool {
   if (is_chance_node()) {
     // Chance node: the action is the die-roll result (1-6).
     if (action < 1 || action > 6) {

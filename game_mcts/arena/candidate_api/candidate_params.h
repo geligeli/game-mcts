@@ -32,8 +32,8 @@ class Params {
   // Every getter falls back rather than throwing, including on a value that
   // does not parse as the requested type -- a malformed knob must not take a
   // candidate out of the tournament.
-  auto get(std::string_view key,
-           std::string_view fallback) const -> std::string {
+  auto get(std::string_view key, std::string_view fallback) const
+      -> std::string {
     const auto it = values_.find(std::string(key));
     return it == values_.end() ? std::string(fallback) : it->second;
   }

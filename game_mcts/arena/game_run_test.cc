@@ -23,9 +23,9 @@
 #include <thread>
 #include <vector>
 
+#include "game_arena/referee/game_registry.h"
 #include "game_mcts/games/tictactoe/tictactoe.h"
 #include "game_mcts/games/tictactoe/tictactoe_serialization.h"
-#include "game_arena/referee/game_registry.h"
 #include "gtest/gtest.h"
 
 namespace tournament_broker {
@@ -39,8 +39,8 @@ using ttt_traits = mcts::GameSerializationTraits<TicTacToe>;
 // on the wire, so ApplySerializedAction rejects before any game logic runs.
 constexpr std::string_view kUnparseableAction = "\xff\xff\xff\xff";
 
-auto ValidMoveFor(const std::string &state_bytes,
-                  std::mt19937 *gen) -> std::string {
+auto ValidMoveFor(const std::string &state_bytes, std::mt19937 *gen)
+    -> std::string {
   tictactoe::proto::TicTacToeState state_proto;
   EXPECT_TRUE(state_proto.ParseFromString(state_bytes));
   const TicTacToe state = ttt_traits::StateFromProto(state_proto);

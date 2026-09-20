@@ -1,7 +1,8 @@
 // Runs a round-robin ELO tournament between Risk policies configured via an
 // INI file. Example:
 //   bazel run //game_mcts/games/risk:risk_tournament --
-//       --config=games/risk/example_tournament.cfg --games_per_pair=2 --threads=4
+//       --config=games/risk/example_tournament.cfg --games_per_pair=2
+//       --threads=4
 //
 // The game is fixed to 2-player Risk (RiskState<2>). More than 2 players
 // would need a multiplayer rating system instead of pairwise ELO.
@@ -22,13 +23,13 @@
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "game_mcts/core/mcts/mcts.inl"
+#include "game_mcts/core/mcts/tournament.h"
 #include "game_mcts/games/risk/risk.pb.h"
 #include "game_mcts/games/risk/risk_game.h"
 #include "game_mcts/games/risk/risk_serialization.h"
 #include "game_mcts/games/risk/strategies/risk_proposer.h"
 #include "game_mcts/games/risk/strategies/risk_rollout_shortcuts.h"
-#include "game_mcts/core/mcts/mcts.inl"
-#include "game_mcts/core/mcts/tournament.h"
 #include "google/protobuf/text_format.h"
 
 ABSL_FLAG(std::string, config, "",
@@ -164,8 +165,8 @@ auto GetInt(const Params &params, const std::string &key, int fallback) -> int {
   }
 }
 
-auto GetDouble(const Params &params, const std::string &key,
-               double fallback) -> double {
+auto GetDouble(const Params &params, const std::string &key, double fallback)
+    -> double {
   const auto it = params.find(key);
   if (it == params.end()) {
     return fallback;

@@ -10,9 +10,9 @@
 #include "absl/debugging/failure_signal_handler.h"
 #include "absl/debugging/symbolize.h"
 #include "absl/log/log.h"
+#include "game_mcts/core/mcts/mcts.inl"
 #include "game_mcts/games/risk/strategies/risk_proposer.h"
 #include "game_mcts/games/risk/strategies/risk_rollout_shortcuts.h"
-#include "game_mcts/core/mcts/mcts.inl"
 
 namespace risk_game {
 
@@ -20,8 +20,8 @@ namespace {
 // The stock proposal policy, used wherever these tests need "some legal move".
 constexpr RiskProposer<2> kProposer{};
 // One playout step: dice at chance nodes, kProposer at decision nodes.
-auto SampleAction(const RiskState<2> &state,
-                  std::mt19937 &gen) -> RiskState<2>::action_t {
+auto SampleAction(const RiskState<2> &state, std::mt19937 &gen)
+    -> RiskState<2>::action_t {
   return state.is_chance_node() ? state.sample_chance_action(gen)
                                 : kProposer.sample(state, gen);
 }

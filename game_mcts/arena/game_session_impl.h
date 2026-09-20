@@ -16,9 +16,9 @@
 #include <utility>
 
 #include "absl/log/check.h"
+#include "game_arena/referee/game_session.h"
 #include "game_mcts/core/mcts/game_traits.h"
 #include "game_mcts/core/mcts/serialization.h"
-#include "game_arena/referee/game_session.h"
 
 namespace tournament_broker {
 
@@ -53,8 +53,8 @@ class GameSessionImpl final : public GameSession {
     }
   }
 
-  auto ApplySerializedAction(std::string_view bytes,
-                             std::string *error) -> bool override {
+  auto ApplySerializedAction(std::string_view bytes, std::string *error)
+      -> bool override {
     typename traits::action_proto_t action_proto;
     if (!action_proto.ParseFromArray(bytes.data(),
                                      static_cast<int>(bytes.size()))) {

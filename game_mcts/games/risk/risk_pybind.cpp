@@ -16,15 +16,15 @@
 #include <stdexcept>
 #include <string>
 
+#include "game_mcts/core/python/py_game.h"
+#include "game_mcts/core/python/py_game_binding.h"
+#include "game_mcts/core/python/py_mcts.h"
+#include "game_mcts/core/python/py_mcts_binding.h"
 #include "game_mcts/games/risk/risk.pb.h"
 #include "game_mcts/games/risk/risk_game.h"
 #include "game_mcts/games/risk/risk_serialization.h"
 #include "game_mcts/games/risk/strategies/risk_proposer.h"
 #include "game_mcts/games/risk/strategies/risk_rollout_shortcuts.h"
-#include "game_mcts/core/python/py_game.h"
-#include "game_mcts/core/python/py_game_binding.h"
-#include "game_mcts/core/python/py_mcts.h"
-#include "game_mcts/core/python/py_mcts_binding.h"
 
 namespace {
 
@@ -75,8 +75,8 @@ auto NewGame(int num_players, const std::optional<std::string> &state_proto,
 template <std::size_t NUM_PLAYERS>
 auto MakeRiskPyMcts(const risk_game::proto::RiskState *state,
                     bool exact_rollouts, double widening_c,
-                    double widening_alpha,
-                    std::uint32_t seed) -> std::unique_ptr<mcts::PyMcts> {
+                    double widening_alpha, std::uint32_t seed)
+    -> std::unique_ptr<mcts::PyMcts> {
   using game_t = risk_game::RiskState<NUM_PLAYERS>;
   using proposer_t = risk_game::RiskProposer<NUM_PLAYERS>;
   using traits_t = mcts::GameSerializationTraits<game_t>;

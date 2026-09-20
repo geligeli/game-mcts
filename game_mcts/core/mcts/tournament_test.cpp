@@ -14,8 +14,8 @@ namespace {
 using game_t = tictactoe::TicTacToe;
 
 struct RandomPolicy {
-  auto operator()(const game_t &game,
-                  std::mt19937 &gen) const -> PolicyDecision<game_t> {
+  auto operator()(const game_t &game, std::mt19937 &gen) const
+      -> PolicyDecision<game_t> {
     auto moves = game.valid_moves();
     const int action = *moves.next(game, gen);
     return {.action = action, .successor = game.apply_action(action)};
@@ -25,8 +25,8 @@ struct RandomPolicy {
 struct MctsPolicy {
   int iterations = 50;
 
-  auto operator()(const game_t &game,
-                  std::mt19937 &gen) const -> PolicyDecision<game_t> {
+  auto operator()(const game_t &game, std::mt19937 &gen) const
+      -> PolicyDecision<game_t> {
     MctsRunner<game_t> runner(game);
     auto picker = MctsNodePicker<game_t>(gen);
     for (int i = 0; i < iterations; ++i) {

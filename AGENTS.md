@@ -67,9 +67,10 @@ bazel run //game_mcts/tools/bench:mcts_bench
   `--@llvm//config:<san>=true` settings rather than raw `-fsanitize` flags.
   libc++ is stricter about transitive includes than libstdc++: include what
   you use (`<array>`, `<cstdint>`, ...).
-- Format: Google style, `clang-format -i -style=google` (pre-commit hook).
-  `.clang-format` sets `AlwaysBreakTemplateDeclarations: Yes`,
-  `IncludeBlocks: IBS_Preserve` — keep them.
+- Format: `clang-format -i` (pre-commit hook), with no `-style` flag so the
+  repo's `.clang-format` is what applies: Google style plus
+  `AlwaysBreakTemplateDeclarations: Yes`, `IncludeBlocks: Preserve`,
+  `DerivePointerAlignment: true` — keep them.
 - Header guards, never `#pragma once`. Guard form is
   `GAME_MCTS_<REL_PATH_WITH_UNDERSCORES>` (repo name prefix included),
   e.g. `#ifndef GAME_MCTS_GAME_MCTS_CPP_MYGAME_MYGAME_H`. The pre-commit

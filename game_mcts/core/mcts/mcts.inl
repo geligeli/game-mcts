@@ -186,8 +186,8 @@ auto MctsStochasticNode<GAME_STATE, PROPOSER>::DebugPrint(
 
 template <Game GAME_STATE, ActionProposer<GAME_STATE> PROPOSER>
 auto Rollout(GAME_STATE game, const PROPOSER &proposer,
-             std::uniform_random_bit_generator auto &gen,
-             int max_steps) -> game_state_t {
+             std::uniform_random_bit_generator auto &gen, int max_steps)
+    -> game_state_t {
   auto state = game.current_state();
   int steps = 0;
   while (!is_terminal(state)) {
@@ -216,8 +216,8 @@ template <Game GAME_STATE, ActionProposer<GAME_STATE> PROPOSER,
           typename ROLLOUT_POLICY, typename OBSERVER>
   requires RolloutPolicy<ROLLOUT_POLICY, GAME_STATE>
 auto MctsRunner<GAME_STATE, PROPOSER, ROLLOUT_POLICY, OBSERVER>::rollout(
-    GAME_STATE game,
-    std::uniform_random_bit_generator auto &gen) const -> value_t {
+    GAME_STATE game, std::uniform_random_bit_generator auto &gen) const
+    -> value_t {
   return std::visit(overloaded{
                         [&](const win_t &w) -> value_t {
                           // Winner scores +1, everyone else -1.
@@ -542,8 +542,8 @@ auto PlotHtmlGraph(std::ostream &os, const std::vector<NodeType> &node_storage,
 }
 
 template <typename NodeType>
-auto PlotHtmlGraph(std::ostream &os,
-                   const std::vector<NodeType> &node_storage) -> void {
+auto PlotHtmlGraph(std::ostream &os, const std::vector<NodeType> &node_storage)
+    -> void {
   using GAME_STATE = decltype(NodeType::game_state);
   PlotHtmlGraph(os, node_storage, [](std::ostream &, const GAME_STATE &) {});
 }

@@ -1,3 +1,7 @@
 BasedOnStyle: Google
 AlwaysBreakTemplateDeclarations: Yes
-IncludeBlocks: IBS_Preserve
+IncludeBlocks: Preserve
+# Google style stopped deriving pointer alignment (it forces `T* p`) somewhere
+# after clang-format 18. This repo is written `T *p`; derive it per file so a
+# newer formatter does not rewrite every declaration.
+DerivePointerAlignment: true

@@ -14,12 +14,12 @@
 #include "absl/flags/parse.h"
 #include "absl/log/initialize.h"
 #include "absl/log/log.h"
+#include "game_arena/proto/tournament_broker.grpc.pb.h"
 #include "game_mcts/arena/client/remote_client.h"
 #include "game_mcts/games/risk/risk_game.h"
 #include "game_mcts/games/risk/risk_serialization.h"
 #include "game_mcts/games/risk/strategies/risk_proposer.h"
 #include "game_mcts/games/risk/strategies/risk_rollout_shortcuts.h"
-#include "game_arena/proto/tournament_broker.grpc.pb.h"
 
 ABSL_FLAG(std::string, server, "localhost:50051", "host:port of the broker");
 ABSL_FLAG(std::string, name, "", "Player name (required)");
