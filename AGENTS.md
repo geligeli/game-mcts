@@ -40,8 +40,9 @@ bazel run //game_mcts/tools/bench:mcts_bench
 - `MctsRunner` implementation lives in `mcts.inl` — callers must
   `#include "game_mcts/core/mcts/mcts.inl"`, not just `mcts.h`.
 - Sanitizer / tuning configs in `.bazelrc` (each gets its own output dir):
-  `--config=asan`, `--config=tsan`, `--config=ubsan`, `--config=msan`,
+  `--config=asan`, `--config=tsan`, `--config=ubsan`,
   `--config=native` (`-march=native`, faster rollouts, non-portable binaries).
+  No msan: the toolchain has no msan-instrumented libc++ (see `.bazelrc`).
   Example: `bazel test --config=asan //game_mcts/games/risk/...`.
 - Python: games expose a `risk_engine`-style pybind module plus
   `py_proto_library` targets. After C++ changes rebuild, e.g.
@@ -55,7 +56,17 @@ bazel run //game_mcts/tools/bench:mcts_bench
 
 - C++23 (`-std=c++23` in `.bazelrc`), `-Wall -Wextra -Werror` for project
   files; third-party under `external/` is silenced with `-w`, never "fix"
-  warnings there.
+  warnings there. A warning clang raises *inside* an external header included
+  from project code is disabled by category in `.bazelrc`, not by editing the
+  dependency.
+- The compiler is hermetic-llvm (clang, libc++, compiler-rt; no sysroot,
+  nothing from the host), registered by `@game_arena` so this repo, a kit and
+  the sandbox image all build with the same one. `.bazelrc` turns off bazel's
+  host C++ autodetection, which is what lets the build run on RBE workers with
+  no compiler installed. Sanitizer configs use its
+  `--@llvm//config:<san>=true` settings rather than raw `-fsanitize` flags.
+  libc++ is stricter about transitive includes than libstdc++: include what
+  you use (`<array>`, `<cstdint>`, ...).
 - Format: Google style, `clang-format -i -style=google` (pre-commit hook).
   `.clang-format` sets `AlwaysBreakTemplateDeclarations: Yes`,
   `IncludeBlocks: IBS_Preserve` — keep them.

@@ -1,5 +1,6 @@
 #ifndef GAME_MCTS_GAME_MCTS_GAMES_RISK_ASCII_ASCII_BOARD_H
 #define GAME_MCTS_GAME_MCTS_GAMES_RISK_ASCII_ASCII_BOARD_H
+#include <array>
 #include <cstdint>
 #include <span>
 #include <string>

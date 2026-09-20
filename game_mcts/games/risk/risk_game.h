@@ -774,7 +774,7 @@ struct RiskState {
     auto stack_ptr = stack.begin();
 
     auto push = [&](size_t elem) { *(stack_ptr++) = elem; };
-    auto pop = [&](size_t elem) { return *(stack_ptr--); };
+    auto pop = [&]() { return *(--stack_ptr); };
 
     result.set(seed);
     push(seed);

@@ -75,6 +75,16 @@ py_test(
         "//game_mcts/core/mcts:mcts_tree_py",
     ],
     python_version = "PY3",
+    # Skipped under --config=asan/tsan/ubsan: the sanitizer runtime is linked
+    # into executables, not shared objects, so an instrumented risk_engine.so
+    # has undefined __asan_*/__tsan_* symbols when the (uninstrumented)
+    # hermetic python imports it. The C++ tests cover the same code.
+    target_compatible_with = select({
+        "@llvm//config:asan_enabled": ["@platforms//:incompatible"],
+        "@llvm//config:tsan_enabled": ["@platforms//:incompatible"],
+        "@llvm//config:ubsan_enabled": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
 )
 
 cc_test(
