@@ -191,8 +191,9 @@ in the commented `local_path_override` (see `MODULE.bazel`).
   inside the game class; do not approximate inside
   `sample_chance_action` or the tree (shortcuts are rollout-only).
 - Do not use `#pragma once`, do not hand-write a guard without the
-  `GAME_MCTS_` prefix, do not commit unformatted code or notebook outputs
-  (pre-commit handles both — let it run).
+  `GAME_MCTS_` prefix, do not commit unformatted code (pre-commit handles
+  guards and formatting — let it run). Nothing clears notebook outputs for
+  you: clear them by hand before committing an `.ipynb`.
 - Do not commit `bazel-*` symlinks/outputs, `compile_commands.json`,
   `.cache`, venvs, or generated proto artifacts (all git-ignored).
 - Do not invent Bazel target names or include paths — `glob`/`grep` the

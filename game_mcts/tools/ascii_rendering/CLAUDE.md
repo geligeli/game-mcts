@@ -8,7 +8,7 @@ The parent repo (`/large_nfs/risk-game-ai/`) uses **Bazel**. There are no Bazel 
 
 Pre-commit hooks (defined in `../../../../.pre-commit-config.yaml`):
 - `clang-format` with Google style for C++ files
-- `jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace` clears notebook outputs on commit
+- Nothing clears notebook outputs on commit; clear them by hand before committing `mhmc_demo.ipynb`
 
 ## Architecture
 
