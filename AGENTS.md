@@ -39,10 +39,10 @@ bazel run //game_mcts/tools/bench:mcts_bench
   `#include "game_mcts/core/mcts/mcts.h"`.
 - `MctsRunner` implementation lives in `mcts.inl` — callers must
   `#include "game_mcts/core/mcts/mcts.inl"`, not just `mcts.h`.
-- Sanitizer / tuning configs in `.bazelrc` (each gets its own output dir):
-  `--config=asan`, `--config=tsan`, `--config=ubsan`,
-  `--config=native` (`-march=native`, faster rollouts, non-portable binaries).
-  No msan: the toolchain has no msan-instrumented libc++ (see `.bazelrc`).
+- Sanitizer configs in `.bazelrc` (each gets its own output dir):
+  `--config=asan`, `--config=tsan`, `--config=ubsan`. No msan: the toolchain
+  has no msan-instrumented libc++. No `-march=native` config: its objects
+  would poison a cache shared across machines (both explained in `.bazelrc`).
   Example: `bazel test --config=asan //game_mcts/games/risk/...`.
 - Python: games expose a `risk_engine`-style pybind module plus
   `py_proto_library` targets. After C++ changes rebuild, e.g.

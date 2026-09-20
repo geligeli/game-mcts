@@ -46,7 +46,6 @@ build {
   # rather than topping the board.
   targets: "//game_mcts/tools/bench:mcts_bench"
   targets: "//game_mcts/core/mcts:mcts_test"
-  bazel_flags: "--config=native"
   timeout_s: 2400
 }
 

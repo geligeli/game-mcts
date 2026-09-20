@@ -47,11 +47,10 @@ build --host_cxxopt=-Wno-deprecated-attributes
 # (bazel-out/k8-fastbuild-<suffix>). Without it they all share k8-fastbuild and
 # each switch discards the previous config's cached artifacts.
 
-# Opt-in: compile for the exact host CPU (enables POPCNT/BMI/AVX2, removes
-# software popcount fallbacks). Faster MCTS rollouts, but the resulting
-# binaries may not run on older or different CPUs.
-build:native --platform_suffix=native
-build:native --copt=-march=native
+# There is no -march=native config. Its objects are keyed by the flag, not by
+# the CPU that compiled them, so a cache shared across machines (the NFS disk
+# cache above, an RBE cluster) serves one machine's instruction set to another.
+# If it comes back it has to run locally and stay out of the shared caches.
 
 # Sanitizers. The hermetic toolchain owns the instrumentation: each
 # --@llvm//config:<san> setting adds -fsanitize=<san> and -fno-omit-frame-pointer
