@@ -179,9 +179,9 @@ This repo is a problem repo in the arena's `examples/connect4` layout:
   is every step's caption, `RenderState()` the board in full once a turn (and
   when setup ends and the game is over), a band around a conquest, a new
   attack or a fortify, and empty otherwise (the dashboard keeps the last
-  view). The session paces bands to `view_kb` (a registry option), never
-  dropping a turn's board; that must stay under `match.max_view_bytes`, and a
-  whole `GameRecord` under one gRPC message (4 MB). The captions and boards
+  view). Nothing caps the views: a whole `GameRecord` reaches the arena's
+  coordinator as one gRPC message, which it accepts up to 64 MiB, so keep them
+  small. The captions and boards
   come from `game_mcts/games/risk/risk_render.h`, shared with
   `//problem:risk_replay`, which replays recorded `.pb` games in a terminal
   (`--mode=full`, `--play`, and `--stats` to measure a game's views).

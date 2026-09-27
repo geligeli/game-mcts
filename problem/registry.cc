@@ -34,8 +34,6 @@ using smart_proposer_t = risk_game::RiskProposer<2, true, true>;
 
 int g_default_mcts_iterations = 400;
 int g_max_rounds = 0;  // no cap unless the problem sets one
-// Per game, for captions and views; below the match's max_view_bytes.
-int g_view_kb = 700;
 
 bool ParseNonNegative(std::string_view text, int *value) {
   const auto parsed =
@@ -90,8 +88,7 @@ void SetRegistryOptions(const std::map<std::string, std::string> &options) {
   // worth failing an order that would otherwise run.
   for (const auto &[key, target, positive] :
        {std::tuple{"mcts_iterations", &g_default_mcts_iterations, true},
-        std::tuple{"max_rounds", &g_max_rounds, false},
-        std::tuple{"view_kb", &g_view_kb, true}}) {
+        std::tuple{"max_rounds", &g_max_rounds, false}}) {
     const auto it = options.find(key);
     if (it == options.end()) {
       continue;
@@ -112,10 +109,7 @@ const std::map<std::string, GameDescriptor> &GameRegistry() {
        GameDescriptor{
            .name = "risk2",
            .new_session =
-               [] {
-                 return std::make_unique<RiskSession>(
-                     g_max_rounds, static_cast<std::size_t>(g_view_kb) * 1024);
-               },
+               [] { return std::make_unique<RiskSession>(g_max_rounds); },
            .make_builtin = MakeRiskBuiltin,
        }},
   };

@@ -8,7 +8,7 @@
 // --mode=arena prints what the referee records for the dashboard: every
 // step's caption, and the board when the step draws one. --mode=full draws
 // the board, marked, on every step. --stats prints only the bytes a game's
-// captions and views take, by kind, against the view budget.
+// captions and views take, by kind.
 
 #include <chrono>
 #include <cstddef>
@@ -33,7 +33,6 @@ ABSL_FLAG(bool, stats, false, "Print only view bytes per game, by kind");
 ABSL_FLAG(bool, play, false, "Animate: redraw each step in place");
 ABSL_FLAG(int, delay_ms, 400, "With --play, the time per step");
 ABSL_FLAG(int, max_rounds, 40, "The round cap the game was played with");
-ABSL_FLAG(int, view_kb, 700, "The session's view budget, as registry option");
 
 namespace {
 
@@ -70,10 +69,8 @@ bool Replay(const std::string &path) {
     std::cerr << path << ": initial state is not a risk2 state\n";
     return false;
   }
-  tournament_broker::RiskSession session(
-      absl::GetFlag(FLAGS_max_rounds),
-      static_cast<std::size_t>(absl::GetFlag(FLAGS_view_kb)) * 1024,
-      traits::StateFromProto(initial));
+  tournament_broker::RiskSession session(absl::GetFlag(FLAGS_max_rounds),
+                                         traits::StateFromProto(initial));
   const bool full = absl::GetFlag(FLAGS_mode) == "full";
   const bool stats = absl::GetFlag(FLAGS_stats);
   std::string title = record.game_id() + ": ";
@@ -83,8 +80,8 @@ bool Replay(const std::string &path) {
   }
   title += "  (" + record.termination_reason() + ")\n";
 
-  Stats counts;
   std::string view = session.RenderState();
+  Stats counts{.full_ = 1, .full_bytes_ = view.size()};
   if (!stats) {
     Show(title + view);
   }
@@ -122,11 +119,11 @@ bool Replay(const std::string &path) {
   if (stats) {
     std::printf(
         "%s %d steps: captions %zu KB, %zu turn boards %zu KB, %zu bands %zu "
-        "KB, total %zu KB of %d\n",
+        "KB, total %zu KB\n",
         record.game_id().c_str(), record.steps_size(), counts.captions_ / 1024,
         counts.full_, counts.full_bytes_ / 1024, counts.bands_,
-        counts.band_bytes_ / 1024, session.ViewBytes() / 1024,
-        absl::GetFlag(FLAGS_view_kb));
+        counts.band_bytes_ / 1024,
+        (counts.captions_ + counts.full_bytes_ + counts.band_bytes_) / 1024);
   }
   return true;
 }

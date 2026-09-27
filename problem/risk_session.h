@@ -12,12 +12,9 @@
 //   in full once a turn, when the game's setup phases end and when it is over;
 //   a conquest, a new attack and a fortify get the rows around them. Every
 //   other step leaves the view as it was, which the arena's replay keeps on
-//   screen. The session keeps within its own byte budget by dropping bands,
-//   never turn boards, so a whole game fits the referee's.
+//   screen.
 
-#include <algorithm>
 #include <array>
-#include <cstddef>
 #include <optional>
 #include <random>
 #include <string>
@@ -38,22 +35,12 @@ class RiskSession final : public GameSessionImpl<risk_game::RiskState<2>> {
  public:
   using state_t = risk_game::RiskState<2>;
 
-  // A turn's board, and a margin for the other steps' captions.
-  static constexpr std::size_t turn_reserve_bytes_ = 7000;
-  // What an uncapped game is assumed to last, for pacing its bands.
-  static constexpr int pacing_rounds_ = 40;
-
-  // max_rounds <= 0: no cap. |view_bytes| is what this game's captions and
-  // views may take in all; keep it under the match's max_view_bytes.
-  RiskSession(int max_rounds, std::size_t view_bytes,
-              state_t initial = state_t{})
-      : GameSessionImpl(std::move(initial)),
-        max_rounds_(max_rounds),
-        view_bytes_(view_bytes) {
+  // max_rounds <= 0: no cap.
+  explicit RiskSession(int max_rounds, state_t initial = state_t{})
+      : GameSessionImpl(std::move(initial)), max_rounds_(max_rounds) {
     initial_view_ =
         Header(State()) +
         risk_game::RenderBoard(State(), {}, risk_game::BoardDetail::kFull);
-    spent_ = initial_view_.size();
   }
 
   // Full rounds (every player one turn) since initial placement ended.
@@ -104,9 +91,6 @@ class RiskSession final : public GameSessionImpl<risk_game::RiskState<2>> {
   }
 
   std::string RenderLastStep() const override { return caption_; }
-
-  // Captions and views so far, the initial view included.
-  std::size_t ViewBytes() const { return spent_; }
 
  private:
   struct Score {
@@ -165,14 +149,6 @@ class RiskSession final : public GameSessionImpl<risk_game::RiskState<2>> {
            before.reserves_[before.current_player_] > 0;
   }
 
-  // A band only if what is left still pays for every remaining turn's board.
-  bool Affordable(std::size_t bytes) const {
-    const int rounds = max_rounds_ > 0 ? max_rounds_ : pacing_rounds_;
-    const auto turns_left =
-        static_cast<std::size_t>(std::max(0, 2 * rounds - turns_));
-    return spent_ + bytes + turns_left * turn_reserve_bytes_ <= view_bytes_;
-  }
-
   void OnStep(const state_t &before) {
     using risk_game::BoardDetail;
     const state_t &after = State();
@@ -187,16 +163,12 @@ class RiskSession final : public GameSessionImpl<risk_game::RiskState<2>> {
     if (fortify != nullptr) {  // the turn is over
       caption_ += "  " + tally_.Describe(before.current_player_, true);
       tally_ = {};
-      ++turns_;
       last_attack_.reset();
     }
 
     const risk_game::BoardMarks marks = risk_game::StepMarks(before, action);
     const auto full = [&] {
       return risk_game::RenderBoard(after, marks, BoardDetail::kFull);
-    };
-    const auto band = [&] {
-      return risk_game::RenderBoard(after, marks, BoardDetail::kBand);
     };
     const bool claimed_all =
         before.num_initial_placements_ + 1 == risk_game::kNumTerritories;
@@ -220,24 +192,16 @@ class RiskSession final : public GameSessionImpl<risk_game::RiskState<2>> {
       view_ = Header(after) + ResultLine(*outcome) + full();
     } else if (TurnStart(before) || claimed_all || placed_all) {
       view_ = Header(after) + full();
-    } else if (conquest) {
-      view_ = band();
-    } else if (new_attack || (fortify != nullptr && fortify->num_units > 1)) {
-      std::string candidate = band();
-      if (Affordable(candidate.size())) {
-        view_ = std::move(candidate);
-      }
+    } else if (conquest || new_attack ||
+               (fortify != nullptr && fortify->num_units > 1)) {
+      view_ = risk_game::RenderBoard(after, marks, BoardDetail::kBand);
     }
-    spent_ += caption_.size() + view_.size();
   }
 
   const int max_rounds_;
-  const std::size_t view_bytes_;
   std::string initial_view_;
   std::string caption_;
   std::string view_;
-  std::size_t spent_ = 0;
-  int turns_ = 0;
   risk_game::TurnTally tally_;
   std::optional<std::pair<int, int>> last_attack_;
 };
