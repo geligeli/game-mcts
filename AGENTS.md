@@ -209,7 +209,8 @@ This repo is a problem repo in the arena's `examples/connect4` layout:
   are `builtin:<spec>` or `player:<name>` (both sides name each other).
   Whole tournament with a kit shell: `bazel run //:play`; with coding agents
   as the players: `./quickstart.sh [--local]`, which starts each on
-  `problem/mission.md`. Protocol, referee
+  `problem/mission.md` (claude, agy and opencode; workers on geli-3950's
+  docker). Protocol, referee
   flags and the submission loop: `game_arena/README.md` and
   `game_arena/ARENA.md` in the arena repo.
 

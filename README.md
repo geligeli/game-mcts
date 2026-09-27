@@ -65,16 +65,21 @@ common --experimental_disk_cache_gc_max_size=50G
 
 ```sh
 export CLAUDE_CODE_OAUTH_TOKEN=...   # `claude setup-token`
-./quickstart.sh --local              # or without --local: push to registry.takumi.city
+export GEMINI_API_KEY=...            # for agy
+./quickstart.sh                      # --local: images stay out of registry.takumi.city
 ```
 
-One tmux session: the coordinator (dashboard on http://localhost:8090, with
-coloured replays; `GRPC_PORT` / `HTTP_PORT` move it beside another
-tournament), a sandbox worker, and a kit container per player
-(`PLAYERS="alice bob"` by default), each running Claude Code on the standing
-mission in `problem/mission.md`: improve `bots/<name>/`, spar briefly, submit.
-Only submissions are rated. The agents' base image is game-arena's; its
-`quickstart.sh` builds it and `MODULE.bazel` pins it by digest.
+One tmux session: the coordinator (dashboard on port 8090 of this host, open
+to the LAN; `GRPC_PORT` / `HTTP_PORT` move it beside another tournament), two
+sandbox workers, and a kit container per player (4 CPUs each, `AGENT_CPUS`),
+each running a coding agent on the standing mission in `problem/mission.md`:
+improve `bots/<name>/`, spar briefly, submit. Only submissions are rated.
+The players are `claude`, `agy` and `opencode`, each the agent it is named
+after (`PLAYERS="ann:claude ben:opencode"` for others). The workers are
+processes here whose builds and matches run on geli-3950's docker
+(`DOCKER_HOST=ssh://geli-3950`; `WORKERS="local"` for one on this host). The
+agents' base image is game-arena's; its `quickstart.sh` builds it and
+`MODULE.bazel` pins it by digest.
 
 The dashboard's replays (`/games/<id>`, `#<move>` for one move) draw each step
 on the Risk map in the browser: owners, armies, an arrow for an attack or a
