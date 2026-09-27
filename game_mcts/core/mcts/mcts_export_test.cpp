@@ -16,19 +16,18 @@ namespace {
 
 using traits_t = GameSerializationTraits<tictactoe::TicTacToe>;
 
-auto ParseEdgeAction(const std::string &bytes)
-    -> tictactoe::TicTacToe::action_t {
+tictactoe::TicTacToe::action_t ParseEdgeAction(const std::string &bytes) {
   tictactoe::proto::TicTacToeAction action_proto;
   EXPECT_TRUE(action_proto.ParseFromString(bytes));
   return traits_t::ActionFromProto(action_proto);
 }
 
 TEST(MctsExportTest, TicTacToeTreeExport) {
-  constexpr int kIterations = 200;
+  constexpr int iterations = 200;
   std::mt19937 gen(42);
   MctsRunner<tictactoe::TicTacToe> runner(tictactoe::TicTacToe{});
   auto picker = MctsNodePicker<tictactoe::TicTacToe>(gen);
-  for (int i = 0; i < kIterations; ++i) {
+  for (int i = 0; i < iterations; ++i) {
     runner.OneIteration(picker, gen);
   }
 
@@ -37,7 +36,7 @@ TEST(MctsExportTest, TicTacToeTreeExport) {
   // Every node of node_storage is exported, in storage order.
   ASSERT_EQ(tree.nodes_size(), static_cast<int>(runner.node_storage.size()));
   // The root accumulated exactly one visit per iteration.
-  EXPECT_EQ(tree.nodes(0).num_visits(), kIterations);
+  EXPECT_EQ(tree.nodes(0).num_visits(), iterations);
 
   for (int i = 0; i < tree.nodes_size(); ++i) {
     const proto::MctsNode &proto_node = tree.nodes(i);
@@ -78,9 +77,9 @@ TEST(MctsExportTest, TicTacToeStateRoundTrip) {
   while (!is_terminal(state.current_state())) {
     const auto proto = traits_t::StateToProto(state);
     const auto restored = traits_t::StateFromProto(proto);
-    EXPECT_EQ(restored.board_state, state.board_state);
+    EXPECT_EQ(restored.board_state_, state.board_state_);
     EXPECT_EQ(restored.current_player(), state.current_player());
-    state = state.apply_action(state.sample_action(gen));
+    state = state.apply_action(state.SampleAction(gen));
   }
 }
 

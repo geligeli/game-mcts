@@ -5,42 +5,42 @@
 namespace risk_game {
 namespace {
 struct RenderVisitor {
-  std::string &result;
-  std::span<const uint8_t> colors;
-  std::span<const int> troop_counts;
+  std::string &result_;
+  std::span<const uint8_t> colors_;
+  std::span<const int> troop_counts_;
 
-  void operator()(const StringEntry &s) const { result.append(s.value); }
+  void operator()(const StringEntry &s) const { result_.append(s.value); }
 
   void operator()(const TerritoryColor &c) const {
-    const uint8_t color = colors[c.territory_id];
+    const uint8_t color = colors_[c.territory_id_];
     if (color >= 8) {
       // Bright background variant: highlight regardless of owner color.
-      result.append("\033[10");
-      result.push_back(static_cast<char>('0' + color - 8));
+      result_.append("\033[10");
+      result_.push_back(static_cast<char>('0' + color - 8));
     } else {
-      result.append("\033[4");
-      result.push_back(static_cast<char>('0' + color));
+      result_.append("\033[4");
+      result_.push_back(static_cast<char>('0' + color));
     }
-    result.push_back('m');
+    result_.push_back('m');
   }
 
   void operator()(const TerritoryTroopCounter &t) const {
-    int count = troop_counts[t.territory_id];
+    int count = troop_counts_[t.territory_id_];
     auto s = std::to_string(count);
-    while (s.size() < t.num_chars) {
+    while (s.size() < t.num_chars_) {
       s.insert(s.begin(), '0');
     }
-    if (s.size() > t.num_chars) {
-      s = s.substr(s.size() - t.num_chars);
+    if (s.size() > t.num_chars_) {
+      s = s.substr(s.size() - t.num_chars_);
     }
-    result.append(s);
+    result_.append(s);
   }
 };
 }  // namespace
 
-auto RenderAsciiBoard(std::span<const AsciiBoardSegmentT> segments,
-                      std::span<const uint8_t> colors,
-                      std::span<const int> troop_counts) -> std::string {
+std::string RenderAsciiBoard(std::span<const AsciiBoardSegmentT> segments,
+                             std::span<const uint8_t> colors,
+                             std::span<const int> troop_counts) {
   std::string result;
   RenderVisitor visitor{result, colors, troop_counts};
   for (const auto &segment : segments) {

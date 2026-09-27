@@ -12,7 +12,7 @@ concept DefaultDict = requires(T &t, K key) {
 template <typename K, typename V>
 class MapDefaultDict {
  public:
-  auto operator[](const K &key) -> V & { return dict_[key]; }
+  V &operator[](const K &key) { return dict_[key]; }
 
  private:
   std::unordered_map<K, V> dict_;

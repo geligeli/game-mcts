@@ -1,0 +1,94 @@
+# Write a Risk strategy, get rated against everyone else's. Every label is
+# relative to the repo root, where a worker runs bazel; the targets that run a
+# tournament from it come from arena_problem in //:BUILD.
+
+problem_id: "risk2"
+display_name: "Risk (2 player)"
+description:
+  "Write an action policy for two-player Risk and have it rated against every "
+  "other submission.\n"
+  "\n"
+  "Submit one header defining:\n"
+  "\n"
+  "    auto MakePolicy(const candidate::Params &params) -> candidate::policy_t;\n"
+  "\n"
+  "Start from `bots/reference/strategy.h`. Every rival's source is readable "
+  "through `arena_cli source <name>` -- reading the leader and improving on "
+  "it is the intended loop, not cheating.\n"
+  "\n"
+  "You are placed against `builtin:random` and `builtin:mcts` first, then "
+  "matched against other submissions.\n"
+
+submission {
+  # A strategy is a header or two. A patch an order of magnitude larger than
+  # that is a mistake worth catching before it reaches the fleet.
+  max_patch_bytes: 262144
+  max_files: 32
+  allow_paths: "bots/{submission_id}/**"
+
+  # The generated BUILD is what keeps allowed_dep_prefixes enforceable.
+  files_submit_dir: "bots"
+  harness {
+    api_dep: "//bots:bot_api"
+    main_src: "//bots:bot.cc"
+    bot_deps: "//bots:bot_deps"
+  }
+
+  # The framework and the rules, nothing else: not the arena, the referee or
+  # another submission. A dep on an arbitrary repo is a way to run code during
+  # the build.
+  allowed_dep_prefixes: "//game_mcts/core/mcts:"
+  allowed_dep_prefixes: "//game_mcts/games/risk:"
+  allowed_dep_prefixes: "//game_mcts/games/risk/strategies:"
+  allowed_dep_prefixes: "@abseil-cpp//"
+}
+
+build {
+  # The referee too: a submission that breaks the rules fails to build.
+  targets: "//bots/{submission_id}:bot"
+  targets: "//:match_referee"
+  # Here rather than in .bazelrc, so only what a match runs is optimized.
+  bazel_flags: "-c opt"
+  timeout_s: 1800
+}
+
+sandbox {
+  # What a worker asks its daemon for, as `bazel run //:sandbox_image_issue`
+  # makes it. Bump the tag whenever the tree or the toolchain changes.
+  image: "registry.takumi.city/game-mcts-sandbox:1"
+  # So a build needs no network, and a submitted genrule cannot exfiltrate.
+  allow_build_network: false
+  # Owns the image's primed cache, which fills a worker's empty cache volume.
+  run_as_user: "1000:1000"
+  memory_limit_mb: 4096
+}
+
+match {
+  game: "risk2"
+  referee_target: "//:match_referee"
+  games_per_order: 10
+  placement_opponents: "builtin:random"
+  placement_opponents: "builtin:mcts"
+  turn_timeout_ms: 10000
+  # Without a whole-game budget the per-turn clock bounds nothing: a slow
+  # strategy can burn ten seconds on each of thousands of moves.
+  game_time_budget_ms: 120000
+  max_moves_per_game: 50000
+  # Handed to the referee's registry verbatim; problem/registry.cc reads it.
+  registry_options { key: "mcts_iterations" value: "400" }
+  timeout_s: 1800
+}
+
+# Copied to bots/<your name>/ the first time.
+kit {
+  starter_dir: "bots/reference"
+}
+
+ranking { kind: ELO }
+
+clients {
+  default_quota {
+    max_active_evaluations: 1
+    max_queued_jobs: 8
+  }
+}

@@ -29,7 +29,7 @@ using ProposerFor = RiskProposer<GAME::kNumPlayers>;
 // benchmark states reproducible across runs. Stops early if a terminal state
 // is reached.
 template <typename GAME>
-auto MakeState(int num_moves, uint32_t seed = 1234) -> GAME {
+GAME MakeState(int num_moves, uint32_t seed = 1234) {
   GAME game;
   std::mt19937 gen(seed);
   const ProposerFor<GAME> proposer;
@@ -45,7 +45,7 @@ auto MakeState(int num_moves, uint32_t seed = 1234) -> GAME {
 
 // First state at a chance node (attack dice roll pending).
 template <typename GAME>
-auto MakeChanceState(uint32_t seed = 1234) -> GAME {
+GAME MakeChanceState(uint32_t seed = 1234) {
   GAME game;
   std::mt19937 gen(seed);
   const ProposerFor<GAME> proposer;
@@ -81,7 +81,7 @@ static void BM_RiskMctsOneIteration_Exact(benchmark::State &state) {
   // guaranteed to terminate; over-cap games score as draws.
   RunMctsOneIteration<RiskGame2P>(
       state,
-      mcts::RandomRollout<RiskGame2P, RiskProposer<2>>{.max_steps = 50000});
+      mcts::RandomRollout<RiskGame2P, RiskProposer<2>>{.max_steps_ = 50000});
 }
 static void BM_RiskMctsOneIteration_ExpectedBattles(benchmark::State &state) {
   RunMctsOneIteration<RiskGame2P>(
@@ -124,7 +124,7 @@ static void RunMctsBatch(benchmark::State &state,
 static void BM_RiskMctsBatch_Exact(benchmark::State &state) {
   RunMctsBatch<RiskGame2P>(
       state,
-      mcts::RandomRollout<RiskGame2P, RiskProposer<2>>{.max_steps = 50000});
+      mcts::RandomRollout<RiskGame2P, RiskProposer<2>>{.max_steps_ = 50000});
 }
 static void BM_RiskMctsBatch_ExpectedBattles(benchmark::State &state) {
   RunMctsBatch<RiskGame2P>(

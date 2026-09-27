@@ -22,24 +22,22 @@ Action mapping:
 struct TicTacToe {
   using action_t = int;
   int current_player_{0};
-  uint32_t board_state{};  // 18 bits:
+  uint32_t board_state_{};  // 18 bits:
   using action_type = int;
   static constexpr std::size_t kNumPlayers = 2;
 
-  auto current_player() const -> int;
-  auto apply_action(action_t action) const -> TicTacToe;
+  int current_player() const;
+  TicTacToe apply_action(action_t action) const;
   // In-place variant of apply_action, for scratch-state hot loops (rollouts).
   void apply_action_in_place(action_t action);
   // The game's default decision policy, picked up by mcts::DefaultProposer as
   // an allocation-free alternative to materializing valid_moves().
-  auto sample_action(std::uniform_random_bit_generator auto& gen) const
-      -> action_t;
-  auto current_state() const -> mcts::game_state_t;
-  auto valid_moves() const -> mcts::VectorLegalActionSet<action_t>;
+  action_t SampleAction(std::uniform_random_bit_generator auto& gen) const;
+  mcts::game_state_t current_state() const;
+  mcts::VectorLegalActionSet<action_t> valid_moves() const;
   // Legality oracle for referee/debug paths (not hot loops). On failure sets
   // |reason| to a short explanation; on success leaves it untouched.
-  auto is_valid_action(const action_t& action, std::string& reason) const
-      -> bool;
+  bool is_valid_action(const action_t& action, std::string& reason) const;
 };
 
 static_assert(mcts::Game<TicTacToe>);
@@ -50,11 +48,11 @@ static_assert(
 
 std::ostream& operator<<(std::ostream& os, const TicTacToe& game);
 
-auto TicTacToe::sample_action(std::uniform_random_bit_generator auto& gen) const
+auto TicTacToe::SampleAction(std::uniform_random_bit_generator auto& gen) const
     -> action_t {
   // Uniform over the free cells, without materializing the move list.
   const uint32_t occupied =
-      (board_state & 0x1FF) | ((board_state >> 9) & 0x1FF);
+      (board_state_ & 0x1FF) | ((board_state_ >> 9) & 0x1FF);
   std::array<uint8_t, 9> free_cells;
   int num_free = 0;
   for (int i = 0; i < 9; ++i) {

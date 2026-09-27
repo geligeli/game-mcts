@@ -96,7 +96,7 @@ struct ScreenGuard {
   ScreenGuard() { WriteAll("\033[?1049h\033[?25l"); }
   ~ScreenGuard() { WriteAll("\033[?25h\033[?1049l"); }
   ScreenGuard(const ScreenGuard &) = delete;
-  auto operator=(const ScreenGuard &) -> ScreenGuard & = delete;
+  ScreenGuard &operator=(const ScreenGuard &) = delete;
 };
 
 // RAII guard for raw keyboard input: switches stdin to non-canonical,
@@ -126,7 +126,7 @@ struct TerminalInputGuard {
     }
   }
   TerminalInputGuard(const TerminalInputGuard &) = delete;
-  auto operator=(const TerminalInputGuard &) -> TerminalInputGuard & = delete;
+  TerminalInputGuard &operator=(const TerminalInputGuard &) = delete;
 
  private:
   struct termios saved_termios_{};
@@ -136,7 +136,7 @@ struct TerminalInputGuard {
 };
 
 // Returns the next pending keypress, or nullopt if no key is buffered.
-auto PollKey() -> std::optional<char> {
+std::optional<char> PollKey() {
   char c;
   if (read(STDIN_FILENO, &c, 1) == 1) {
     return c;
@@ -145,37 +145,37 @@ auto PollKey() -> std::optional<char> {
 }
 
 struct Stats {
-  int games = 0;
-  std::array<int, 6> wins{};  // Only the first num_players entries are used.
-  int draws = 0;
-  int total_moves = 0;
-  double total_think_ms = 0.0;
-  int think_count = 0;
+  int games_ = 0;
+  std::array<int, 6> wins_{};  // Only the first num_players entries are used.
+  int draws_ = 0;
+  int total_moves_ = 0;
+  double total_think_ms_ = 0.0;
+  int think_count_ = 0;
 };
 
 // Army counts shown in the previous frame, used to highlight changes.
 struct FrameHistory {
   std::array<int, risk_game::kNumTerritories> units{};
-  bool valid = false;
+  bool valid_ = false;
 };
 
 // MCTS parameters of one player: defaults come from the global flags, the
 // --player_params entries override them per player.
 struct PlayerParams {
-  int iterations;
-  double widening_c;
-  double widening_alpha;
-  bool exact_rollouts;
+  int iterations_;
+  double widening_c_;
+  double widening_alpha_;
+  bool exact_rollouts_;
 };
 
-auto GlobalPlayerParams() -> PlayerParams {
-  return {.iterations = std::max(1, absl::GetFlag(FLAGS_iterations_per_move)),
-          .widening_c = absl::GetFlag(FLAGS_widening_c),
-          .widening_alpha = absl::GetFlag(FLAGS_widening_alpha),
-          .exact_rollouts = absl::GetFlag(FLAGS_exact_rollouts)};
+PlayerParams GlobalPlayerParams() {
+  return {.iterations_ = std::max(1, absl::GetFlag(FLAGS_iterations_per_move)),
+          .widening_c_ = absl::GetFlag(FLAGS_widening_c),
+          .widening_alpha_ = absl::GetFlag(FLAGS_widening_alpha),
+          .exact_rollouts_ = absl::GetFlag(FLAGS_exact_rollouts)};
 }
 
-auto Trim(const std::string &s) -> std::string {
+std::string Trim(const std::string &s) {
   const auto first = s.find_first_not_of(" \t\r\n");
   if (first == std::string::npos) {
     return "";
@@ -185,8 +185,7 @@ auto Trim(const std::string &s) -> std::string {
 
 // Applies one comma-separated key=value --player_params entry on top of
 // |params|. Throws std::runtime_error on unknown keys or malformed values.
-auto ParsePlayerParams(const std::string &spec, PlayerParams params)
-    -> PlayerParams {
+PlayerParams ParsePlayerParams(const std::string &spec, PlayerParams params) {
   size_t pos = 0;
   while (pos <= spec.size()) {
     const size_t comma = spec.find(',', pos);
@@ -201,16 +200,16 @@ auto ParsePlayerParams(const std::string &spec, PlayerParams params)
       const std::string value = Trim(token.substr(eq + 1));
       try {
         if (key == "iterations") {
-          params.iterations = std::max(1, std::stoi(value));
+          params.iterations_ = std::max(1, std::stoi(value));
         } else if (key == "widening_c") {
-          params.widening_c = std::stod(value);
+          params.widening_c_ = std::stod(value);
         } else if (key == "widening_alpha") {
-          params.widening_alpha = std::stod(value);
+          params.widening_alpha_ = std::stod(value);
         } else if (key == "rollout") {
           if (value == "exact") {
-            params.exact_rollouts = true;
+            params.exact_rollouts_ = true;
           } else if (value == "expected") {
-            params.exact_rollouts = false;
+            params.exact_rollouts_ = false;
           } else {
             throw std::runtime_error("expected: exact | expected");
           }
@@ -237,12 +236,12 @@ auto ParsePlayerParams(const std::string &spec, PlayerParams params)
 // player can pick its own rollout mode.
 template <size_t NUM_PLAYERS>
 struct SwitchableRollout {
-  bool exact_rollouts;
+  bool exact_rollouts_;
   using game_t = risk_game::RiskState<NUM_PLAYERS>;
   using proposer_t = risk_game::RiskProposer<NUM_PLAYERS>;
 
   auto operator()(game_t game, std::mt19937 &gen) const {
-    if (exact_rollouts) {
+    if (exact_rollouts_) {
       return mcts::RandomRollout<game_t, proposer_t>{}(std::move(game), gen);
     }
     return mcts::MakeShortcutRollout<game_t, proposer_t>(
@@ -264,9 +263,9 @@ void Render(const risk_game::RiskState<NUM_PLAYERS> &game, const Stats &stats,
   frame << "\033[H";
 
   const int avg_game_length =
-      stats.games > 0 ? stats.total_moves / stats.games : 0;
+      stats.games_ > 0 ? stats.total_moves_ / stats.games_ : 0;
   const double avg_think_ms =
-      stats.think_count > 0 ? stats.total_think_ms / stats.think_count : 0.0;
+      stats.think_count_ > 0 ? stats.total_think_ms_ / stats.think_count_ : 0.0;
 
   char status[512];
   const int player = game.current_player();
@@ -275,24 +274,25 @@ void Render(const risk_game::RiskState<NUM_PLAYERS> &game, const Stats &stats,
     snprintf(status, sizeof(status),
              "Risk MCTS self-play | game %d | move %d | iters/move=%d | "
              "widening c=%.2f alpha=%.2f | rollouts=%s",
-             stats.games + 1, move, p.iterations, p.widening_c,
-             p.widening_alpha, p.exact_rollouts ? "exact" : "expected-battles");
+             stats.games_ + 1, move, p.iterations_, p.widening_c_,
+             p.widening_alpha_,
+             p.exact_rollouts_ ? "exact" : "expected-battles");
   } else {
     snprintf(status, sizeof(status),
              "Risk MCTS self-play | game %d | move %d | chance node (dice)",
-             stats.games + 1, move);
+             stats.games_ + 1, move);
   }
   frame << status << "\033[K\r\n";
 
   frame << "wins:";
   for (size_t p = 0; p < NUM_PLAYERS; ++p) {
     frame << " " << risk_game::PlayerColor(static_cast<int>(p)) << "P" << p
-          << risk_game::kColorReset << "=" << stats.wins[p];
+          << risk_game::kColorReset << "=" << stats.wins_[p];
   }
   snprintf(status, sizeof(status),
            " draws=%d | avg game %d moves | think: last "
            "%.0f ms avg %.0f ms |%s space = pause | Ctrl-C to quit",
-           stats.draws, avg_game_length, last_think_ms, avg_think_ms,
+           stats.draws_, avg_game_length, last_think_ms, avg_think_ms,
            absl::GetFlag(FLAGS_highlight_changes) ? " bright = armies changed |"
                                                   : "");
   frame << status << "\033[K\r\n";
@@ -301,7 +301,7 @@ void Render(const risk_game::RiskState<NUM_PLAYERS> &game, const Stats &stats,
   }
 
   std::array<bool, risk_game::kNumTerritories> changed{};
-  if (history.valid && absl::GetFlag(FLAGS_highlight_changes)) {
+  if (history.valid_ && absl::GetFlag(FLAGS_highlight_changes)) {
     for (size_t i = 0; i < changed.size(); ++i) {
       changed[i] = game.m_map[i].units != history.units[i];
     }
@@ -309,7 +309,7 @@ void Render(const risk_game::RiskState<NUM_PLAYERS> &game, const Stats &stats,
   for (size_t i = 0; i < changed.size(); ++i) {
     history.units[i] = game.m_map[i].units;
   }
-  history.valid = true;
+  history.valid_ = true;
 
   // Turn/Player/Reserves lines + ascii board, changes brightly highlighted.
   // Lines vary in length (e.g. "Player: -1" at chance nodes vs "Player: 0"),
@@ -330,8 +330,8 @@ void Render(const risk_game::RiskState<NUM_PLAYERS> &game, const Stats &stats,
 // state_game<index>_move<move>.pbtxt in the working directory. Returns a
 // short notice for the pause banner.
 template <size_t NUM_PLAYERS>
-auto DumpStateProto(const risk_game::RiskState<NUM_PLAYERS> &game,
-                    int game_index, int move) -> std::string {
+std::string DumpStateProto(const risk_game::RiskState<NUM_PLAYERS> &game,
+                           int game_index, int move) {
   using traits_t =
       mcts::GameSerializationTraits<risk_game::RiskState<NUM_PLAYERS>>;
   const std::string filename = "state_game" + std::to_string(game_index) +
@@ -352,8 +352,8 @@ auto DumpStateProto(const risk_game::RiskState<NUM_PLAYERS> &game,
 // Dumps the current ascii board (with ANSI colors) into
 // board_game<index>_move<move>.txt. Returns a short notice for the banner.
 template <size_t NUM_PLAYERS>
-auto DumpAsciiBoard(const risk_game::RiskState<NUM_PLAYERS> &game,
-                    int game_index, int move) -> std::string {
+std::string DumpAsciiBoard(const risk_game::RiskState<NUM_PLAYERS> &game,
+                           int game_index, int move) {
   const std::string filename = "board_game" + std::to_string(game_index) +
                                "_move" + std::to_string(move) + ".txt";
   std::array<bool, risk_game::kNumTerritories> no_highlight{};
@@ -397,12 +397,12 @@ void WriteTrajectory(const std::filesystem::path &path,
 // 'a' dumps the ascii board, 'q' quits. Returns false when the program
 // should abort.
 template <size_t NUM_PLAYERS>
-auto HandlePauseInput(const risk_game::RiskState<NUM_PLAYERS> &game,
+bool HandlePauseInput(const risk_game::RiskState<NUM_PLAYERS> &game,
                       const Stats &stats, int move, double last_think_ms,
                       FrameHistory &history,
                       const std::vector<PlayerParams> &params,
                       risk_game::proto::RiskTrajectory *trajectory,
-                      const std::filesystem::path &trajectory_path) -> bool {
+                      const std::filesystem::path &trajectory_path) {
   const auto key = PollKey();
   if (!key.has_value()) {
     return true;
@@ -437,9 +437,9 @@ auto HandlePauseInput(const risk_game::RiskState<NUM_PLAYERS> &game,
       return false;
     }
     if (*pause_key == 's') {
-      notice = DumpStateProto(game, stats.games, move);
+      notice = DumpStateProto(game, stats.games_, move);
     } else if (*pause_key == 'a') {
-      notice = DumpAsciiBoard(game, stats.games, move);
+      notice = DumpAsciiBoard(game, stats.games_, move);
     }
   }
 }
@@ -449,10 +449,10 @@ auto HandlePauseInput(const risk_game::RiskState<NUM_PLAYERS> &game,
 // |trajectory| is non-null, the applied action is appended to it. Returns
 // false if aborted mid-move.
 template <size_t NUM_PLAYERS>
-auto PlayMove(risk_game::RiskState<NUM_PLAYERS> &game, std::mt19937 &gen,
+bool PlayMove(risk_game::RiskState<NUM_PLAYERS> &game, std::mt19937 &gen,
               Stats &stats, double &last_think_ms,
               const std::vector<PlayerParams> &params,
-              risk_game::proto::RiskTrajectory *trajectory) -> bool {
+              risk_game::proto::RiskTrajectory *trajectory) {
   using game_t = risk_game::RiskState<NUM_PLAYERS>;
   using proposer_t = risk_game::RiskProposer<NUM_PLAYERS>;
   using traits_t = mcts::GameSerializationTraits<game_t>;
@@ -477,19 +477,19 @@ auto PlayMove(risk_game::RiskState<NUM_PLAYERS> &game, std::mt19937 &gen,
 
   const PlayerParams &p = params[static_cast<size_t>(game.current_player())];
   mcts::MctsRunner<game_t, proposer_t, SwitchableRollout<NUM_PLAYERS>> runner(
-      game, proposer_t{}, SwitchableRollout<NUM_PLAYERS>{p.exact_rollouts});
-  auto picker = mcts::MctsStochasticNodePicker<game_t>(gen, p.widening_c,
-                                                       p.widening_alpha);
+      game, proposer_t{}, SwitchableRollout<NUM_PLAYERS>{p.exact_rollouts_});
+  auto picker = mcts::MctsStochasticNodePicker<game_t>(gen, p.widening_c_,
+                                                       p.widening_alpha_);
 
   const auto start = std::chrono::steady_clock::now();
-  for (int i = 0; i < p.iterations && !g_abort; ++i) {
+  for (int i = 0; i < p.iterations_ && !g_abort; ++i) {
     runner.OneIteration(picker, gen);
   }
   const auto end = std::chrono::steady_clock::now();
   last_think_ms =
       std::chrono::duration<double, std::milli>(end - start).count();
-  stats.total_think_ms += last_think_ms;
-  ++stats.think_count;
+  stats.total_think_ms_ += last_think_ms;
+  ++stats.think_count_;
 
   if (g_abort) {
     return false;
@@ -511,7 +511,7 @@ void RunSelfPlay(std::mt19937 &gen, Stats &stats,
   using game_t = risk_game::RiskState<NUM_PLAYERS>;
   using traits_t = mcts::GameSerializationTraits<game_t>;
   while (!g_abort) {
-    const int game_index = stats.games;
+    const int game_index = stats.games_;
     game_t game;
     int move = 0;
     double last_think_ms = 0.0;
@@ -548,18 +548,18 @@ void RunSelfPlay(std::mt19937 &gen, Stats &stats,
     if (g_abort) {
       break;
     }
-    ++stats.games;
-    stats.total_moves += move;
+    ++stats.games_;
+    stats.total_moves_ += move;
     if (const auto state = game.current_state();
         std::holds_alternative<mcts::win_t>(state)) {
       const int winner = std::get<mcts::win_t>(state).winning_player;
-      ++stats.wins[winner];
+      ++stats.wins_[winner];
       if (trajectory.has_value()) {
         trajectory->set_result(risk_game::proto::RiskTrajectory::WIN);
         trajectory->set_winning_player(winner);
       }
     } else {
-      ++stats.draws;  // Move cap reached.
+      ++stats.draws_;  // Move cap reached.
       if (trajectory.has_value()) {
         trajectory->set_result(risk_game::proto::RiskTrajectory::DRAW);
       }
@@ -584,7 +584,7 @@ void RunWithPlayerCount(std::mt19937 &gen, Stats &stats,
 
 }  // namespace
 
-auto main(int argc, char **argv) -> int {
+int main(int argc, char **argv) {
   absl::ParseCommandLine(argc, argv);
 
   const int seed_flag = absl::GetFlag(FLAGS_seed);
@@ -665,11 +665,11 @@ auto main(int argc, char **argv) -> int {
     }
   }  // ~ScreenGuard restores the main screen.
 
-  printf("Games: %d | wins", stats.games);
+  printf("Games: %d | wins", stats.games_);
   for (int p = 0; p < num_players; ++p) {
     printf(" %sP%d%s=%d", risk_game::PlayerColor(p).c_str(), p,
-           risk_game::kColorReset, stats.wins[p]);
+           risk_game::kColorReset, stats.wins_[p]);
   }
-  printf(" | draws=%d\n", stats.draws);
+  printf(" | draws=%d\n", stats.draws_);
   return 0;
 }

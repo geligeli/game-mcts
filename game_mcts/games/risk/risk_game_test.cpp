@@ -20,8 +20,8 @@ namespace {
 // The stock proposal policy, used wherever these tests need "some legal move".
 constexpr RiskProposer<2> kProposer{};
 // One playout step: dice at chance nodes, kProposer at decision nodes.
-auto SampleAction(const RiskState<2> &state, std::mt19937 &gen)
-    -> RiskState<2>::action_t {
+RiskState<2>::action_t SampleAction(const RiskState<2> &state,
+                                    std::mt19937 &gen) {
   return state.is_chance_node() ? state.sample_chance_action(gen)
                                 : kProposer.sample(state, gen);
 }
@@ -29,7 +29,7 @@ auto SampleAction(const RiskState<2> &state, std::mt19937 &gen)
 
 // Helper to check if a vector contains an element
 template <typename T>
-auto Contains(const std::vector<T> &vec, const T &element) -> bool {
+bool Contains(const std::vector<T> &vec, const T &element) {
   return std::find(vec.begin(), vec.end(), element) != vec.end();
 }
 
@@ -54,17 +54,17 @@ TEST(RiskGameTest, RunGameWithRandomActions) {
 
   std::mt19937 gen(42);
 
-  auto start_reserves = state.m_reserves;
+  auto start_reserves = state.reserves_;
   for (int i = 0; i < 40; ++i) {
     auto action = SampleAction(state, gen);
     state = state.apply_action(action);
     ASSERT_EQ(state.current_player(), 1);
-    ASSERT_EQ(start_reserves[0] - state.m_reserves[0], i + 1)
+    ASSERT_EQ(start_reserves[0] - state.reserves_[0], i + 1)
         << i << " " << action;
     action = SampleAction(state, gen);
     state = state.apply_action(action);
     ASSERT_EQ(state.current_player(), 0);
-    ASSERT_EQ(start_reserves[1] - state.m_reserves[1], i + 1)
+    ASSERT_EQ(start_reserves[1] - state.reserves_[1], i + 1)
         << i << " " << action;
   }
 
@@ -88,11 +88,11 @@ TEST(RiskGameTest, BattleExpectationShortcutResolvesQueuedBattle) {
   while (!state.is_chance_node()) {
     mcts::PlayoutStep(state, kProposer, gen);
   }
-  ASSERT_TRUE(state.queued_attack.has_value());
-  ASSERT_TRUE(state.queued_defense.has_value());
+  ASSERT_TRUE(state.queued_attack_.has_value());
+  ASSERT_TRUE(state.queued_defense_.has_value());
 
-  const int src = state.queued_attack->source;
-  const int tgt = state.queued_attack->target;
+  const int src = state.queued_attack_->source_;
+  const int tgt = state.queued_attack_->target;
   const int attackers = state.m_map[src].units - 1;
   const int defenders = state.m_map[tgt].units;
   const int8_t attacker_owner = state.m_map[src].owner;
@@ -101,21 +101,21 @@ TEST(RiskGameTest, BattleExpectationShortcutResolvesQueuedBattle) {
   ASSERT_TRUE(next_opt.has_value());
   const RiskState<2> &next = *next_opt;
 
-  EXPECT_FALSE(next.queued_attack.has_value());
-  EXPECT_FALSE(next.queued_defense.has_value());
-  EXPECT_EQ(next.m_current_player, attacker_owner);
+  EXPECT_FALSE(next.queued_attack_.has_value());
+  EXPECT_FALSE(next.queued_defense_.has_value());
+  EXPECT_EQ(next.current_player_, attacker_owner);
 
   const BattleRemnants expected = LookupExpectedRemnants(attackers, defenders);
   // Winner = side with more expected survivors.
-  if (expected.attackers > expected.defenders) {
+  if (expected.attackers_ > expected.defenders_) {
     EXPECT_EQ(next.m_map[tgt].owner, attacker_owner);
-    EXPECT_EQ(next.m_map[tgt].units, expected.attackers);
+    EXPECT_EQ(next.m_map[tgt].units, expected.attackers_);
     EXPECT_EQ(next.m_map[src].units,
-              state.m_map[src].units - (attackers - expected.attackers));
+              state.m_map[src].units - (attackers - expected.attackers_));
   } else {
     EXPECT_EQ(next.m_map[src].units, 1);
     EXPECT_EQ(next.m_map[src].owner, attacker_owner);
-    EXPECT_EQ(next.m_map[tgt].units, expected.defenders);
+    EXPECT_EQ(next.m_map[tgt].units, expected.defenders_);
   }
 }
 
@@ -140,16 +140,16 @@ TEST(RiskGameTest, ShortcutRolloutPlaysFullGame) {
 TEST(RiskGameTest, NextPlayerSkipsEliminatedPlayers) {
   RiskState<3> state;
   // Players 0 and 2 own one territory each; player 1 is eliminated.
-  state.m_initial_placement = false;
+  state.initial_placement_ = false;
   state.m_map[0].owner = 0;
   state.m_map[0].units = 2;
   state.m_map[1].owner = 2;
   state.m_map[1].units = 2;
-  state.m_current_player = 0;
+  state.current_player_ = 0;
 
   // Passing on the fortify step advances to the next player.
   state.FortifyToMoveUnits(
-      FortifyAction{.source = 0, .target = 0, .num_units = 1});
+      FortifyAction{.source_ = 0, .target = 0, .num_units = 1});
   EXPECT_EQ(state.current_player(), 2);
 }
 
@@ -229,7 +229,8 @@ TEST(RiskGameTest, DeterministicBranchesHaveSupportOne) {
     if (mcts::is_terminal(state.current_state())) {
       break;
     }
-    if (state.queued_attack.has_value() && !state.queued_defense.has_value()) {
+    if (state.queued_attack_.has_value() &&
+        !state.queued_defense_.has_value()) {
       EXPECT_EQ(kProposer.support_size(state), 1u);
       ++defense_states;
     }
@@ -245,28 +246,28 @@ namespace {
 // Territory indices equal Country enum ordinals: Afghanistan=0 borders
 // China=7, India=16, Middle_East=22, Ukraine=37, Ural=38 (all odd -> player
 // 1), so 0->7 is a legal attack and 0->1 (Alaska) is non-adjacent.
-auto MakeMidGameState() -> RiskState<2> {
+RiskState<2> MakeMidGameState() {
   RiskState<2> state;
-  state.m_initial_placement = false;
-  state.m_num_initial_placements = kNumTerritories;
-  state.m_reserves = {0, 0};
+  state.initial_placement_ = false;
+  state.num_initial_placements_ = kNumTerritories;
+  state.reserves_ = {0, 0};
   for (size_t i = 0; i < state.m_map.size(); ++i) {
     state.m_map[i].owner = static_cast<int8_t>(i % 2);
     state.m_map[i].units = 5;
   }
-  state.m_current_player = 0;
-  state.m_first_attack_of_turn = true;
+  state.current_player_ = 0;
+  state.first_attack_of_turn_ = true;
   return state;
 }
 
 // State with an attack queued against territory 0 (owned by player 0, who is
 // the defender to move).
-auto MakeQueuedAttackState() -> RiskState<2> {
+RiskState<2> MakeQueuedAttackState() {
   RiskState<2> state = MakeMidGameState();
-  state.queued_attack =
-      QueueAttackAction{.source = 7, .target = 0, .num_attack_dice = 1};
-  state.m_current_player = state.m_map[0].owner;
-  state.m_first_attack_of_turn = false;
+  state.queued_attack_ =
+      QueueAttackAction{.source_ = 7, .target = 0, .num_attack_dice_ = 1};
+  state.current_player_ = state.m_map[0].owner;
+  state.first_attack_of_turn_ = false;
   return state;
 }
 
@@ -294,12 +295,12 @@ TEST(RiskGameTest, IsValidActionInitialPlacement) {
   // After the claiming phase, players may only reinforce their own
   // territories.
   RiskState<2> late;
-  late.m_num_initial_placements = kNumTerritories;
+  late.num_initial_placements_ = kNumTerritories;
   for (size_t i = 0; i < late.m_map.size(); ++i) {
     late.m_map[i].owner = static_cast<int8_t>(i % 2);
     late.m_map[i].units = 1;
   }
-  late.m_current_player = 0;
+  late.current_player_ = 0;
   EXPECT_TRUE(late.is_valid_action(InitialPlaceAction{0}, reason));
   EXPECT_FALSE(late.is_valid_action(InitialPlaceAction{1}, reason));
   EXPECT_FALSE(reason.empty());
@@ -316,7 +317,7 @@ TEST(RiskGameTest, IsValidActionAttack) {
 
   const auto attack = [](int source, int target, int dice) {
     PlayerAction pa;
-    pa.attack_action = QueueAttackAction{source, target, dice};
+    pa.attack_action_ = QueueAttackAction{source, target, dice};
     return RiskAction{pa};
   };
 
@@ -358,13 +359,13 @@ TEST(RiskGameTest, IsValidActionAttack) {
 TEST(RiskGameTest, IsValidActionReinforce) {
   std::string reason;
   RiskState<2> state = MakeMidGameState();
-  state.m_reserves[0] = 3;
+  state.reserves_[0] = 3;
 
   const auto reinforce = [](int territory, uint16_t units) {
     PlayerAction pa;
     ReinforceAction ra{};
-    ra.units_to_place[territory] = units;
-    pa.reinforce_action = ra;
+    ra.units_to_place_[territory] = units;
+    pa.reinforce_action_ = ra;
     return RiskAction{pa};
   };
 
@@ -379,7 +380,7 @@ TEST(RiskGameTest, IsValidActionReinforce) {
   EXPECT_FALSE(state.is_valid_action(reinforce(0, 4), reason));
   EXPECT_FALSE(reason.empty());
   // No reinforcements after the first attack of the turn.
-  state.m_first_attack_of_turn = false;
+  state.first_attack_of_turn_ = false;
   EXPECT_FALSE(state.is_valid_action(reinforce(0, 3), reason));
   EXPECT_FALSE(reason.empty());
 }
@@ -409,8 +410,8 @@ TEST(RiskGameTest, IsValidActionDefense) {
 TEST(RiskGameTest, IsValidActionRollDice) {
   std::string reason;
   RiskState<2> state = MakeQueuedAttackState();
-  state.queued_defense = QueueDefenseAction{2};
-  state.m_current_player = -1;  // Chance node.
+  state.queued_defense_ = QueueDefenseAction{2};
+  state.current_player_ = -1;  // Chance node.
 
   // Legal roll: 1 attack die, 2 defense dice, unused slots 0.
   EXPECT_TRUE(state.is_valid_action(RollDiceAction{{3, 0, 0}, {2, 4}}, reason));

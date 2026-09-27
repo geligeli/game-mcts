@@ -17,7 +17,7 @@
 
 namespace visualisations {
 
-Server::Server(int port) : port_(port), server_fd_(-1) { initialize_socket(); }
+Server::Server(int port) : port_(port), server_fd_(-1) { InitializeSocket(); }
 
 Server::~Server() {
   // Close all client connections
@@ -31,7 +31,7 @@ Server::~Server() {
   }
 }
 
-void Server::initialize_socket() {
+void Server::InitializeSocket() {
   // Create socket
   server_fd_ = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd_ < 0) {
@@ -71,7 +71,7 @@ void Server::initialize_socket() {
   }
 }
 
-void Server::accept_client() {
+void Server::AcceptClient() {
   struct sockaddr_in client_address;
   socklen_t client_len = sizeof(client_address);
 
@@ -104,8 +104,8 @@ void Server::accept_client() {
   clients_[client_fd] = ClientState();
 }
 
-void Server::handle_client_data(
-    int client_fd, std::function<std::string()> content_generator) {
+void Server::HandleClientData(int client_fd,
+                              std::function<std::string()> content_generator) {
   auto it = clients_.find(client_fd);
   if (it == clients_.end()) {
     return;
@@ -116,7 +116,7 @@ void Server::handle_client_data(
     return;
   }
 
-  constexpr std::size_t kMaxRequestSize = 8192;
+  constexpr std::size_t max_request_size = 8192;
   const std::string header_terminator = "\r\n\r\n";
   char buffer[512];
 
@@ -124,33 +124,33 @@ void Server::handle_client_data(
   if (bytes_read <= 0) {
     if (bytes_read == 0 || (errno != EAGAIN && errno != EWOULDBLOCK)) {
       LOG(INFO) << "Client disconnected or error (fd=" << client_fd << ")";
-      close_client(client_fd);
+      CloseClient(client_fd);
     }
     return;
   }
 
-  state.request_buffer.append(buffer, buffer + bytes_read);
+  state.request_buffer_.append(buffer, buffer + bytes_read);
 
   // Check if we have a complete request
-  if (state.request_buffer.find(header_terminator) != std::string::npos) {
+  if (state.request_buffer_.find(header_terminator) != std::string::npos) {
     state.request_complete = true;
 
-    auto end_of_line = state.request_buffer.find("\r\n");
+    auto end_of_line = state.request_buffer_.find("\r\n");
     if (end_of_line != std::string::npos) {
-      std::string request_line = state.request_buffer.substr(0, end_of_line);
+      std::string request_line = state.request_buffer_.substr(0, end_of_line);
       if (request_line.rfind("GET ", 0) == 0) {
         std::string html_content = content_generator();
-        send_response(client_fd, html_content);
+        SendResponse(client_fd, html_content);
       }
     }
-    close_client(client_fd);
-  } else if (state.request_buffer.size() >= kMaxRequestSize) {
+    CloseClient(client_fd);
+  } else if (state.request_buffer_.size() >= max_request_size) {
     LOG(WARNING) << "Request too large from client (fd=" << client_fd << ")";
-    close_client(client_fd);
+    CloseClient(client_fd);
   }
 }
 
-void Server::send_response(int client_fd, const std::string &content) {
+void Server::SendResponse(int client_fd, const std::string &content) {
   std::ostringstream response;
   response << "HTTP/1.1 200 OK\r\n";
   response << "Content-Type: text/html; charset=utf-8\r\n";
@@ -163,13 +163,13 @@ void Server::send_response(int client_fd, const std::string &content) {
   send(client_fd, response_str.c_str(), response_str.size(), 0);
 }
 
-void Server::close_client(int client_fd) {
+void Server::CloseClient(int client_fd) {
   clients_.erase(client_fd);
   close(client_fd);
 }
 
-void Server::serve_once(std::function<std::string()> content_generator) {
-  std::cout << "Server listening on " << get_url() << std::endl;
+void Server::ServeOnce(std::function<std::string()> content_generator) {
+  std::cout << "Server listening on " << GetUrl() << std::endl;
   std::cout << "Waiting for connection..." << std::endl;
 
   fd_set read_fds;
@@ -203,7 +203,7 @@ void Server::serve_once(std::function<std::string()> content_generator) {
 
     // Check for new connections
     if (FD_ISSET(server_fd_, &read_fds)) {
-      accept_client();
+      AcceptClient();
       if (activity == 1 && clients_.size() == 1) {
         break;  // We got our first connection, serve it next iteration
       }
@@ -217,7 +217,7 @@ void Server::serve_once(std::function<std::string()> content_generator) {
 
     for (int client_fd : client_fds) {
       if (FD_ISSET(client_fd, &read_fds)) {
-        handle_client_data(client_fd, content_generator);
+        HandleClientData(client_fd, content_generator);
       }
     }
   }
@@ -225,8 +225,8 @@ void Server::serve_once(std::function<std::string()> content_generator) {
   std::cout << "Served one request. Server stopping." << std::endl;
 }
 
-void Server::serve(std::function<std::string()> content_generator) {
-  LOG(INFO) << "Server listening on " << get_url();
+void Server::Serve(std::function<std::string()> content_generator) {
+  LOG(INFO) << "Server listening on " << GetUrl();
   LOG(INFO) << "Press Ctrl+C to stop.";
 
   fd_set read_fds;
@@ -259,7 +259,7 @@ void Server::serve(std::function<std::string()> content_generator) {
 
     // Check for new incoming connections
     if (FD_ISSET(server_fd_, &read_fds)) {
-      accept_client();
+      AcceptClient();
     }
 
     // Check all client sockets for incoming data
@@ -271,12 +271,12 @@ void Server::serve(std::function<std::string()> content_generator) {
 
     for (int client_fd : client_fds) {
       if (FD_ISSET(client_fd, &read_fds)) {
-        handle_client_data(client_fd, content_generator);
+        HandleClientData(client_fd, content_generator);
       }
     }
   }
 }
-auto Server::get_url() const -> std::string {
+std::string Server::GetUrl() const {
   std::string host = "localhost";
 
   int sock = socket(AF_INET, SOCK_DGRAM, 0);

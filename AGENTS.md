@@ -14,10 +14,11 @@ Strict separation, enforced by concepts in
 - **Policy** — external `ActionProposer` choosing moves, never part of the game.
 - **Search** — `MctsRunner` (tree + selection/rollout/backprop).
 
-Dependency direction: `common` <- `core` <- `games` <- `arena`, `tools` at the
-top (nothing may depend on `tools`). `game_mcts/arena` is this repo's side of
-`@game_arena` (the problem-running framework, its own repo), which depends on
-nothing here.
+Dependency direction: `common` <- `core` <- `games`, `tools` at the top
+(nothing may depend on `tools`). The repo-root `problem/` and `bots/` packages
+sit above `game_mcts/` and host risk2 in `@game_arena` (the problem-running
+framework, its own repo); nothing under `game_mcts/` depends on them or on the
+arena.
 
 New to the framework? Read `game_mcts/core/mcts/README.md` (contracts +
 step-by-step for a new game) and copy `game_mcts/games/tictactoe/`
@@ -48,9 +49,6 @@ bazel run //game_mcts/tools/bench:mcts_bench
   `py_proto_library` targets. After C++ changes rebuild, e.g.
   `bazel build //game_mcts/games/risk:risk_engine //game_mcts/games/risk:risk_py_proto`.
   Canonical Python test example: `game_mcts/games/risk/risk_engine_test.py`.
-- MCP servers in `mcp_servers/` (`risk_mcp`, `arena_mcp`) need their venv
-  and generated stubs; see `mcp_servers/README.md`. Do not commit the venv
-  or generated `_pb/` / `*_pb2.py` files (git-ignored).
 
 ## C++ conventions
 
@@ -61,7 +59,9 @@ bazel run //game_mcts/tools/bench:mcts_bench
   dependency.
 - The compiler is hermetic-llvm (clang, libc++, compiler-rt; no sysroot,
   nothing from the host), registered by `@game_arena` so this repo, a kit and
-  the sandbox image all build with the same one. `.bazelrc` turns off bazel's
+  the sandbox image all build with the same one. Machine-specific flags
+  (the `/large_nfs` caches) go in the git-ignored `.bazelrc.local`, never in
+  `.bazelrc`: that file ships into the sandbox image and every kit. `.bazelrc` turns off bazel's
   host C++ autodetection, which is what lets the build run on RBE workers with
   no compiler installed. Sanitizer configs use its
   `--@llvm//config:<san>=true` settings rather than raw `-fsanitize` flags.
@@ -71,6 +71,13 @@ bazel run //game_mcts/tools/bench:mcts_bench
   repo's `.clang-format` is what applies: Google style plus
   `AlwaysBreakTemplateDeclarations: Yes`, `IncludeBlocks: Preserve`,
   `DerivePointerAlignment: true` — keep them.
+- Naming and return types follow `cpp_format.yaml` (the arena's: leading
+  return types, snake_case locals, `trailing_` members, UpperCamelCase
+  methods, `kConstants`). It is a Bazel aspect, too slow for a hook: run
+  `tools/cpp_format.sh check` (or `diff` / `fix`) before sending a change
+  up. A rename it cannot see through a template's `.inl` breaks the build;
+  fix those references by hand. `tools/cpp_format.sh compile_commands`
+  refreshes `compile_commands.json`.
 - Header guards, never `#pragma once`. Guard form is
   `GAME_MCTS_<REL_PATH_WITH_UNDERSCORES>` (repo name prefix included),
   e.g. `#ifndef GAME_MCTS_GAME_MCTS_CPP_MYGAME_MYGAME_H`. The pre-commit
@@ -123,11 +130,10 @@ bazel run //game_mcts/tools/bench:mcts_bench
   `State/ActionTo/FromProto` functions (pattern:
   `tictactoe_serialization.h`). State/action bytes on the wire and across
   the pybind boundary are always serialized protos.
-- `arena/candidate_api/candidate_api.h` is header-only because the game is
-  selected at compile time (`CANDIDATE_GAME_RISK2` vs
-  `CANDIDATE_GAME_TICTACTOE`); candidates define only
-  `MakePolicy(const candidate::Params&)`. Start from
-  `game_mcts/arena/candidates/dev/strategy.h`.
+- Stock policies (`ProposerPolicy`, `MctsPolicy`) and `SerializedPolicy`
+  (any `TournamentPolicy` as serialized state bytes -> action bytes, the
+  shape of an arena builtin and of a bot's move) live in
+  `game_mcts/core/mcts/policies.h`.
 
 ## Tests
 
@@ -147,46 +153,55 @@ bazel run //game_mcts/tools/bench:mcts_bench
 ## The arena (agents)
 
 The arena is `@game_arena`, a separate repo
-(https://github.com/geligeli/game-arena) consumed as a bazel module, pinned to
-a commit with `git_override` in `MODULE.bazel`. A build needs nothing but this
-repo. It is a general problem-running framework and knows nothing about this
-repo.
+(https://github.com/geligeli/game-arena) consumed as a bazel module
+(`dev_dependency`, so repos consuming game_mcts never resolve it), pinned to a
+commit with `git_override` in `MODULE.bazel`. It is a general problem-running
+framework and knows nothing about this repo. Changing it means landing it there
+and bumping the pin here; to iterate on both at once, swap in the commented
+`local_path_override`.
 
-Changing the arena means landing it there and bumping the pin here; the two
-repos are versioned independently on purpose. To iterate on both at once, swap
-in the commented `local_path_override` (see `MODULE.bazel`).
+This repo is a problem repo in the arena's `examples/connect4` layout:
 
-- `game_mcts/arena/` is the whole binding: `game_session_impl.h` (the
-  `mcts::SerializableGame` -> `GameSession` adapter), `builtins.h`, and
-  `game_registry.cc`, which **defines** the `GameRegistry()` that
-  `@game_arena//game_arena/referee:game_registry` only declares.
-- Binaries are "a registry + an entry-point library":
-  `//game_mcts/arena:match_referee` is `:game_registry` plus
-  `@game_arena//game_arena/referee:referee_main`. Same for `:broker_server` and
-  `:random_client`. `:game_registry` needs `alwayslink = 1` — nothing depends
-  on it by label.
-- **Adding a game to the arena means adding one `GameDescriptor` entry to
-  `game_mcts/arena/game_registry.cc`.** Do not change anything in game-arena
-  for that; if you think you have to, the seam is wrong.
-- Problem-specific settings live in `game_mcts/arena/problems/*.textproto`, not
-  in arena code: `match.referee_target`, `submission.harness` (the labels a
-  generated candidate BUILD is written against), and
-  `submission.allowed_dep_prefixes` (what a solution may depend on).
-- Broker protocol and flags: `game_mcts/arena/README.md`; the agent submission
-  loop: `game_mcts/arena/ARENA.md`. A candidate id is its broker player name;
-  `player:<name>` rendezvous pairs specific players.
-- `PlayRemoteGames` (`arena/client/remote_client.h`) owns the `Play`-stream
-  protocol including drain-before-`Finish`; hand-rolled clients must replicate
-  that.
-- Prefer the `dev_bot` local loop over hand-rolling gRPC. The arena MCP server
-  moved to the game-arena repo; run it from there.
-- `arena/client/risk_mcts_client.cc` is the reference C++ bot.
+- `//:BUILD` calls `arena_problem(name = "risk2", ...)` with
+  `problem.textproto`. It defines `:match_referee`, `:config_test`,
+  `:tournament`, `:kit`, `:play` and the `sandbox_image*` / `kit_image*`
+  targets (see `@game_arena//game_arena/rules:problem.bzl`).
+- `problem/`: `session.h` (the `mcts::SerializableGame` -> `GameSession`
+  adapter) and `registry.cc`, which **defines** the `GameRegistry()` that
+  `@game_arena//game_arena/referee:game_registry` only declares
+  (`alwayslink = 1`). Builtins (`random`, `mcts[:iterations=N]`) are stock
+  policies through `SerializedPolicy`. Adding a game or builtin is an entry
+  there; if you think game-arena has to change for it, the seam is wrong.
+- `bots/`: the submission contract. `bot_api.h` (`MakePolicy(const
+  candidate::Params&) -> candidate::policy_t`), `bot.cc` (the harness, on
+  `@game_arena//game_arena/client:play_loop`), `bot_deps`. Each participant
+  is `bots/<name>/` with the BUILD the arena generates; `bots/reference/` is
+  the starter everyone is copied from.
+- `kit_files` / `tree` in `//:BUILD` list the packages shipped to kits and to
+  the sandbox image; every such package has a `tree` filegroup. A kit builds
+  `//...`, so `kit_files` must stay closed under the deps of every shipped
+  target, tests included: check with `bazel run //:kit -- --out=/tmp/kit`,
+  which builds it. `REPO.bazel` keeps `.git` & co. out of the sandbox tree.
+- Problem settings (harness labels, `allowed_dep_prefixes`, sandbox image
+  tag, match timing) live in `problem.textproto`. Bump `sandbox.image`'s tag
+  whenever the tree or toolchain changes; `.bazelversion` must stay the bazel
+  the arena's base image installs, and `MODULE.bazel.lock` committed and
+  current (vendoring runs with `--lockfile_mode=error`).
+- Local match: `bazel run //:match_referee -- --game=risk2
+  --player_a=reference --games=2` and, against its port, `bazel run
+  //bots/reference:bot -- --name=reference --opponent=builtin:mcts`. Opponents
+  are `builtin:<spec>` or `player:<name>` (both sides name each other).
+  Whole tournament with a kit shell: `bazel run //:play`. Protocol, referee
+  flags and the submission loop: `game_arena/README.md` and
+  `game_arena/ARENA.md` in the arena repo.
 
 ## Do not
 
-- Do not push game_mcts code into game-arena, and do not reach into
-  `@game_arena` internals from here beyond the published libraries. The split
-  exists so the arena can host problems that are not games.
+- Do not push game_mcts code into game-arena, do not make anything under
+  `game_mcts/` depend on `@game_arena`, `problem/` or `bots/`, and do not
+  reach into `@game_arena` beyond its kit surface (`proto`, `referee`,
+  `client`, `common/kv_options`, `rules`): a kit and the sandbox get nothing
+  else.
 - Do not add virtuals to the game/search hot path; do not put policy
   inside the game class; do not approximate inside
   `sample_chance_action` or the tree (shortcuts are rollout-only).

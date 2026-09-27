@@ -5,9 +5,8 @@ namespace fitters {
 namespace {
 // Helper function to compute linear regression on transformed data
 // Returns: {slope, intercept, r_squared}
-auto linear_regression(const std::vector<double>& x,
-                       const std::vector<double>& y)
-    -> std::tuple<double, double, double> {
+std::tuple<double, double, double> linear_regression(
+    const std::vector<double>& x, const std::vector<double>& y) {
   if (x.size() != y.size() || x.size() < 2) {
     throw std::invalid_argument("Invalid input sizes for linear regression");
   }
@@ -58,8 +57,8 @@ auto linear_regression(const std::vector<double>& x,
 }
 }  // anonymous namespace
 
-auto fit_exponential(const std::vector<double>& x, const std::vector<double>& y)
-    -> ExponentialFitResult {
+ExponentialFitResult fit_exponential(const std::vector<double>& x,
+                                     const std::vector<double>& y) {
   ExponentialFitResult result{0.0, 0.0, 0.0, false};
 
   if (x.size() != y.size() || x.size() < 2) {
@@ -87,20 +86,20 @@ auto fit_exponential(const std::vector<double>& x, const std::vector<double>& y)
     auto [slope, intercept, r_squared] =
         linear_regression(x_valid, log_y_valid);
 
-    result.b = slope;
-    result.a = std::exp(intercept);
-    result.r_squared = r_squared;
-    result.valid = true;
+    result.b_ = slope;
+    result.a_ = std::exp(intercept);
+    result.r_squared_ = r_squared;
+    result.valid_ = true;
 
   } catch (const std::exception&) {
-    result.valid = false;
+    result.valid_ = false;
   }
 
   return result;
 }
 
-auto fit_power_law(const std::vector<double>& x, const std::vector<double>& y)
-    -> PowerLawFitResult {
+PowerLawFitResult fit_power_law(const std::vector<double>& x,
+                                const std::vector<double>& y) {
   PowerLawFitResult result{0.0, 0.0, 0.0, false};
 
   if (x.size() != y.size() || x.size() < 2) {
@@ -129,40 +128,40 @@ auto fit_power_law(const std::vector<double>& x, const std::vector<double>& y)
     auto [slope, intercept, r_squared] =
         linear_regression(log_x_valid, log_y_valid);
 
-    result.alpha = slope;
-    result.a = std::exp(intercept);
-    result.r_squared = r_squared;
-    result.valid = true;
+    result.alpha_ = slope;
+    result.a_ = std::exp(intercept);
+    result.r_squared_ = r_squared;
+    result.valid_ = true;
 
   } catch (const std::exception&) {
-    result.valid = false;
+    result.valid_ = false;
   }
 
   return result;
 }
 
-auto choose_best_fit(const std::vector<double>& x, const std::vector<double>& y)
-    -> FitType {
+FitType choose_best_fit(const std::vector<double>& x,
+                        const std::vector<double>& y) {
   auto exp_result = fit_exponential(x, y);
   auto pow_result = fit_power_law(x, y);
 
   // If neither is valid, return NONE
-  if (!exp_result.valid && !pow_result.valid) {
+  if (!exp_result.valid_ && !pow_result.valid_) {
     return FitType::NONE;
   }
 
   // If only one is valid, return that one
-  if (!exp_result.valid) {
+  if (!exp_result.valid_) {
     return FitType::POWER_LAW;
   }
-  if (!pow_result.valid) {
+  if (!pow_result.valid_) {
     return FitType::EXPONENTIAL;
   }
 
   // Both are valid, compare R^2 values
   // Higher R^2 means better fit
-  return (exp_result.r_squared >= pow_result.r_squared) ? FitType::EXPONENTIAL
-                                                        : FitType::POWER_LAW;
+  return (exp_result.r_squared_ >= pow_result.r_squared_) ? FitType::EXPONENTIAL
+                                                          : FitType::POWER_LAW;
 }
 
 }  // namespace fitters

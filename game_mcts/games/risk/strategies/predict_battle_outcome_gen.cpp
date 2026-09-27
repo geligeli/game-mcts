@@ -16,30 +16,30 @@ int main() {
   std::ostringstream remaining_attackers_table;
   std::ostringstream remaining_defenders_table;
 
-  const auto kType = "uint8_t";
+  const auto type = "uint8_t";
 
-  remaining_attackers_table << "static constexpr std::array<std::array<"
-                            << kType << ", " << (max_defenders) << ">, "
+  remaining_attackers_table << "static constexpr std::array<std::array<" << type
+                            << ", " << (max_defenders) << ">, "
                             << (max_attackers)
                             << "> kExpectedRemainingAttackers = {\n";
-  remaining_defenders_table << "static constexpr std::array<std::array<"
-                            << kType << ", " << (max_defenders) << ">, "
+  remaining_defenders_table << "static constexpr std::array<std::array<" << type
+                            << ", " << (max_defenders) << ">, "
                             << (max_attackers)
                             << "> kExpectedRemainingDefenders = {\n";
 
   for (int initial_defenders = 1; initial_defenders <= max_defenders;
        ++initial_defenders) {
-    remaining_attackers_table << "std::array<" << kType << ", " << max_attackers
+    remaining_attackers_table << "std::array<" << type << ", " << max_attackers
                               << ">{";
-    remaining_defenders_table << "std::array<" << kType << ", " << max_attackers
+    remaining_defenders_table << "std::array<" << type << ", " << max_attackers
                               << ">{";
 
     for (int initial_attackers = 1; initial_attackers <= max_attackers;
          ++initial_attackers) {
       BattleRemnants r =
           ComputeExpectedRemnants(initial_attackers, initial_defenders);
-      remaining_attackers_table << std::setw(2) << r.attackers << ", ";
-      remaining_defenders_table << std::setw(2) << r.defenders << ", ";
+      remaining_attackers_table << std::setw(2) << r.attackers_ << ", ";
+      remaining_defenders_table << std::setw(2) << r.defenders_ << ", ";
     }
     remaining_attackers_table << "},\n";
     remaining_defenders_table << "},\n";

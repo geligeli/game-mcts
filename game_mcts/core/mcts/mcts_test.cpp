@@ -110,15 +110,13 @@ TEST(MctsTest, MultipleIterationsCornerStart) {
 
 struct TerminalRootGame {
   using action_t = int;
-  auto current_state() const -> mcts::game_state_t { return mcts::draw_t{}; }
-  auto current_player() const -> int { return 0; }
-  auto apply_action(action_t) const -> TerminalRootGame { return *this; }
-  auto valid_moves() const -> mcts::VectorLegalActionSet<action_t> {
+  mcts::game_state_t current_state() const { return mcts::draw_t{}; }
+  int current_player() const { return 0; }
+  TerminalRootGame apply_action(action_t) const { return *this; }
+  mcts::VectorLegalActionSet<action_t> valid_moves() const {
     return mcts::VectorLegalActionSet<action_t>{};
   }
-  auto is_valid_action(const action_t &, std::string &) const -> bool {
-    return true;
-  }
+  bool is_valid_action(const action_t &, std::string &) const { return true; }
 };
 
 static_assert(mcts::Game<TerminalRootGame>);
@@ -140,10 +138,10 @@ TEST(MctsTest, TerminalRootDoesNotExpand) {
 struct TreeGame {
   using action_t = int;
   struct Node {
-    mcts::game_state_t state = mcts::ongoing_t{};
-    int player_turn = 0;
-    size_t left = 0;
-    size_t right = 0;
+    mcts::game_state_t state_ = mcts::ongoing_t{};
+    int player_turn_ = 0;
+    size_t left_ = 0;
+    size_t right_ = 0;
   };
 
   size_t current_node_index_{0};
@@ -159,7 +157,7 @@ struct TreeGame {
       |   | |   |
       W0  D D  W1
   */
-  static constexpr std::array<Node, 7> kGameTree = {
+  static constexpr std::array<Node, 7> game_tree_ = {
       Node{mcts::ongoing_t{}, 0, 1, 2},  // 0
       Node{mcts::ongoing_t{}, 1, 3, 4},  // 1
       Node{mcts::ongoing_t{}, 1, 5, 6},  // 2
@@ -170,32 +168,30 @@ struct TreeGame {
       Node{mcts::win_t{1}, 0, 0, 0},  // 6
   };
 
-  auto current_state() const -> mcts::game_state_t {
-    assert(current_node_index_ < kGameTree.size());
-    return kGameTree[current_node_index_].state;
+  mcts::game_state_t current_state() const {
+    assert(current_node_index_ < game_tree_.size());
+    return game_tree_[current_node_index_].state_;
   }
 
-  auto current_player() const -> int {
-    assert(current_node_index_ < kGameTree.size());
-    return kGameTree[current_node_index_].player_turn;
+  int current_player() const {
+    assert(current_node_index_ < game_tree_.size());
+    return game_tree_[current_node_index_].player_turn_;
   }
 
-  auto apply_action(int action) const -> TreeGame {
+  TreeGame apply_action(int action) const {
     assert(action == 0 || action == 1);
-    return TreeGame{action == 0 ? kGameTree[current_node_index_].left
-                                : kGameTree[current_node_index_].right};
+    return TreeGame{action == 0 ? game_tree_[current_node_index_].left_
+                                : game_tree_[current_node_index_].right_};
   }
 
-  auto valid_moves() const -> mcts::ArrayLegalActionSet<2, action_t> {
+  mcts::ArrayLegalActionSet<2, action_t> valid_moves() const {
     return mcts::ArrayLegalActionSet<2, action_t>{{0, 1}, 2};
   }
 
-  auto is_valid_action(const action_t &, std::string &) const -> bool {
-    return true;
-  }
+  bool is_valid_action(const action_t &, std::string &) const { return true; }
 };
 
-auto operator<<(std::ostream &os, const TreeGame &game) -> std::ostream & {
+std::ostream &operator<<(std::ostream &os, const TreeGame &game) {
   os << "TreeGame(node_index=" << game.current_node_index_ << ", state=";
   std::visit(
       [&](const auto &state) {
@@ -236,32 +232,32 @@ TEST(MctsTest, SampleGame) {
 
 struct OrderedActionSet {
   using action_t = int;
-  std::array<action_t, 2> actions{};
+  std::array<action_t, 2> actions_{};
   std::size_t size = 0;
   auto operator<=>(const OrderedActionSet &other) const = default;
 
   template <class GameState, class Generator>
-  auto next(const GameState &, Generator &) -> std::optional<action_t> {
+  std::optional<action_t> next(const GameState &, Generator &) {
     if (size == 0) {
       return std::nullopt;
     }
     --size;
-    return actions[size];
+    return actions_[size];
   }
 
-  auto empty() const -> bool { return size == 0; }
-  auto begin() const { return actions.begin(); }
-  auto end() const { return actions.begin() + size; }
+  bool empty() const { return size == 0; }
+  auto begin() const { return actions_.begin(); }
+  auto end() const { return actions_.begin() + size; }
 };
 
 struct ImmediateOutcomeGame {
   using action_t = int;
   enum class Node { kRoot, kWinForPlayer0, kWinForPlayer1 };
 
-  Node node = Node::kRoot;
+  Node node_ = Node::kRoot;
 
-  auto current_state() const -> mcts::game_state_t {
-    switch (node) {
+  mcts::game_state_t current_state() const {
+    switch (node_) {
       case Node::kRoot:
         return mcts::ongoing_t{};
       case Node::kWinForPlayer0:
@@ -272,10 +268,10 @@ struct ImmediateOutcomeGame {
     return mcts::draw_t{};
   }
 
-  auto current_player() const -> int { return 0; }
+  int current_player() const { return 0; }
 
-  auto apply_action(action_t action) const -> ImmediateOutcomeGame {
-    if (node != Node::kRoot) {
+  ImmediateOutcomeGame apply_action(action_t action) const {
+    if (node_ != Node::kRoot) {
       return *this;
     }
     if (action == 0) {
@@ -284,16 +280,14 @@ struct ImmediateOutcomeGame {
     return ImmediateOutcomeGame{Node::kWinForPlayer1};
   }
 
-  auto valid_moves() const -> OrderedActionSet {
-    if (node == Node::kRoot) {
+  OrderedActionSet valid_moves() const {
+    if (node_ == Node::kRoot) {
       return OrderedActionSet{{0, 1}, 2};
     }
     return OrderedActionSet{{0, 0}, 0};
   }
 
-  auto is_valid_action(const action_t &, std::string &) const -> bool {
-    return true;
-  }
+  bool is_valid_action(const action_t &, std::string &) const { return true; }
 };
 
 static_assert(mcts::Game<ImmediateOutcomeGame>);

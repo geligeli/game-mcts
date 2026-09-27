@@ -14,8 +14,8 @@ namespace {
 using game_t = tictactoe::TicTacToe;
 
 struct RandomPolicy {
-  auto operator()(const game_t &game, std::mt19937 &gen) const
-      -> PolicyDecision<game_t> {
+  PolicyDecision<game_t> operator()(const game_t &game,
+                                    std::mt19937 &gen) const {
     auto moves = game.valid_moves();
     const int action = *moves.next(game, gen);
     return {.action = action, .successor = game.apply_action(action)};
@@ -23,13 +23,13 @@ struct RandomPolicy {
 };
 
 struct MctsPolicy {
-  int iterations = 50;
+  int iterations_ = 50;
 
-  auto operator()(const game_t &game, std::mt19937 &gen) const
-      -> PolicyDecision<game_t> {
+  PolicyDecision<game_t> operator()(const game_t &game,
+                                    std::mt19937 &gen) const {
     MctsRunner<game_t> runner(game);
     auto picker = MctsNodePicker<game_t>(gen);
-    for (int i = 0; i < iterations; ++i) {
+    for (int i = 0; i < iterations_; ++i) {
       runner.OneIteration(picker, gen);
     }
     const auto action = runner.best_action();
@@ -44,7 +44,7 @@ static_assert(TournamentPolicy<AnyPolicy<game_t>, game_t>);
 TEST(TournamentTest, AnyPolicyHoldsHeterogeneousPolicies) {
   std::vector<AnyPolicy<game_t>> policies;
   policies.emplace_back(RandomPolicy{});
-  policies.emplace_back(MctsPolicy{.iterations = 10});
+  policies.emplace_back(MctsPolicy{.iterations_ = 10});
 
   std::mt19937 gen(0);
   const game_t game;
@@ -71,8 +71,8 @@ TEST(TournamentTest, BuildRoundRobinAlternatesSeats) {
     for (int b = a + 1; b < 3; ++b) {
       int a_first = 0;
       for (const auto &task : tasks) {
-        if ((task.a == a && task.b == b) || (task.a == b && task.b == a)) {
-          a_first += task.a == a ? 1 : 0;
+        if ((task.a_ == a && task.b_ == b) || (task.a_ == b && task.b_ == a)) {
+          a_first += task.a_ == a ? 1 : 0;
         }
       }
       EXPECT_EQ(a_first, 2) << "pair (" << a << ", " << b << ")";
@@ -82,13 +82,13 @@ TEST(TournamentTest, BuildRoundRobinAlternatesSeats) {
 
 TEST(TournamentTest, MctsBeatsRandom) {
   std::vector<AnyPolicy<game_t>> policies;
-  policies.emplace_back(MctsPolicy{.iterations = 200});
+  policies.emplace_back(MctsPolicy{.iterations_ = 200});
   policies.emplace_back(RandomPolicy{});
 
   const auto tasks = BuildRoundRobin(2, 40);
   int mcts_first = 0;
   for (const auto &task : tasks) {
-    mcts_first += task.a == 0 ? 1 : 0;
+    mcts_first += task.a_ == 0 ? 1 : 0;
   }
   EXPECT_EQ(mcts_first, 20);  // Seats balanced.
 
@@ -101,14 +101,15 @@ TEST(TournamentTest, MctsBeatsRandom) {
 
   double score_mcts = 0.0;
   for (const auto &record : records) {
-    score_mcts += record.policy_a == 0 ? record.score_a : 1.0 - record.score_a;
+    score_mcts +=
+        record.policy_a_ == 0 ? record.score_a_ : 1.0 - record.score_a_;
   }
   EXPECT_GT(score_mcts / records.size(), 0.7);
 }
 
 TEST(TournamentTest, DeterministicAcrossThreadCounts) {
   std::vector<AnyPolicy<game_t>> policies;
-  policies.emplace_back(MctsPolicy{.iterations = 20});
+  policies.emplace_back(MctsPolicy{.iterations_ = 20});
   policies.emplace_back(RandomPolicy{});
 
   const auto tasks = BuildRoundRobin(2, 8);
@@ -119,26 +120,26 @@ TEST(TournamentTest, DeterministicAcrossThreadCounts) {
 
   ASSERT_EQ(single.size(), multi.size());
   for (std::size_t i = 0; i < single.size(); ++i) {
-    EXPECT_EQ(single[i].policy_a, multi[i].policy_a);
-    EXPECT_EQ(single[i].policy_b, multi[i].policy_b);
-    EXPECT_EQ(single[i].score_a, multi[i].score_a) << "task " << i;
+    EXPECT_EQ(single[i].policy_a_, multi[i].policy_a_);
+    EXPECT_EQ(single[i].policy_b_, multi[i].policy_b_);
+    EXPECT_EQ(single[i].score_a_, multi[i].score_a_) << "task " << i;
   }
 }
 
 TEST(TournamentTest, ObserverRecordsReplayableGames) {
   std::vector<AnyPolicy<game_t>> policies;
   policies.emplace_back(RandomPolicy{});
-  policies.emplace_back(MctsPolicy{.iterations = 20});
+  policies.emplace_back(MctsPolicy{.iterations_ = 20});
 
   const auto tasks = BuildRoundRobin(2, 6);
 
   struct RecordedStep {
-    int player;
+    int player_;
     int action;
   };
   struct RecordedGame {
-    game_t initial;
-    std::vector<RecordedStep> steps;
+    game_t initial_;
+    std::vector<RecordedStep> steps_;
   };
   // One slot per task; each worker writes only its own slot.
   std::vector<RecordedGame> recordings(tasks.size());
@@ -146,10 +147,10 @@ TEST(TournamentTest, ObserverRecordsReplayableGames) {
   auto observer_factory = [&](std::size_t task_index) {
     return [recording = &recordings[task_index]](
                const game_t &state_before, int player, const int &action) {
-      if (recording->steps.empty()) {
-        recording->initial = state_before;
+      if (recording->steps_.empty()) {
+        recording->initial_ = state_before;
       }
-      recording->steps.push_back({.player = player, .action = action});
+      recording->steps_.push_back({.player_ = player, .action = action});
     };
   };
 
@@ -160,9 +161,9 @@ TEST(TournamentTest, ObserverRecordsReplayableGames) {
       RunTournament(tasks, [] { return game_t{}; }, policies, 4, 7, 100);
   ASSERT_EQ(observed.size(), plain.size());
   for (std::size_t i = 0; i < observed.size(); ++i) {
-    EXPECT_EQ(observed[i].policy_a, plain[i].policy_a);
-    EXPECT_EQ(observed[i].policy_b, plain[i].policy_b);
-    EXPECT_EQ(observed[i].score_a, plain[i].score_a) << "task " << i;
+    EXPECT_EQ(observed[i].policy_a_, plain[i].policy_a_);
+    EXPECT_EQ(observed[i].policy_b_, plain[i].policy_b_);
+    EXPECT_EQ(observed[i].score_a_, plain[i].score_a_) << "task " << i;
   }
 
   // Every recorded step sequence replays exactly from the initial state:
@@ -170,8 +171,8 @@ TEST(TournamentTest, ObserverRecordsReplayableGames) {
   // terminal with the outcome the match recorded.
   for (std::size_t i = 0; i < tasks.size(); ++i) {
     const RecordedGame &recording = recordings[i];
-    game_t replay = recording.initial;
-    for (const auto &[player, action] : recording.steps) {
+    game_t replay = recording.initial_;
+    for (const auto &[player, action] : recording.steps_) {
       EXPECT_EQ(player, replay.current_player()) << "task " << i;
       std::string reason;
       EXPECT_TRUE(replay.is_valid_action(action, reason))
@@ -186,7 +187,7 @@ TEST(TournamentTest, ObserverRecordsReplayableGames) {
     } else {
       replayed_score = 0.5;
     }
-    EXPECT_EQ(replayed_score, observed[i].score_a) << "task " << i;
+    EXPECT_EQ(replayed_score, observed[i].score_a_) << "task " << i;
   }
 }
 

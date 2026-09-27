@@ -5,8 +5,7 @@
 
 namespace minimax {
 
-auto ComputeActionValue(mcts::Game auto game, int action, int root_player)
-    -> float {
+float ComputeActionValue(mcts::Game auto game, int action, int root_player) {
   auto next_game = game.apply_action(action);
   return std::visit(
       overloaded{[&](const mcts::win_t &w) {
@@ -22,7 +21,7 @@ auto ComputeActionValue(mcts::Game auto game, int action, int root_player)
                    float sign = next_move_is_by_root_player ? 1.0f : -1.0f;
                    float max_value = -std::numeric_limits<float>::infinity();
                    auto valid_moves = next_game.valid_moves();
-                   for (int next_action : valid_moves.actions) {
+                   for (int next_action : valid_moves.actions_) {
                      float action_value =
                          sign * ComputeActionValue(next_game, next_action,
                                                    root_player);
@@ -35,8 +34,8 @@ auto ComputeActionValue(mcts::Game auto game, int action, int root_player)
       next_game.current_state());
 }
 
-auto ComputeActionValueBinaryOutcome(mcts::Game auto game, int action,
-                                     int root_player) -> int {
+int ComputeActionValueBinaryOutcome(mcts::Game auto game, int action,
+                                    int root_player) {
   auto next_game = game.apply_action(action);
   return std::visit(
       overloaded{[&](const mcts::win_t &w) {
@@ -55,7 +54,7 @@ auto ComputeActionValueBinaryOutcome(mcts::Game auto game, int action,
                    // -infinity() losing moves (-1) would never register.
                    int max_value = std::numeric_limits<int>::min();
                    auto valid_moves = next_game.valid_moves();
-                   for (int next_action : valid_moves.actions) {
+                   for (int next_action : valid_moves.actions_) {
                      int action_value =
                          sign * ComputeActionValueBinaryOutcome(
                                     next_game, next_action, root_player);

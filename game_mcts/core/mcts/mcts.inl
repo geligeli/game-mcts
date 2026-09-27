@@ -347,7 +347,7 @@ auto MctsNodePicker(std::uniform_random_bit_generator auto &gen,
         current_node.children.empty() ||
         static_cast<double>(current_node.children.size()) <
             WideningLimit(widening_c, widening_alpha, current_node.num_visits);
-    if (!current_node.untried_exhausted && widening_allows) {
+    if (!current_node.untried_exhausted_ && widening_allows) {
       auto action =
           current_node.untried_moves.next(current_node.game_state, gen);
       if (action.has_value()) {
@@ -361,7 +361,7 @@ auto MctsNodePicker(std::uniform_random_bit_generator auto &gen,
                                 .new_action = true,
                                 .terminal = false};
       }
-      current_node.untried_exhausted = true;
+      current_node.untried_exhausted_ = true;
     };
     assert(!current_node.children.empty());
     float best_ucb = -std::numeric_limits<float>::infinity();
@@ -415,7 +415,7 @@ auto MctsStochasticNodePicker(std::uniform_random_bit_generator auto &gen,
                   static_cast<double>(pn.children.size()) <
                       WideningLimit(widening_c, widening_alpha,
                                     current_node.num_visits);
-              if (!pn.untried_exhausted && widening_allows) {
+              if (!pn.untried_exhausted_ && widening_allows) {
                 auto action =
                     pn.untried_moves.next(current_node.game_state, gen);
                 if (action.has_value()) {
@@ -430,7 +430,7 @@ auto MctsStochasticNodePicker(std::uniform_random_bit_generator auto &gen,
                                           .new_action = true,
                                           .terminal = false};
                 }
-                pn.untried_exhausted = true;
+                pn.untried_exhausted_ = true;
               }
               assert(!pn.children.empty());
               // For decision nodes: standard UCB1 selection

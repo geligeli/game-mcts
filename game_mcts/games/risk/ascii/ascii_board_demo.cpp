@@ -25,28 +25,28 @@ using namespace risk_game;
 // ---------------------------------------------------------------------------
 
 struct TermSize {
-  int cols;
-  int rows;
+  int cols_;
+  int rows_;
 };
 
-auto GetTermSize() -> TermSize {
+TermSize GetTermSize() {
   struct winsize ws{};
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
   return {ws.ws_col, ws.ws_row};
 }
 
 struct RawMode {
-  struct termios orig{};
+  struct termios orig_{};
 
   RawMode() {
-    tcgetattr(STDIN_FILENO, &orig);
-    struct termios raw = orig;
+    tcgetattr(STDIN_FILENO, &orig_);
+    struct termios raw = orig_;
     cfmakeraw(&raw);
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
   }
-  ~RawMode() { tcsetattr(STDIN_FILENO, TCSADRAIN, &orig); }
+  ~RawMode() { tcsetattr(STDIN_FILENO, TCSADRAIN, &orig_); }
   RawMode(const RawMode &) = delete;
-  auto operator=(const RawMode &) -> RawMode & = delete;
+  RawMode &operator=(const RawMode &) = delete;
 };
 
 void EnableMouse() {
@@ -70,17 +70,17 @@ class Display {
  public:
   explicit Display(int text_width) : text_width_(text_width) {
     for (const auto &info : GetAvailableBoardTemplates()) {
-      if (info.text_width == text_width_) {
+      if (info.text_width_ == text_width_) {
         infos_.push_back(info);
       }
     }
   }
 
-  auto PickWidth(int cols) const -> int {
-    int best = infos_.front().width;
+  int PickWidth(int cols) const {
+    int best = infos_.front().width_;
     for (const auto &info : infos_) {
-      if (info.vis_cols <= cols) {
-        best = info.width;
+      if (info.vis_cols_ <= cols) {
+        best = info.width_;
       }
     }
     return best;
@@ -88,7 +88,7 @@ class Display {
 
   void Refresh() {
     auto ts = GetTermSize();
-    int w = PickWidth(ts.cols);
+    int w = PickWidth(ts.cols_);
     current_width_ = w;
     current_map_ = GetTerritoryMap(w, text_width_);
 
@@ -112,7 +112,7 @@ class Display {
 
     int line_count = 0;
     size_t pos = 0;
-    while (pos < rendered.size() && line_count < ts.rows - 2) {
+    while (pos < rendered.size() && line_count < ts.rows_ - 2) {
       size_t nl = rendered.find('\n', pos);
       if (nl == std::string::npos) nl = rendered.size();
       buf.append(rendered, pos, nl - pos);
@@ -127,7 +127,7 @@ class Display {
     snprintf(status, sizeof(status),
              "[%dx%d, board w=%d] click territory to highlight (%d selected,"
              " q to quit)",
-             ts.cols, ts.rows, w, n);
+             ts.cols_, ts.rows_, w, n);
     buf += status;
     buf += "\033[K";
 
@@ -140,7 +140,7 @@ class Display {
     if (!current_map_) return;
     // Mouse coords are 1-based.
     int r = row - 1, c = col - 1;
-    if (r < 0 || r >= current_map_.rows || c < 0 || c >= current_map_.cols) {
+    if (r < 0 || r >= current_map_.rows_ || c < 0 || c >= current_map_.cols_) {
       return;
     }
     uint8_t territory = current_map_.At(r, c);
@@ -174,12 +174,11 @@ void SigwinchHandler(int) {
 
 // SGR mouse: \033[<btn;col;rowM  (press) or m (release)
 struct MouseEvent {
-  int btn, col, row;
-  bool press;
+  int btn_, col_, row_;
+  bool press_;
 };
 
-auto ParseSGRMouse(const char *buf, int len, int &consumed, MouseEvent &ev)
-    -> bool {
+bool ParseSGRMouse(const char *buf, int len, int &consumed, MouseEvent &ev) {
   // Look for \033[< ... M or m
   for (int i = 0; i + 3 < len; ++i) {
     if (buf[i] != '\033' || buf[i + 1] != '[' || buf[i + 2] != '<') continue;
@@ -206,7 +205,7 @@ auto ParseSGRMouse(const char *buf, int len, int &consumed, MouseEvent &ev)
 
 }  // namespace
 
-auto main(int argc, char **argv) -> int {
+int main(int argc, char **argv) {
   absl::ParseCommandLine(argc, argv);
   int text_width = absl::GetFlag(FLAGS_text_width);
 
@@ -274,8 +273,8 @@ auto main(int argc, char **argv) -> int {
       memmove(buf, buf + consumed, buf_len - consumed);
       buf_len -= consumed;
       // Left-click press.
-      if (ev.btn == 0 && ev.press) {
-        display.HandleClick(ev.row, ev.col);
+      if (ev.btn_ == 0 && ev.press_) {
+        display.HandleClick(ev.row_, ev.col_);
       }
     }
   }

@@ -31,8 +31,5 @@ Stop rule: if the 4-hour budget runs out before reaching 60%, or builds/tests
 stay broken, stop and report the best config found with its measured win rate
 and the tournament logs as evidence — do not claim success without the numbers.
 
-Tooling note: prefer the project MCP servers where connected (bazel MCP for
-build/test, risk-engine MCP for diagnosing single positions via the MCTS
-visit-count policy, clangd MCP for navigating the C++ edits); fall back to the
-bazel CLI otherwise. Bulk tournament evaluation always runs through
+Tooling note: bulk tournament evaluation always runs through
 `bazel run //game_mcts/games/risk:risk_tournament`.

@@ -10,7 +10,7 @@ namespace visualisations {
 
 // Helper function to convert a vector to JSON array string
 template <typename T>
-auto vector_to_json(const std::vector<T>& vec) -> std::string {
+std::string vector_to_json(const std::vector<T>& vec) {
   std::ostringstream oss;
   oss << "[";
   bool first = true;
@@ -39,17 +39,17 @@ std::string escape_json_string(const std::string& str);
 
 // Trace structure to hold data for each plot/scatter
 struct Trace {
-  std::vector<double> x;
-  std::vector<double> y;
-  std::string mode;  // "lines", "markers", "lines+markers"
-  std::string name;  // Trace name for legend
+  std::vector<double> x_;
+  std::vector<double> y_;
+  std::string mode_;  // "lines", "markers", "lines+markers"
+  std::string name_;  // Trace name for legend
 
   Trace(std::vector<double> x_vals, std::vector<double> y_vals, std::string m,
         std::string n = "")
-      : x(std::move(x_vals)),
-        y(std::move(y_vals)),
-        mode(std::move(m)),
-        name(std::move(n)) {}
+      : x_(std::move(x_vals)),
+        y_(std::move(y_vals)),
+        mode_(std::move(m)),
+        name_(std::move(n)) {}
 };
 
 class Figure {
@@ -60,44 +60,44 @@ class Figure {
   std::string title_;
 
   // Generate the complete HTML content
-  std::string generate_html() const;
+  std::string GenerateHtml() const;
 
  public:
   Figure() = default;
 
   // plot(y) - X is index (0, 1, 2, ...)
-  void plot(const std::vector<double>& y, const std::string& name = "");
+  void Plot(const std::vector<double>& y, const std::string& name = "");
 
   // plot(x, y) - X vs Y line plot
-  void plot(const std::vector<double>& x, const std::vector<double>& y,
+  void Plot(const std::vector<double>& x, const std::vector<double>& y,
             const std::string& name = "");
 
   // scatter(x, y) - markers only, no lines
-  void scatter(const std::vector<double>& x, const std::vector<double>& y,
+  void Scatter(const std::vector<double>& x, const std::vector<double>& y,
                const std::string& name = "");
 
   // Set logarithmic scale for X axis
-  void set_log_x(bool enable);
+  void SetLogX(bool enable);
 
   // Set logarithmic scale for Y axis
-  void set_log_y(bool enable);
+  void SetLogY(bool enable);
 
   // Set chart title
-  void set_title(const std::string& title);
+  void SetTitle(const std::string& title);
 
   // Set the name of a trace by index (0-based)
-  void set_trace_name(size_t index, const std::string& name);
+  void SetTraceName(size_t index, const std::string& name);
 
   // Save the plot to an HTML file
-  void save(const std::string& filename) const;
+  void Save(const std::string& filename) const;
 
   // Serve the plot via HTTP on the specified port
   // Serves once and then stops
-  void serve_once(int port = 8080) const;
+  void ServeOnce(int port = 8080) const;
 
   // Serve the plot via HTTP on the specified port
   // Serves continuously until interrupted (Ctrl+C)
-  void serve(int port = 8080) const;
+  void Serve(int port = 8080) const;
 };
 
 }  // namespace visualisations

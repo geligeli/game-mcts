@@ -16,13 +16,13 @@ struct StringEntry {
 };
 
 struct TerritoryColor {
-  uint8_t territory_id;
+  uint8_t territory_id_;
 };
 
 struct TerritoryTroopCounter {
-  int troop_count;
-  uint8_t territory_id;
-  uint8_t num_chars;
+  int troop_count_;
+  uint8_t territory_id_;
+  uint8_t num_chars_;
 };
 
 using AsciiBoardSegmentT =
@@ -31,19 +31,19 @@ using AsciiBoardSegmentT =
 // Per-cell territory ID grid (row-major, 0 = background, 1..42 = territory).
 struct TerritoryMap {
   const uint8_t *data;  // row-major: data[row * cols + col]
-  int rows;
-  int cols;
+  int rows_;
+  int cols_;
 
-  auto At(int row, int col) const -> uint8_t { return data[row * cols + col]; }
+  uint8_t At(int row, int col) const { return data[row * cols_ + col]; }
   explicit operator bool() const { return data != nullptr; }
 };
 
 // Metadata for a single pre-generated board template.
 struct BoardInfo {
-  int width;       // tile width (the generation parameter)
-  int text_width;  // digits reserved for troop counts
-  int vis_cols;    // visible columns when rendered
-  int vis_rows;    // visible rows when rendered
+  int width_;       // tile width (the generation parameter)
+  int text_width_;  // digits reserved for troop counts
+  int vis_cols_;    // visible columns when rendered
+  int vis_rows_;    // visible rows when rendered
 };
 
 // Mapping from Country enum index (0..41) to template territory ID (1..42).

@@ -16,30 +16,29 @@ struct GameSerializationTraits<tictactoe::TicTacToe> {
   using state_proto_t = tictactoe::proto::TicTacToeState;
   using action_proto_t = tictactoe::proto::TicTacToeAction;
 
-  static auto StateToProto(const tictactoe::TicTacToe &state) -> state_proto_t {
+  static state_proto_t StateToProto(const tictactoe::TicTacToe &state) {
     state_proto_t proto;
-    proto.set_board_state(state.board_state);
+    proto.set_board_state(state.board_state_);
     proto.set_current_player(state.current_player());
     return proto;
   }
 
-  static auto StateFromProto(const state_proto_t &proto)
-      -> tictactoe::TicTacToe {
+  static tictactoe::TicTacToe StateFromProto(const state_proto_t &proto) {
     tictactoe::TicTacToe state;
-    state.board_state = proto.board_state();
+    state.board_state_ = proto.board_state();
     state.current_player_ = proto.current_player();
     return state;
   }
 
-  static auto ActionToProto(const tictactoe::TicTacToe::action_t &action)
-      -> action_proto_t {
+  static action_proto_t ActionToProto(
+      const tictactoe::TicTacToe::action_t &action) {
     action_proto_t proto;
     proto.set_cell(action);
     return proto;
   }
 
-  static auto ActionFromProto(const action_proto_t &proto)
-      -> tictactoe::TicTacToe::action_t {
+  static tictactoe::TicTacToe::action_t ActionFromProto(
+      const action_proto_t &proto) {
     return proto.cell();
   }
 };

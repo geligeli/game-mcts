@@ -7,7 +7,7 @@ struct overloaded : Ts... {
 
 namespace mcts {
 
-auto is_terminal(const game_state_t &state) -> bool {
+bool is_terminal(const game_state_t &state) {
   return std::visit(overloaded{
                         [](const ongoing_t &) { return false; },
                         [](const draw_t &) { return true; },

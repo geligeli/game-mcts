@@ -26,13 +26,13 @@ namespace risk_game {
 template <size_t NUM_PLAYERS>
 struct InitialPlaceActionSet {
   explicit InitialPlaceActionSet(const RiskState<NUM_PLAYERS> &state)
-      : m_state(state) {
-    if (state.m_num_initial_placements >= kNumTerritories) {
+      : state_(state) {
+    if (state.num_initial_placements_ >= kNumTerritories) {
       // Initial placements after all territories are claimed: players can
       // only place on territories they already own.
       for (size_t i = 0; i < state.m_map.size(); ++i) {
-        if (state.m_map[i].owner == state.m_current_player) {
-          m_allowed_territories.push_back(static_cast<int8_t>(i));
+        if (state.m_map[i].owner == state.current_player_) {
+          allowed_territories_.push_back(static_cast<int8_t>(i));
         }
       }
     } else {
@@ -40,24 +40,24 @@ struct InitialPlaceActionSet {
       // territories.
       for (size_t i = 0; i < state.m_map.size(); ++i) {
         if (state.m_map[i].owner == -1) {
-          m_allowed_territories.push_back(static_cast<int8_t>(i));
+          allowed_territories_.push_back(static_cast<int8_t>(i));
         }
       }
     }
   }
 
-  auto next(std::mt19937 &) -> std::optional<RiskState<NUM_PLAYERS>> {
-    if (m_allowed_territories.empty()) {
+  std::optional<RiskState<NUM_PLAYERS>> next(std::mt19937 &) {
+    if (allowed_territories_.empty()) {
       return std::nullopt;
     }
-    auto action = InitialPlaceAction{.territory = m_allowed_territories.back()};
-    m_allowed_territories.pop_back();
-    return m_state.apply_action(action);
+    auto action = InitialPlaceAction{.territory_ = allowed_territories_.back()};
+    allowed_territories_.pop_back();
+    return state_.apply_action(action);
   }
 
  private:
-  std::vector<int8_t> m_allowed_territories;
-  const RiskState<NUM_PLAYERS> &m_state;
+  std::vector<int8_t> allowed_territories_;
+  const RiskState<NUM_PLAYERS> &state_;
 };
 
 // Simplified reinforce set: each draw places all reserves on a single owned
@@ -68,32 +68,32 @@ struct InitialPlaceActionSet {
 template <size_t NUM_PLAYERS>
 struct ReinforceActionSet {
   explicit ReinforceActionSet(const RiskState<NUM_PLAYERS> &state)
-      : m_state(state) {
+      : state_(state) {
     for (size_t i = 0; i < state.m_map.size(); ++i) {
-      if (state.m_map[i].owner == state.m_current_player) {
-        m_allowed_territories.push_back(static_cast<int8_t>(i));
+      if (state.m_map[i].owner == state.current_player_) {
+        allowed_territories_.push_back(static_cast<int8_t>(i));
       }
     }
-    m_num_units = state.m_reserves[state.m_current_player];
+    num_units_ = state.reserves_[state.current_player_];
   }
 
-  auto next(std::mt19937 &) -> std::optional<RiskState<NUM_PLAYERS>> {
-    if (m_allowed_territories.empty() || m_num_units <= 0) {
+  std::optional<RiskState<NUM_PLAYERS>> next(std::mt19937 &) {
+    if (allowed_territories_.empty() || num_units_ <= 0) {
       return std::nullopt;
     }
     ReinforceAction ra;
-    ra.units_to_place.fill(0);
-    ra.units_to_place[m_allowed_territories.back()] = m_num_units;
-    m_allowed_territories.pop_back();
+    ra.units_to_place_.fill(0);
+    ra.units_to_place_[allowed_territories_.back()] = num_units_;
+    allowed_territories_.pop_back();
     PlayerAction action;
-    action.reinforce_action = ra;
-    return m_state.apply_action(action);
+    action.reinforce_action_ = ra;
+    return state_.apply_action(action);
   }
 
  private:
-  const RiskState<NUM_PLAYERS> &m_state;
-  std::vector<int8_t> m_allowed_territories;
-  int m_num_units;
+  const RiskState<NUM_PLAYERS> &state_;
+  std::vector<int8_t> allowed_territories_;
+  int num_units_;
 };
 
 // One bit per directed neighbor edge (kAllNeighborEdges contains both
@@ -102,88 +102,88 @@ struct ReinforceActionSet {
 template <size_t NUM_PLAYERS>
 struct QueueAttackActionSet {
   explicit QueueAttackActionSet(const RiskState<NUM_PLAYERS> &state)
-      : m_state(state) {
+      : state_(state) {
     size_t index = 0;
     for (const auto &edge : kAllNeighborEdges) {
       Country src = edge.first;
       Country tgt = edge.second;
       if (state.m_map[static_cast<size_t>(src)].owner ==
-              state.m_current_player &&
+              state.current_player_ &&
           state.m_map[static_cast<size_t>(tgt)].owner !=
-              state.m_current_player &&
+              state.current_player_ &&
           state.m_map[static_cast<size_t>(src)].units > 1) {
-        m_source_target_pairs.set(index);
+        source_target_pairs_.set(index);
       }
       ++index;
     }
   }
 
-  auto any() const -> bool { return m_source_target_pairs.any(); }
+  bool Any() const { return source_target_pairs_.any(); }
 
   // Resolves the whole battle deterministically using the expected remnants
   // lookup: the attacker commits all units minus one and fights until the
   // target is captured or the source is down to one unit.
-  auto next(std::mt19937 &) -> std::optional<RiskState<NUM_PLAYERS>> {
+  std::optional<RiskState<NUM_PLAYERS>> next(std::mt19937 &) {
     size_t index = 0;
     for (const auto &edge : kAllNeighborEdges) {
-      if (!m_source_target_pairs.test(index)) {
+      if (!source_target_pairs_.test(index)) {
         ++index;
         continue;
       }
-      m_source_target_pairs.set(index, false);
+      source_target_pairs_.set(index, false);
       const size_t src = static_cast<size_t>(edge.first);
       const size_t tgt = static_cast<size_t>(edge.second);
 
       const int attackers =
-          static_cast<int>(m_state.m_map[src].units) - 1;  // keep one behind
-      const int defenders = static_cast<int>(m_state.m_map[tgt].units);
+          static_cast<int>(state_.m_map[src].units) - 1;  // keep one behind
+      const int defenders = static_cast<int>(state_.m_map[tgt].units);
       BattleRemnants outcome = LookupExpectedRemnants(attackers, defenders);
 
-      auto result = m_state;
+      auto result = state_;
       // Both expectations are marginals and can both be positive for close
       // battles; the side with more expected survivors wins.
-      if (outcome.attackers > outcome.defenders) {
+      if (outcome.attackers_ > outcome.defenders_) {
         // Target captured: surviving attackers move in, losses stay behind.
-        result.m_map[src].units -= (attackers - outcome.attackers);
-        result.m_map[tgt].units = outcome.attackers;
-        result.m_map[tgt].owner = result.m_current_player;
+        result.m_map[src].units -= (attackers - outcome.attackers_);
+        result.m_map[tgt].units = outcome.attackers_;
+        result.m_map[tgt].owner = result.current_player_;
       } else {
         // Attack repelled: source down to one unit, defenders remain.
         result.m_map[src].units = 1;
-        result.m_map[tgt].units = outcome.defenders;
+        result.m_map[tgt].units = outcome.defenders_;
       }
-      result.m_first_attack_of_turn = false;
+      result.first_attack_of_turn_ = false;
       return result;
     }
     return std::nullopt;
   }
 
  private:
-  const RiskState<NUM_PLAYERS> &m_state;
-  std::bitset<kAllNeighborEdges.size()> m_source_target_pairs;
+  const RiskState<NUM_PLAYERS> &state_;
+  std::bitset<kAllNeighborEdges.size()> source_target_pairs_;
 };
 
 // Defense is deterministic: always defend with the maximum allowed dice.
 template <size_t NUM_PLAYERS>
 struct QueueDefenseActionSet {
   explicit QueueDefenseActionSet(const RiskState<NUM_PLAYERS> &state)
-      : m_state(state) {}
+      : state_(state) {}
 
-  auto next(std::mt19937 &) -> std::optional<RiskState<NUM_PLAYERS>> {
-    if (m_consumed) {
+  std::optional<RiskState<NUM_PLAYERS>> next(std::mt19937 &) {
+    if (consumed_) {
       return std::nullopt;
     }
-    m_consumed = true;
+    consumed_ = true;
     QueueDefenseAction action{
-        .num_defend_dice = std::min(
+        .num_defend_dice_ = std::min(
             2, static_cast<int>(
-                   m_state.m_map[m_state.queued_attack->target].units))};
-    return m_state.apply_action(action);
+                   state_.m_map[state_.queued_attack_->target].units))};
+    return state_.apply_action(action);
   }
 
  private:
-  const RiskState<NUM_PLAYERS> &m_state;
-  bool m_consumed = false;
+  const RiskState<NUM_PLAYERS> &state_;
+  bool consumed_ = false;
 };
 
 // Simplified fortify: one bit per directed edge between two territories of
@@ -194,50 +194,50 @@ struct QueueDefenseActionSet {
 template <size_t NUM_PLAYERS>
 struct FortifyActionSet {
   explicit FortifyActionSet(const RiskState<NUM_PLAYERS> &state)
-      : m_state(state) {
+      : state_(state) {
     size_t index = 0;
     for (const auto &edge : kAllNeighborEdges) {
       const size_t src = static_cast<size_t>(edge.first);
       const size_t tgt = static_cast<size_t>(edge.second);
-      if (state.m_map[src].owner == state.m_current_player &&
-          state.m_map[tgt].owner == state.m_current_player &&
+      if (state.m_map[src].owner == state.current_player_ &&
+          state.m_map[tgt].owner == state.current_player_ &&
           state.m_map[src].units > 1) {
-        m_source_target_pairs.set(index);
+        source_target_pairs_.set(index);
       }
       ++index;
     }
   }
 
-  auto next(std::mt19937 &) -> std::optional<RiskState<NUM_PLAYERS>> {
+  std::optional<RiskState<NUM_PLAYERS>> next(std::mt19937 &) {
     size_t index = 0;
     for (const auto &edge : kAllNeighborEdges) {
-      if (!m_source_target_pairs.test(index)) {
+      if (!source_target_pairs_.test(index)) {
         ++index;
         continue;
       }
-      m_source_target_pairs.set(index, false);
+      source_target_pairs_.set(index, false);
       const size_t src = static_cast<size_t>(edge.first);
       const size_t tgt = static_cast<size_t>(edge.second);
       FortifyAction action{
-          .source = static_cast<int>(src),
+          .source_ = static_cast<int>(src),
           .target = static_cast<int>(tgt),
-          .num_units = static_cast<int>(m_state.m_map[src].units) - 1};
-      return m_state.apply_action(action);
+          .num_units = static_cast<int>(state_.m_map[src].units) - 1};
+      return state_.apply_action(action);
     }
-    if (!m_end_turn_drawn) {
-      m_end_turn_drawn = true;
+    if (!end_turn_drawn_) {
+      end_turn_drawn_ = true;
       // num_units <= 1 is the "move nothing, just end the turn" encoding
       // (see RiskState::FortifyToMoveUnits).
-      return m_state.apply_action(
-          FortifyAction{.source = 0, .target = 0, .num_units = 0});
+      return state_.apply_action(
+          FortifyAction{.source_ = 0, .target = 0, .num_units = 0});
     }
     return std::nullopt;
   }
 
  private:
-  const RiskState<NUM_PLAYERS> &m_state;
-  std::bitset<kAllNeighborEdges.size()> m_source_target_pairs;
-  bool m_end_turn_drawn = false;
+  const RiskState<NUM_PLAYERS> &state_;
+  std::bitset<kAllNeighborEdges.size()> source_target_pairs_;
+  bool end_turn_drawn_ = false;
 };
 
 // A player turn starts with an optional reinforce (first attack of the turn
@@ -249,28 +249,28 @@ struct FortifyActionSet {
 // because ending the turn there would drop the unplaced reserves.
 template <size_t NUM_PLAYERS>
 struct PlayerActionSet {
-  std::optional<ReinforceActionSet<NUM_PLAYERS>> reinforce_action;
-  std::optional<QueueAttackActionSet<NUM_PLAYERS>> attack_action;
-  std::optional<FortifyActionSet<NUM_PLAYERS>> fortify_action;
+  std::optional<ReinforceActionSet<NUM_PLAYERS>> reinforce_action_;
+  std::optional<QueueAttackActionSet<NUM_PLAYERS>> attack_action_;
+  std::optional<FortifyActionSet<NUM_PLAYERS>> fortify_action_;
 
-  auto next(std::mt19937 &gen) -> std::optional<RiskState<NUM_PLAYERS>> {
-    if (reinforce_action.has_value()) {
-      if (auto state = reinforce_action->next(gen)) {
+  std::optional<RiskState<NUM_PLAYERS>> next(std::mt19937 &gen) {
+    if (reinforce_action_.has_value()) {
+      if (auto state = reinforce_action_->next(gen)) {
         return state;
       }
-      reinforce_action.reset();
+      reinforce_action_.reset();
     }
-    if (attack_action.has_value()) {
-      if (auto state = attack_action->next(gen)) {
+    if (attack_action_.has_value()) {
+      if (auto state = attack_action_->next(gen)) {
         return state;
       }
-      attack_action.reset();
+      attack_action_.reset();
     }
-    if (fortify_action.has_value()) {
-      if (auto state = fortify_action->next(gen)) {
+    if (fortify_action_.has_value()) {
+      if (auto state = fortify_action_->next(gen)) {
         return state;
       }
-      fortify_action.reset();
+      fortify_action_.reset();
     }
     return std::nullopt;
   }
@@ -284,16 +284,15 @@ using RiskActionSet = std::variant<InitialPlaceActionSet<NUM_PLAYERS>,
                                    QueueDefenseActionSet<NUM_PLAYERS>>;
 
 template <size_t NUM_PLAYERS>
-auto ActionSet(const RiskState<NUM_PLAYERS> &state)
-    -> RiskActionSet<NUM_PLAYERS> {
+RiskActionSet<NUM_PLAYERS> ActionSet(const RiskState<NUM_PLAYERS> &state) {
   // Initial placement
-  if (state.m_initial_placement) {
+  if (state.initial_placement_) {
     return InitialPlaceActionSet<NUM_PLAYERS>(state);
   }
 
   // Process queued attack
-  if (state.queued_attack.has_value()) {
-    if (!state.queued_defense.has_value()) {
+  if (state.queued_attack_.has_value()) {
+    if (!state.queued_defense_.has_value()) {
       return QueueDefenseActionSet<NUM_PLAYERS>(state);
     }
     CHECK(false) << "Not enumerating dice actions";
@@ -304,18 +303,18 @@ auto ActionSet(const RiskState<NUM_PLAYERS> &state)
   RiskActionSet<NUM_PLAYERS> result{
       std::in_place_type<PlayerActionSet<NUM_PLAYERS>>};
   auto &pa = std::get<PlayerActionSet<NUM_PLAYERS>>(result);
-  if (state.m_first_attack_of_turn &&
-      state.m_reserves[state.m_current_player] > 0) {
-    pa.reinforce_action.emplace(state);
+  if (state.first_attack_of_turn_ &&
+      state.reserves_[state.current_player_] > 0) {
+    pa.reinforce_action_.emplace(state);
   } else {
     // Reserves for this turn are placed, so ending the turn is a legal move
     // from here on, whether or not attacks remain.
-    pa.fortify_action.emplace(state);
+    pa.fortify_action_.emplace(state);
   }
 
   QueueAttackActionSet<NUM_PLAYERS> attacks(state);
-  if (attacks.any()) {
-    pa.attack_action.emplace(std::move(attacks));
+  if (attacks.Any()) {
+    pa.attack_action_.emplace(std::move(attacks));
   }
 
   return result;
@@ -324,8 +323,8 @@ auto ActionSet(const RiskState<NUM_PLAYERS> &state)
 // Draws one successor state from the action set without replacement.
 // std::nullopt means the set is exhausted.
 template <size_t NUM_PLAYERS>
-auto SampleSuccessor(RiskActionSet<NUM_PLAYERS> &action_set, std::mt19937 &gen)
-    -> std::optional<RiskState<NUM_PLAYERS>> {
+std::optional<RiskState<NUM_PLAYERS>> SampleSuccessor(
+    RiskActionSet<NUM_PLAYERS> &action_set, std::mt19937 &gen) {
   return std::visit([&](auto &set) { return set.next(gen); }, action_set);
 }
 

@@ -32,7 +32,7 @@ TEST(RiskGameTest, IsStochasticNode) {
 TEST(RiskGameTest, OneIteration) {
   std::mt19937 gen(42);
   const auto rollout_policy =
-      mcts::RandomRollout<risk_game_t, proposer_t>{.max_steps = 50000};
+      mcts::RandomRollout<risk_game_t, proposer_t>{.max_steps_ = 50000};
   mcts::MctsRunner<risk_game_t, proposer_t, decltype(rollout_policy)> runner(
       risk_game_t{}, proposer_t{}, rollout_policy);
   auto picker = mcts::MctsStochasticNodePicker<risk_game_t>(gen);
@@ -45,7 +45,7 @@ TEST(RiskGameTest, OneHundredIterations) {
   // Cap playout length: with saturated unit counts, random rollouts are not
   // guaranteed to terminate; over-cap games score as draws.
   const auto rollout_policy =
-      mcts::RandomRollout<risk_game_t, proposer_t>{.max_steps = 50000};
+      mcts::RandomRollout<risk_game_t, proposer_t>{.max_steps_ = 50000};
   mcts::MctsRunner<risk_game_t, proposer_t, decltype(rollout_policy)> runner(
       risk_game_t{}, proposer_t{}, rollout_policy);
   auto picker = mcts::MctsStochasticNodePicker<risk_game_t>(gen);
@@ -60,11 +60,11 @@ TEST(RiskGameTest, SelfPlayWithAsciiBoard) {
   std::mt19937 gen(42);
   risk_game_t game;
 
-  constexpr int kIterationsPerMove = 20;
-  constexpr int kMaxMoves = 60;  // Safety cap; random rollouts dominate cost.
+  constexpr int iterations_per_move = 20;
+  constexpr int max_moves = 60;  // Safety cap; random rollouts dominate cost.
 
   int move = 0;
-  while (!mcts::is_terminal(game.current_state()) && move < kMaxMoves) {
+  while (!mcts::is_terminal(game.current_state()) && move < max_moves) {
     LOG(INFO) << "Move " << move << ":\n" << game;
     if (game.is_chance_node()) {
       // Dice rolls: no decision to make, just sample the outcome.
@@ -78,7 +78,7 @@ TEST(RiskGameTest, SelfPlayWithAsciiBoard) {
       mcts::MctsRunner<risk_game_t, proposer_t, decltype(rollout_policy)>
           runner(game, proposer_t{}, rollout_policy);
       auto picker = mcts::MctsStochasticNodePicker<risk_game_t>(gen);
-      for (int i = 0; i < kIterationsPerMove; ++i) {
+      for (int i = 0; i < iterations_per_move; ++i) {
         runner.OneIteration(picker, gen);
       }
       game = game.apply_action(runner.best_action());
@@ -127,11 +127,11 @@ TEST(RiskGameTest, ThreePlayerSelfPlay) {
   std::mt19937 gen(42);
   RiskState<3> game;
 
-  constexpr int kIterationsPerMove = 10;
-  constexpr int kMaxMoves = 40;  // Smoke test only.
+  constexpr int iterations_per_move = 10;
+  constexpr int max_moves = 40;  // Smoke test only.
 
   int move = 0;
-  while (!mcts::is_terminal(game.current_state()) && move < kMaxMoves) {
+  while (!mcts::is_terminal(game.current_state()) && move < max_moves) {
     if (game.is_chance_node()) {
       game = game.apply_action(game.sample_chance_action(gen));
     } else {
@@ -141,7 +141,7 @@ TEST(RiskGameTest, ThreePlayerSelfPlay) {
       mcts::MctsRunner<RiskState<3>, RiskProposer<3>, decltype(rollout_policy)>
           runner(game, RiskProposer<3>{}, rollout_policy);
       auto picker = mcts::MctsStochasticNodePicker<RiskState<3>>(gen);
-      for (int i = 0; i < kIterationsPerMove; ++i) {
+      for (int i = 0; i < iterations_per_move; ++i) {
         runner.OneIteration(picker, gen);
       }
       game = game.apply_action(runner.best_action());

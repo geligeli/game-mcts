@@ -9,18 +9,18 @@ namespace fitters {
 
 // Result structure for exponential fit: y = a * exp(b * x)
 struct ExponentialFitResult {
-  double a;          // Scale parameter
-  double b;          // Exponential rate
-  double r_squared;  // Coefficient of determination
-  bool valid;        // Whether the fit was successful
+  double a_;          // Scale parameter
+  double b_;          // Exponential rate
+  double r_squared_;  // Coefficient of determination
+  bool valid_;        // Whether the fit was successful
 };
 
 // Result structure for power law fit: y = a * x^alpha
 struct PowerLawFitResult {
-  double a;          // Scale parameter
-  double alpha;      // Power exponent
-  double r_squared;  // Coefficient of determination
-  bool valid;        // Whether the fit was successful
+  double a_;          // Scale parameter
+  double alpha_;      // Power exponent
+  double r_squared_;  // Coefficient of determination
+  bool valid_;        // Whether the fit was successful
 };
 
 // Fits an exponential function y = a * exp(b * x) to the data

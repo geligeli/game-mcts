@@ -14,10 +14,10 @@ TEST(PigGameTest, InitialState) {
   EXPECT_EQ(game.current_player(), 0);
   EXPECT_FALSE(game.is_chance_node());
   auto moves = game.valid_moves();
-  EXPECT_EQ(moves.actions.size(), 1);  // Roll at the start
+  EXPECT_EQ(moves.actions_.size(), 1);  // Roll at the start
 }
 
-auto calculate_p_value(const std::array<int, 6> &counts) -> double {
+double calculate_p_value(const std::array<int, 6> &counts) {
   // 1. Total number of rolls
   int n = std::accumulate(counts.begin(), counts.end(), 0);
 
@@ -103,7 +103,7 @@ TEST(PigGameTest, IsValidAction) {
   const mcts::DefaultProposer<PigGame> proposer;
   while (!mcts::is_terminal(game.current_state())) {
     auto moves = game.valid_moves();
-    for (int move : moves.actions) {
+    for (int move : moves.actions_) {
       EXPECT_TRUE(game.is_valid_action(move, reason)) << move;
     }
     mcts::PlayoutStep(game, proposer, gen);
@@ -133,7 +133,7 @@ TEST(PigGameTest, MctsBasicIteration) {
 TEST(PigGameTest, MctsConvergesToOptimalStrategy) {
   // Test multiple game states to verify MCTS behavior
   std::mt19937 gen(12345);
-  const int kIterations = 10000;
+  const int iterations = 10000;
 
   // Test 1: At turn_total ~20, MCTS should generally prefer hold
   // We simulate this by creating a game state where holding is beneficial
@@ -161,14 +161,14 @@ TEST(PigGameTest, MctsConvergesToOptimalStrategy) {
     mcts::MctsRunner<PigGame> runner(game);
     auto picker = mcts::MctsStochasticNodePicker<PigGame>(gen);
 
-    for (int i = 0; i < kIterations; ++i) {
+    for (int i = 0; i < iterations; ++i) {
       runner.OneIteration(picker, gen);
     }
 
     // At turn_total = 20, MCTS should have explored both hold and roll
     // and found that hold is often reasonable
     auto moves = game.valid_moves();
-    EXPECT_EQ(moves.actions.size(), 2);  // Should have both Roll and Hold
+    EXPECT_EQ(moves.actions_.size(), 2);  // Should have both Roll and Hold
 
     // Get visit counts for roll and hold actions
     const auto &root = runner.node_storage[0];
@@ -206,7 +206,7 @@ TEST(PigGameTest, MctsConvergesToOptimalStrategy) {
     mcts::MctsRunner<PigGame> runner(game);
     auto picker = mcts::MctsStochasticNodePicker<PigGame>(gen);
 
-    for (int i = 0; i < kIterations; ++i) {
+    for (int i = 0; i < iterations; ++i) {
       runner.OneIteration(picker, gen);
     }
 
@@ -262,14 +262,14 @@ TEST(PigGameTest, MctsHandlesTerminalState) {
   // Play a game to completion using MCTS
   PigGame game;
   int moves_made = 0;
-  const int kMaxMoves = 10000;  // Safety limit
+  const int max_moves = 10000;  // Safety limit
 
-  while (!mcts::is_terminal(game.current_state()) && moves_made < kMaxMoves) {
+  while (!mcts::is_terminal(game.current_state()) && moves_made < max_moves) {
     if (game.is_chance_node()) {
       // At chance nodes, just sample uniformly (simulating die roll)
       auto moves = game.valid_moves();
-      std::uniform_int_distribution<size_t> dist(0, moves.actions.size() - 1);
-      game = game.apply_action(moves.actions[dist(gen)]);
+      std::uniform_int_distribution<size_t> dist(0, moves.actions_.size() - 1);
+      game = game.apply_action(moves.actions_[dist(gen)]);
     } else {
       // At decision nodes, use MCTS to pick action
       mcts::MctsRunner<PigGame> runner(game);
@@ -295,7 +295,7 @@ TEST(PigGameTest, MctsHandlesTerminalState) {
   }
 
   // Game should have ended
-  EXPECT_LT(moves_made, kMaxMoves) << "Game should complete within move limit";
+  EXPECT_LT(moves_made, max_moves) << "Game should complete within move limit";
   EXPECT_TRUE(mcts::is_terminal(game.current_state()));
 }
 

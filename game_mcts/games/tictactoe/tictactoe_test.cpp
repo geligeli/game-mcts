@@ -39,8 +39,8 @@ TEST(TictactoeTest, IsValidAction) {
   // leaves |reason| untouched.
   reason = "sentinel";
   auto moves = game.valid_moves();
-  ASSERT_EQ(moves.actions.size(), 9);
-  for (int move : moves.actions) {
+  ASSERT_EQ(moves.actions_.size(), 9);
+  for (int move : moves.actions_) {
     EXPECT_TRUE(game.is_valid_action(move, reason)) << move;
     EXPECT_EQ(reason, "sentinel");
   }
@@ -54,7 +54,7 @@ TEST(TictactoeTest, IsValidAction) {
   std::mt19937 gen(42);
   while (!(mcts::is_terminal(game.current_state()))) {
     auto vm = game.valid_moves();
-    for (int move : vm.actions) {
+    for (int move : vm.actions_) {
       EXPECT_TRUE(game.is_valid_action(move, reason)) << move;
     }
     game = game.apply_action(*vm.next(game, gen));

@@ -10,7 +10,7 @@ namespace risk_game {
 
 namespace {
 
-auto CountUnits(const RiskState<2> &state) -> int {
+int CountUnits(const RiskState<2> &state) {
   int total = 0;
   for (const Territory &t : state.m_map) {
     total += t.units;
@@ -18,14 +18,14 @@ auto CountUnits(const RiskState<2> &state) -> int {
   return total;
 }
 
-auto MakeAlternatingOwnershipGame() -> RiskState<2> {
+RiskState<2> MakeAlternatingOwnershipGame() {
   RiskState<2> game;
-  game.m_initial_placement = false;
+  game.initial_placement_ = false;
   for (int8_t i = 0; i < kNumTerritories; ++i) {
     game.m_map[i] = {.owner = static_cast<int8_t>(i % 2),
                      .units = 2};  // Alternate ownership
   }
-  game.turn_count = kNumTerritories * 2;
+  game.turn_count_ = kNumTerritories * 2;
   return game;
 }
 
@@ -44,19 +44,19 @@ TEST(RiskGameStateSampling, InitialPlacementIsFirstActionSet) {
 
 TEST(RiskGameStateSampling, ReinforceAndAttackSet) {
   RiskState<2> game = MakeAlternatingOwnershipGame();
-  game.m_reserves = {5, 5};
+  game.reserves_ = {5, 5};
 
   RiskActionSet<2> action_set = ActionSet(game);
   ASSERT_TRUE(std::holds_alternative<PlayerActionSet<2>>(action_set));
 
   const auto &player_set = std::get<PlayerActionSet<2>>(action_set);
-  EXPECT_TRUE(player_set.reinforce_action.has_value());
-  EXPECT_TRUE(player_set.attack_action.has_value());
+  EXPECT_TRUE(player_set.reinforce_action_.has_value());
+  EXPECT_TRUE(player_set.attack_action_.has_value());
 }
 
 TEST(RiskGameStateSampling, ReinforceIsDrawnFirstAndConsumesAllReserves) {
   RiskState<2> game = MakeAlternatingOwnershipGame();
-  game.m_reserves = {5, 5};
+  game.reserves_ = {5, 5};
 
   RiskActionSet<2> action_set = ActionSet(game);
   std::mt19937 gen(42);
@@ -64,20 +64,20 @@ TEST(RiskGameStateSampling, ReinforceIsDrawnFirstAndConsumesAllReserves) {
   ASSERT_TRUE(successor.has_value());
 
   // All 5 reserves were placed on a single territory of player 0.
-  EXPECT_EQ(successor->m_reserves[0], 0);
+  EXPECT_EQ(successor->reserves_[0], 0);
   EXPECT_EQ(CountUnits(*successor), CountUnits(game) + 5);
 }
 
 TEST(RiskGameStateSampling, AttackResolvesExpectedBattleOutcome) {
   RiskState<2> game = MakeAlternatingOwnershipGame();
-  game.m_reserves = {0, 0};
-  game.m_first_attack_of_turn = false;
+  game.reserves_ = {0, 0};
+  game.first_attack_of_turn_ = false;
 
   RiskActionSet<2> action_set = ActionSet(game);
   ASSERT_TRUE(std::holds_alternative<PlayerActionSet<2>>(action_set));
   const auto &player_set = std::get<PlayerActionSet<2>>(action_set);
-  ASSERT_FALSE(player_set.reinforce_action.has_value());
-  ASSERT_TRUE(player_set.attack_action.has_value());
+  ASSERT_FALSE(player_set.reinforce_action_.has_value());
+  ASSERT_TRUE(player_set.attack_action_.has_value());
 
   std::mt19937 gen(42);
   auto successor = SampleSuccessor(action_set, gen);
@@ -94,8 +94,8 @@ TEST(RiskGameStateSampling, AttackResolvesExpectedBattleOutcome) {
 
 TEST(RiskGameStateSampling, AttackSetExhausts) {
   RiskState<2> game = MakeAlternatingOwnershipGame();
-  game.m_reserves = {0, 0};
-  game.m_first_attack_of_turn = false;
+  game.reserves_ = {0, 0};
+  game.first_attack_of_turn_ = false;
 
   QueueAttackActionSet<2> attack_set(game);
   std::mt19937 gen(42);
@@ -109,9 +109,9 @@ TEST(RiskGameStateSampling, AttackSetExhausts) {
   size_t expected = 0;
   for (const auto &edge : kAllNeighborEdges) {
     if (game.m_map[static_cast<size_t>(edge.first)].owner ==
-            game.m_current_player &&
+            game.current_player_ &&
         game.m_map[static_cast<size_t>(edge.second)].owner !=
-            game.m_current_player) {
+            game.current_player_) {
       ++expected;
     }
   }
@@ -123,34 +123,34 @@ TEST(RiskGameStateSampling, AttackSetExhausts) {
 // otherwise the search is forced to attack until it physically cannot.
 TEST(RiskGameStateSampling, FortifyIsOfferedAlongsideRemainingAttacks) {
   RiskState<2> game = MakeAlternatingOwnershipGame();
-  game.m_reserves = {0, 0};
-  game.m_first_attack_of_turn = false;
+  game.reserves_ = {0, 0};
+  game.first_attack_of_turn_ = false;
 
   RiskActionSet<2> action_set = ActionSet(game);
   ASSERT_TRUE(std::holds_alternative<PlayerActionSet<2>>(action_set));
   const auto &player_set = std::get<PlayerActionSet<2>>(action_set);
-  EXPECT_TRUE(player_set.attack_action.has_value());
-  EXPECT_TRUE(player_set.fortify_action.has_value());
+  EXPECT_TRUE(player_set.attack_action_.has_value());
+  EXPECT_TRUE(player_set.fortify_action_.has_value());
 }
 
 // The reinforce set has to be consumed before the turn can end, or the
 // unplaced reserves would be silently dropped.
 TEST(RiskGameStateSampling, FortifyIsWithheldWhileReinforceIsPending) {
   RiskState<2> game = MakeAlternatingOwnershipGame();
-  game.m_reserves = {5, 5};
+  game.reserves_ = {5, 5};
 
   RiskActionSet<2> action_set = ActionSet(game);
   ASSERT_TRUE(std::holds_alternative<PlayerActionSet<2>>(action_set));
   const auto &player_set = std::get<PlayerActionSet<2>>(action_set);
-  ASSERT_TRUE(player_set.reinforce_action.has_value());
-  EXPECT_FALSE(player_set.fortify_action.has_value());
+  ASSERT_TRUE(player_set.reinforce_action_.has_value());
+  EXPECT_FALSE(player_set.fortify_action_.has_value());
 }
 
 TEST(RiskGameStateSampling, NoAttackYieldsFortifySet) {
   RiskState<2> game;
-  game.m_initial_placement = false;
-  game.m_first_attack_of_turn = false;
-  game.m_reserves = {0, 0};
+  game.initial_placement_ = false;
+  game.first_attack_of_turn_ = false;
+  game.reserves_ = {0, 0};
   // Player 0 owns everything except territory 0 (player 1, not eliminated).
   // All of player 0's territories bordering territory 0 have a single unit,
   // so no attack is possible (attacks require units > 1).
@@ -167,24 +167,24 @@ TEST(RiskGameStateSampling, NoAttackYieldsFortifySet) {
   RiskActionSet<2> action_set = ActionSet(game);
   ASSERT_TRUE(std::holds_alternative<PlayerActionSet<2>>(action_set));
   const auto &player_set = std::get<PlayerActionSet<2>>(action_set);
-  ASSERT_FALSE(player_set.attack_action.has_value());
-  ASSERT_TRUE(player_set.fortify_action.has_value());
+  ASSERT_FALSE(player_set.attack_action_.has_value());
+  ASSERT_TRUE(player_set.fortify_action_.has_value());
 
   std::mt19937 gen(42);
   auto successor = SampleSuccessor(action_set, gen);
   ASSERT_TRUE(successor.has_value());
   // Fortify conserves units and ends the turn.
   EXPECT_EQ(CountUnits(*successor), CountUnits(game));
-  EXPECT_EQ(successor->m_current_player, 1);
+  EXPECT_EQ(successor->current_player_, 1);
 }
 
 // The fortify set always offers at least the "move nothing, end the turn"
 // draw, so a player with no legal troop movement still has a move.
 TEST(RiskGameStateSampling, FortifySetAlwaysOffersEndTurn) {
   RiskState<2> game;
-  game.m_initial_placement = false;
-  game.m_first_attack_of_turn = false;
-  game.m_reserves = {0, 0};
+  game.initial_placement_ = false;
+  game.first_attack_of_turn_ = false;
+  game.reserves_ = {0, 0};
   // Player 0 holds a single one-unit territory: no fortify edge has a source
   // with units to spare.
   for (int8_t i = 0; i < kNumTerritories; ++i) {
@@ -197,7 +197,7 @@ TEST(RiskGameStateSampling, FortifySetAlwaysOffersEndTurn) {
   auto successor = fortify_set.next(gen);
   ASSERT_TRUE(successor.has_value());
   EXPECT_EQ(CountUnits(*successor), CountUnits(game));
-  EXPECT_EQ(successor->m_current_player, 1);
+  EXPECT_EQ(successor->current_player_, 1);
   EXPECT_FALSE(fortify_set.next(gen).has_value());
 }
 

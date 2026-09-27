@@ -16,14 +16,13 @@ template <size_t NUM_PLAYERS>
 using traits_t = mcts::GameSerializationTraits<RiskState<NUM_PLAYERS>>;
 
 template <size_t NUM_PLAYERS>
-auto RoundTripState(const RiskState<NUM_PLAYERS> &state)
-    -> RiskState<NUM_PLAYERS> {
+RiskState<NUM_PLAYERS> RoundTripState(const RiskState<NUM_PLAYERS> &state) {
   return traits_t<NUM_PLAYERS>::StateFromProto(
       traits_t<NUM_PLAYERS>::StateToProto(state));
 }
 
 template <size_t NUM_PLAYERS>
-auto RoundTripAction(const RiskAction &action) -> RiskAction {
+RiskAction RoundTripAction(const RiskAction &action) {
   return traits_t<NUM_PLAYERS>::ActionFromProto(
       traits_t<NUM_PLAYERS>::ActionToProto(action));
 }
@@ -43,8 +42,8 @@ void PlayRandomGamesWithRoundtrips(uint32_t seed, int num_games,
   for (int game_idx = 0; game_idx < num_games; ++game_idx) {
     RiskState<NUM_PLAYERS> state;
     for (int step = 0; step < max_steps; ++step) {
-      saw_initial_placement |= state.m_initial_placement;
-      saw_queued_attack |= state.queued_attack.has_value();
+      saw_initial_placement |= state.initial_placement_;
+      saw_queued_attack |= state.queued_attack_.has_value();
       saw_chance_node |= state.is_chance_node();
 
       EXPECT_EQ(RoundTripState(state), state)
@@ -72,17 +71,17 @@ void PlayRandomGamesWithRoundtrips(uint32_t seed, int num_games,
 
 // A mid-game state: initial placement over, alternating ownership, 5 units
 // everywhere, player 0 to move at the start of their turn with no reserves.
-auto MakeMidGameState() -> RiskState<2> {
+RiskState<2> MakeMidGameState() {
   RiskState<2> state;
-  state.m_initial_placement = false;
-  state.m_num_initial_placements = kNumTerritories;
-  state.m_reserves = {0, 0};
+  state.initial_placement_ = false;
+  state.num_initial_placements_ = kNumTerritories;
+  state.reserves_ = {0, 0};
   for (size_t i = 0; i < state.m_map.size(); ++i) {
     state.m_map[i].owner = static_cast<int8_t>(i % 2);
     state.m_map[i].units = 5;
   }
-  state.m_current_player = 0;
-  state.m_first_attack_of_turn = true;
+  state.current_player_ = 0;
+  state.first_attack_of_turn_ = true;
   return state;
 }
 
@@ -112,20 +111,20 @@ TEST(RiskSerializationTest, SaturatedTerritoryRoundTrips) {
 
 TEST(RiskSerializationTest, QueuedAttackRoundTrips) {
   RiskState<2> state = MakeMidGameState();
-  state.queued_attack =
-      QueueAttackAction{.source = 7, .target = 0, .num_attack_dice = 3};
-  state.m_current_player = state.m_map[0].owner;
-  state.m_first_attack_of_turn = false;
+  state.queued_attack_ =
+      QueueAttackAction{.source_ = 7, .target = 0, .num_attack_dice_ = 3};
+  state.current_player_ = state.m_map[0].owner;
+  state.first_attack_of_turn_ = false;
   EXPECT_EQ(RoundTripState(state), state);
 }
 
 TEST(RiskSerializationTest, ChanceNodeRoundTrips) {
   RiskState<2> state = MakeMidGameState();
-  state.queued_attack =
-      QueueAttackAction{.source = 7, .target = 0, .num_attack_dice = 1};
-  state.queued_defense = QueueDefenseAction{.num_defend_dice = 2};
-  state.m_current_player = -1;
-  state.m_first_attack_of_turn = false;
+  state.queued_attack_ =
+      QueueAttackAction{.source_ = 7, .target = 0, .num_attack_dice_ = 1};
+  state.queued_defense_ = QueueDefenseAction{.num_defend_dice_ = 2};
+  state.current_player_ = -1;
+  state.first_attack_of_turn_ = false;
   ASSERT_TRUE(state.is_chance_node());
   EXPECT_EQ(RoundTripState(state), state);
 }
@@ -141,29 +140,29 @@ TEST(RiskSerializationTest, TerminalStateRoundTrips) {
 
 TEST(RiskSerializationTest, ActionVariantsRoundTrip) {
   ReinforceAction reinforce{};
-  reinforce.units_to_place[0] = 3;
-  reinforce.units_to_place[kNumTerritories - 1] =
+  reinforce.units_to_place_[0] = 3;
+  reinforce.units_to_place_[kNumTerritories - 1] =
       std::numeric_limits<uint16_t>::max();
 
   const RiskAction actions[] = {
-      RiskAction{InitialPlaceAction{.territory = 41}},
+      RiskAction{InitialPlaceAction{.territory_ = 41}},
       RiskAction{PlayerAction{}},
-      RiskAction{PlayerAction{.reinforce_action = reinforce}},
-      RiskAction{PlayerAction{.attack_action =
-                                  QueueAttackAction{.source = 7,
+      RiskAction{PlayerAction{.reinforce_action_ = reinforce}},
+      RiskAction{PlayerAction{.attack_action_ =
+                                  QueueAttackAction{.source_ = 7,
                                                     .target = 0,
-                                                    .num_attack_dice = 3}}},
+                                                    .num_attack_dice_ = 3}}},
       RiskAction{PlayerAction{
-          .reinforce_action = reinforce,
-          .attack_action =
+          .reinforce_action_ = reinforce,
+          .attack_action_ =
               QueueAttackAction{
-                  .source = 7, .target = 0, .num_attack_dice = 1}}},
-      RiskAction{QueueDefenseAction{.num_defend_dice = 2}},
-      RiskAction{FortifyAction{.source = 0, .target = 7, .num_units = 100}},
-      RiskAction{RollDiceAction{.attacker_rolls = {6, 5, 4},
-                                .defender_rolls = {6, 6}}},
-      RiskAction{RollDiceAction{.attacker_rolls = {3, 0, 0},
-                                .defender_rolls = {2, 0}}},
+                  .source_ = 7, .target = 0, .num_attack_dice_ = 1}}},
+      RiskAction{QueueDefenseAction{.num_defend_dice_ = 2}},
+      RiskAction{FortifyAction{.source_ = 0, .target = 7, .num_units = 100}},
+      RiskAction{RollDiceAction{.attacker_rolls_ = {6, 5, 4},
+                                .defender_rolls_ = {6, 6}}},
+      RiskAction{RollDiceAction{.attacker_rolls_ = {3, 0, 0},
+                                .defender_rolls_ = {2, 0}}},
   };
   for (const RiskAction &action : actions) {
     EXPECT_EQ(RoundTripAction<2>(action), action);

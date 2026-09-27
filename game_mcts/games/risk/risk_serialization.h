@@ -19,14 +19,12 @@ struct GameSerializationTraits<risk_game::RiskState<NUM_PLAYERS>> {
   using state_proto_t = risk_game::proto::RiskState;
   using action_proto_t = risk_game::proto::RiskAction;
 
-  static auto StateToProto(const risk_game::RiskState<NUM_PLAYERS> &state)
-      -> state_proto_t;
-  static auto StateFromProto(const state_proto_t &proto)
-      -> risk_game::RiskState<NUM_PLAYERS>;
-  static auto ActionToProto(const risk_game::RiskAction &action)
-      -> action_proto_t;
-  static auto ActionFromProto(const action_proto_t &proto)
-      -> risk_game::RiskAction;
+  static state_proto_t StateToProto(
+      const risk_game::RiskState<NUM_PLAYERS> &state);
+  static risk_game::RiskState<NUM_PLAYERS> StateFromProto(
+      const state_proto_t &proto);
+  static action_proto_t ActionToProto(const risk_game::RiskAction &action);
+  static risk_game::RiskAction ActionFromProto(const action_proto_t &proto);
 };
 
 static_assert(SerializableGame<risk_game::RiskState<2>>);

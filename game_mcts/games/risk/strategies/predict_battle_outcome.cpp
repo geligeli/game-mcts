@@ -7,11 +7,11 @@ namespace risk_game {
 
 namespace {
 struct BattleOutcome {
-  double a2_d0 = 0.0;  // Attacker wins 2
-  double a1_d1 = 0.0;  // Both lose 1
-  double a0_d2 = 0.0;  // Defender wins 2
-  double a1_d0 = 0.0;  // Attacker wins 1
-  double a0_d1 = 0.0;  // Defender wins 1
+  double a2_d0_ = 0.0;  // Attacker wins 2
+  double a1_d1_ = 0.0;  // Both lose 1
+  double a0_d2_ = 0.0;  // Defender wins 2
+  double a1_d0_ = 0.0;  // Attacker wins 1
+  double a0_d1_ = 0.0;  // Defender wins 1
 };
 
 BattleOutcome get_probs(int a, int d) {
@@ -68,17 +68,17 @@ BattleRemnants ComputeExpectedRemnants(int initial_a, int initial_d) {
 
       BattleOutcome p = get_probs(a, d);
 
-      if (p.a2_d0 > 0) {
+      if (p.a2_d0_ > 0) {
         if (d >= 2) {
-          dp(a, d - 2) += dp(a, d) * p.a2_d0;
+          dp(a, d - 2) += dp(a, d) * p.a2_d0_;
         }
-        dp(a - 1, d - 1) += dp(a, d) * p.a1_d1;
+        dp(a - 1, d - 1) += dp(a, d) * p.a1_d1_;
         if (a >= 2) {
-          dp(a - 2, d) += dp(a, d) * p.a0_d2;
+          dp(a - 2, d) += dp(a, d) * p.a0_d2_;
         }
       } else {
-        dp(a, d - 1) += dp(a, d) * p.a1_d0;
-        dp(a - 1, d) += dp(a, d) * p.a0_d1;
+        dp(a, d - 1) += dp(a, d) * p.a1_d0_;
+        dp(a - 1, d) += dp(a, d) * p.a0_d1_;
       }
     }
     // Row a is fully consumed; clear its slot for reuse as row a-3.

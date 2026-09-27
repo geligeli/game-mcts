@@ -55,7 +55,7 @@ TEST(StarsAndBars, N2K3ExactOrder) {
 // ---- Count tests (C(N+K-1, K-1)) -------------------------------------------
 
 // Returns C(n, r) for small n.
-static auto binom(int n, int r) -> int {
+static int binom(int n, int r) {
   if (r < 0 || r > n) return 0;
   if (r == 0 || r == n) return 1;
   int result = 1;
@@ -66,11 +66,11 @@ static auto binom(int n, int r) -> int {
 }
 
 TEST(StarsAndBars, CountMatchesBinomialCoefficient) {
-  for (int N = 0; N <= 5; ++N) {
-    for (int K = 1; K <= 5; ++K) {
-      StarsAndBars sb(N, K);
+  for (int n = 0; n <= 5; ++n) {
+    for (int k = 1; k <= 5; ++k) {
+      StarsAndBars sb(n, k);
       int count = std::distance(sb.begin(), sb.end());
-      EXPECT_EQ(count, binom(N + K - 1, K - 1)) << "N=" << N << " K=" << K;
+      EXPECT_EQ(count, binom(n + k - 1, k - 1)) << "N=" << n << " K=" << k;
     }
   }
 }
@@ -78,12 +78,12 @@ TEST(StarsAndBars, CountMatchesBinomialCoefficient) {
 // ---- Each combination sums to N ---------------------------------------------
 
 TEST(StarsAndBars, EachCombinationSumsToN) {
-  for (int N = 0; N <= 5; ++N) {
-    for (int K = 1; K <= 5; ++K) {
-      StarsAndBars sb(N, K);
+  for (int n = 0; n <= 5; ++n) {
+    for (int k = 1; k <= 5; ++k) {
+      StarsAndBars sb(n, k);
       for (const auto& urns : sb) {
         int s = std::accumulate(urns.begin(), urns.end(), 0);
-        EXPECT_EQ(s, N) << "N=" << N << " K=" << K;
+        EXPECT_EQ(s, n) << "N=" << n << " K=" << k;
       }
     }
   }
@@ -92,11 +92,11 @@ TEST(StarsAndBars, EachCombinationSumsToN) {
 // ---- Each combination has exactly K elements --------------------------------
 
 TEST(StarsAndBars, EachCombinationHasKBins) {
-  for (int N = 0; N <= 4; ++N) {
-    for (int K = 1; K <= 4; ++K) {
-      StarsAndBars sb(N, K);
+  for (int n = 0; n <= 4; ++n) {
+    for (int k = 1; k <= 4; ++k) {
+      StarsAndBars sb(n, k);
       for (const auto& urns : sb) {
-        EXPECT_EQ((int)urns.size(), K) << "N=" << N << " K=" << K;
+        EXPECT_EQ((int)urns.size(), k) << "N=" << n << " K=" << k;
       }
     }
   }
@@ -105,13 +105,13 @@ TEST(StarsAndBars, EachCombinationHasKBins) {
 // ---- All combinations are unique --------------------------------------------
 
 TEST(StarsAndBars, AllCombinationsUnique) {
-  for (int N = 0; N <= 5; ++N) {
-    for (int K = 1; K <= 4; ++K) {
-      StarsAndBars sb(N, K);
+  for (int n = 0; n <= 5; ++n) {
+    for (int k = 1; k <= 4; ++k) {
+      StarsAndBars sb(n, k);
       std::set<std::vector<int>> seen;
       for (const auto& urns : sb) {
         EXPECT_TRUE(seen.insert(urns).second)
-            << "Duplicate for N=" << N << " K=" << K;
+            << "Duplicate for N=" << n << " K=" << k;
       }
     }
   }

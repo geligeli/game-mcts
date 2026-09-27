@@ -24,13 +24,13 @@ static_assert(
 
 struct CountingObserver {
   int count = 0;
-  std::vector<std::size_t> last_path;
+  std::vector<std::size_t> last_path_;
 
   template <typename RUNNER>
   void on_iteration(const RUNNER &runner,
                     const typename RUNNER::value_t &value) {
     ++count;
-    last_path = runner.path;
+    last_path_ = runner.path;
     EXPECT_EQ(value.size(), 2u);
   }
 };
@@ -45,8 +45,8 @@ TEST(PyMctsTest, ObserverHookFiresPerIteration) {
     runner.OneIteration(picker, gen);
   }
   EXPECT_EQ(runner.observer.count, 20);
-  ASSERT_FALSE(runner.observer.last_path.empty());
-  EXPECT_EQ(runner.observer.last_path[0], 0u);  // path starts at the root
+  ASSERT_FALSE(runner.observer.last_path_.empty());
+  EXPECT_EQ(runner.observer.last_path_[0], 0u);  // path starts at the root
 }
 
 TEST(PyMctsTest, TicTacToeSearch) {
@@ -54,16 +54,15 @@ TEST(PyMctsTest, TicTacToeSearch) {
       game_t{}, mcts::DefaultProposer<game_t>{}, mcts::RandomRollout<game_t>{},
       /*widening_c=*/2.0, /*widening_alpha=*/0.5,
       /*seed=*/42);
-  EXPECT_EQ(search->num_nodes(), 1);
-  EXPECT_EQ(search->state_proto_type(), "tictactoe.proto.TicTacToeState");
+  EXPECT_EQ(search->NumNodes(), 1);
+  EXPECT_EQ(search->StateProtoType(), "tictactoe.proto.TicTacToeState");
 
-  search->run(25);
-  EXPECT_GT(search->num_nodes(), 1);
+  search->Run(25);
+  EXPECT_GT(search->NumNodes(), 1);
 
   // The root policy: visits of the root children sum to the iteration count.
   int total_visits = 0;
-  for (const auto &[action_proto, visits, total_value] :
-       search->root_policy()) {
+  for (const auto &[action_proto, visits, total_value] : search->RootPolicy()) {
     tictactoe::proto::TicTacToeAction action;
     ASSERT_TRUE(action.ParseFromString(action_proto));
     EXPECT_GE(action.cell(), 0);
@@ -76,7 +75,7 @@ TEST(PyMctsTest, TicTacToeSearch) {
 
   // The best action is a legal, parseable action.
   tictactoe::proto::TicTacToeAction best;
-  ASSERT_TRUE(best.ParseFromString(search->best_action_proto()));
+  ASSERT_TRUE(best.ParseFromString(search->BestActionProto()));
   EXPECT_GE(best.cell(), 0);
   EXPECT_LE(best.cell(), 8);
 
@@ -84,7 +83,7 @@ TEST(PyMctsTest, TicTacToeSearch) {
   // carries a parseable action.
   mcts::proto::MctsTree tree;
   ASSERT_TRUE(tree.ParseFromString(search->export_tree()));
-  ASSERT_EQ(tree.nodes_size(), search->num_nodes());
+  ASSERT_EQ(tree.nodes_size(), search->NumNodes());
   EXPECT_EQ(tree.nodes(0).num_visits(), 25);
   for (const auto &node : tree.nodes()) {
     for (const auto &edge : node.edges()) {
@@ -102,19 +101,19 @@ TEST(PyMctsTest, ObserverCallback) {
 
   int calls = 0;
   std::vector<std::size_t> last_path;
-  search->set_observer(
+  search->SetObserver(
       [&](std::vector<std::size_t> path, std::vector<double> value) {
         ++calls;
         last_path = std::move(path);
         EXPECT_EQ(value.size(), 2u);
       });
-  search->run(10);
+  search->Run(10);
   EXPECT_EQ(calls, 10);
   ASSERT_FALSE(last_path.empty());
   EXPECT_EQ(last_path[0], 0u);
 
-  search->set_observer({});  // off
-  search->run(5);
+  search->SetObserver({});  // off
+  search->Run(5);
   EXPECT_EQ(calls, 10);
 }
 

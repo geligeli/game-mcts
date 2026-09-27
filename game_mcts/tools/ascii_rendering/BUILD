@@ -28,3 +28,10 @@ py_library(
     name = "risk_board_polygons",
     srcs = ["risk_board_polygons.py"],
 )
+
+# Shipped whole to the arena's sandbox image and kits (see //:BUILD).
+filegroup(
+    name = "tree",
+    srcs = glob(["**"]),
+    visibility = ["//:__pkg__"],
+)

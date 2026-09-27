@@ -2,12 +2,12 @@
 
 This directory contains a header-only, concept-based (C++20) framework for
 turn-based games and Monte Carlo Tree Search (MCTS), the games built on it,
-the gRPC tournament server, and supporting tools. Everything is built with
+and supporting tools. Everything is built with
 Bazel (`cc_library` / `cc_binary` / `cc_test`).
 
-Dependency direction: `common` <- `core` <- `games` <- `arena`, with `tools` at
-the top (nothing depends on `tools`). `arena` is this repo's side of
-`@game_arena`, which depends on nothing here.
+Dependency direction: `common` <- `core` <- `games`, with `tools` at the top
+(nothing depends on `tools`). Nothing here depends on `@game_arena`; the
+repo-root `problem/` and `bots/` packages are what host risk2 in the arena.
 
 - `game_mcts/core/mcts/` — the framework: game concepts, game runner, MCTS,
   rollouts, tournaments, tree export. See
@@ -25,14 +25,7 @@ the top (nothing depends on `tools`). `arena` is this repo's side of
   action proposer (`strategies/`), ASCII board rendering (`ascii/`), self-play
   and tournament binaries. See
   [game_mcts/games/risk/README.md](games/risk/README.md).
-- `game_mcts/arena/` — the binding between this framework and
-  [game-arena](https://github.com/geligeli/game-arena): the `GameSessionImpl`
-  adapter, `builtins.h`, the game registry naming risk2 / tictactoe / bench,
-  the referee and client binaries built from it, plus `client/`,
-  `candidate_api/`, `candidates/`, `benchgame/` and `problems/`. See
-  [README.md](arena/README.md) and [ARENA.md](arena/ARENA.md).
-- `game_mcts/tools/bench/` — benchmark binaries (MCTS, Risk, broker
-  throughput).
+- `game_mcts/tools/bench/` — benchmark binaries (MCTS, Risk).
 - `game_mcts/tools/viz/` — HTML/HTTP plot serving.
 - `game_mcts/tools/ascii_rendering/` — the Python pipeline that turns board
   art into the ASCII templates compiled into `games/risk/ascii`.

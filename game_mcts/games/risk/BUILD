@@ -230,3 +230,10 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+# Shipped whole to the arena's sandbox image and kits (see //:BUILD).
+filegroup(
+    name = "tree",
+    srcs = glob(["**"]),
+    visibility = ["//:__pkg__"],
+)

@@ -23,17 +23,17 @@ inline void BindPyMctsClass(pybind11::module_ &m,
     return;
   }
   pybind11::class_<PyMcts>(m, name)
-      .def("step", &PyMcts::step)
-      .def("run", &PyMcts::run, pybind11::arg("iterations"))
+      .def("step", &PyMcts::Step)
+      .def("run", &PyMcts::Run, pybind11::arg("iterations"))
       .def("best_action_proto",
            [](const PyMcts &search) {
-             return pybind11::bytes(search.best_action_proto());
+             return pybind11::bytes(search.BestActionProto());
            })
       .def("root_policy",
            [](const PyMcts &search) {
              pybind11::list policy;
              for (const auto &[action_proto, visits, total_value] :
-                  search.root_policy()) {
+                  search.RootPolicy()) {
                policy.append(pybind11::make_tuple(pybind11::bytes(action_proto),
                                                   visits, total_value));
              }
@@ -43,17 +43,16 @@ inline void BindPyMctsClass(pybind11::module_ &m,
            [](const PyMcts &search) {
              return pybind11::bytes(search.export_tree());
            })
-      .def("num_nodes", &PyMcts::num_nodes)
-      .def("state_proto_type", &PyMcts::state_proto_type)
-      .def("action_proto_type", &PyMcts::action_proto_type)
+      .def("num_nodes", &PyMcts::NumNodes)
+      .def("state_proto_type", &PyMcts::StateProtoType)
+      .def("action_proto_type", &PyMcts::ActionProtoType)
       .def(
           "set_observer",
           [](PyMcts &search, const pybind11::object &callback) {
             if (callback.is_none()) {
-              search.set_observer({});
+              search.SetObserver({});
             } else {
-              search.set_observer(
-                  callback.cast<PyMcts::iteration_callback_t>());
+              search.SetObserver(callback.cast<PyMcts::iteration_callback_t>());
             }
           },
           pybind11::arg("callback"),

@@ -1,0 +1,11 @@
+# Not part of any package: without this the root package's glob, which
+# arena_problem ships into the sandbox image, would sweep them up.
+ignore_directories([
+    ".git",
+    ".cache",
+    ".claude",
+    ".vscode",
+    "bazel-*",
+    "**/__pycache__",
+    "**/.ipynb_checkpoints",
+])

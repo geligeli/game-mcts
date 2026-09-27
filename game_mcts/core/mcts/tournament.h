@@ -50,35 +50,35 @@ template <mcts::Game G>
 struct AnyPolicy {
   struct Concept {
     virtual ~Concept() = default;
-    virtual auto operator()(const G &game, std::mt19937 &gen) const
-        -> PolicyDecision<G> = 0;
+    virtual PolicyDecision<G> operator()(const G &game,
+                                         std::mt19937 &gen) const = 0;
   };
 
   template <TournamentPolicy<G> P>
   struct Model final : Concept {
-    explicit Model(P policy) : policy(std::move(policy)) {}
-    auto operator()(const G &game, std::mt19937 &gen) const
-        -> PolicyDecision<G> override {
-      return policy(game, gen);
+    explicit Model(P policy) : policy_(std::move(policy)) {}
+    PolicyDecision<G> operator()(const G &game,
+                                 std::mt19937 &gen) const override {
+      return policy_(game, gen);
     }
-    P policy;
+    P policy_;
   };
 
   template <TournamentPolicy<G> P>
   AnyPolicy(P policy)  // NOLINT: implicit by design (type erasure).
-      : impl(std::make_shared<Model<P>>(std::move(policy))) {}
+      : impl_(std::make_shared<Model<P>>(std::move(policy))) {}
 
-  auto operator()(const G &game, std::mt19937 &gen) const -> PolicyDecision<G> {
-    return (*impl)(game, gen);
+  PolicyDecision<G> operator()(const G &game, std::mt19937 &gen) const {
+    return (*impl_)(game, gen);
   }
 
-  std::shared_ptr<const Concept> impl;
+  std::shared_ptr<const Concept> impl_;
 };
 
 struct MatchRecord {
-  int policy_a;
-  int policy_b;
-  double score_a;  // From policy A's perspective: 1.0 win, 0.5 draw, 0.0 loss.
+  int policy_a_;
+  int policy_b_;
+  double score_a_;  // From policy A's perspective: 1.0 win, 0.5 draw, 0.0 loss.
 };
 
 // Step observer for PlayGame: called once per applied action with the state
@@ -95,8 +95,8 @@ concept StepObserver =
 // no-observer path compiles to exactly the pre-observer code.
 struct NullStepObserver {
   template <mcts::Game G>
-  auto operator()(const G & /*state_before*/, int /*deciding_player*/,
-                  const typename G::action_t & /*action*/) const -> void {}
+  void operator()(const G & /*state_before*/, int /*deciding_player*/,
+                  const typename G::action_t & /*action*/) const {}
 };
 
 // Per-game observer factory for RunTournament: called once per task with the
@@ -109,9 +109,7 @@ concept StepObserverFactory =
     };
 
 struct NullStepObserverFactory {
-  auto operator()(std::size_t /*task_index*/) const -> NullStepObserver {
-    return {};
-  }
+  NullStepObserver operator()(std::size_t /*task_index*/) const { return {}; }
 };
 
 // Plays one game between two policies; player0/player1 are the policies in
@@ -120,9 +118,9 @@ struct NullStepObserverFactory {
 // after each applied action with (state_before, deciding_player, action).
 // Returns the terminal state, or draw_t when |max_moves| is reached first.
 template <mcts::Game G, StepObserver<G> OBSERVER = NullStepObserver>
-auto PlayGame(G game, const AnyPolicy<G> *player0, const AnyPolicy<G> *player1,
-              std::mt19937 &gen, int max_moves, OBSERVER observer = {})
-    -> mcts::game_state_t {
+mcts::game_state_t PlayGame(G game, const AnyPolicy<G> *player0,
+                            const AnyPolicy<G> *player1, std::mt19937 &gen,
+                            int max_moves, OBSERVER observer = {}) {
   for (int move = 0;
        !mcts::is_terminal(game.current_state()) && move < max_moves; ++move) {
     if constexpr (mcts::ChanceGame<G>) {
@@ -148,20 +146,19 @@ auto PlayGame(G game, const AnyPolicy<G> *player0, const AnyPolicy<G> *player1,
 
 // A pairing of two policy indices; a plays seat 0, b plays seat 1.
 struct Task {
-  int a;
-  int b;
+  int a_;
+  int b_;
 };
 
 // Every unordered pair plays |games_per_pair| games, alternating seats:
 // game k of a pair seats the lower-indexed policy first when k is even.
-inline auto BuildRoundRobin(int num_policies, int games_per_pair)
-    -> std::vector<Task> {
+inline std::vector<Task> BuildRoundRobin(int num_policies, int games_per_pair) {
   std::vector<Task> tasks;
   for (int a = 0; a < num_policies; ++a) {
     for (int b = a + 1; b < num_policies; ++b) {
       for (int k = 0; k < games_per_pair; ++k) {
-        tasks.push_back(k % 2 == 0 ? Task{.a = a, .b = b}
-                                   : Task{.a = b, .b = a});
+        tasks.push_back(k % 2 == 0 ? Task{.a_ = a, .b_ = b}
+                                   : Task{.a_ = b, .b_ = a});
       }
     }
   }
@@ -180,12 +177,10 @@ template <mcts::Game G, typename InitialStateFn,
           StepObserverFactory<G> OBSERVER_FACTORY = NullStepObserverFactory>
   requires std::invocable<InitialStateFn> &&
            std::same_as<std::invoke_result_t<InitialStateFn>, G>
-auto RunTournament(const std::vector<Task> &tasks,
-                   InitialStateFn &&initial_state_fn,
-                   const std::vector<AnyPolicy<G>> &policies, int num_threads,
-                   uint32_t base_seed, int max_moves,
-                   OBSERVER_FACTORY observer_factory = {})
-    -> std::vector<MatchRecord> {
+std::vector<MatchRecord> RunTournament(
+    const std::vector<Task> &tasks, InitialStateFn &&initial_state_fn,
+    const std::vector<AnyPolicy<G>> &policies, int num_threads,
+    uint32_t base_seed, int max_moves, OBSERVER_FACTORY observer_factory = {}) {
   std::vector<MatchRecord> records(tasks.size());
   std::atomic<std::size_t> next_task{0};
   const int num_workers = std::max(1, num_threads);
@@ -197,7 +192,7 @@ auto RunTournament(const std::vector<Task> &tasks,
       std::mt19937 gen(base_seed ^ static_cast<uint32_t>(i));
       const Task &task = tasks[i];
       const mcts::game_state_t state =
-          PlayGame(initial_state_fn(), &policies[task.a], &policies[task.b],
+          PlayGame(initial_state_fn(), &policies[task.a_], &policies[task.b_],
                    gen, max_moves, observer_factory(i));
       double score_a;
       if (const auto *win = std::get_if<mcts::win_t>(&state)) {
@@ -206,14 +201,14 @@ auto RunTournament(const std::vector<Task> &tasks,
         score_a = 0.5;  // Draw (game draw or move cap).
       }
       records[i] = MatchRecord{
-          .policy_a = task.a, .policy_b = task.b, .score_a = score_a};
+          .policy_a_ = task.a_, .policy_b_ = task.b_, .score_a_ = score_a};
       // Stream each finished game, so long tournaments can be monitored (and
       // early-stopped) from the outside instead of only at the final standings.
       {
         static std::mutex print_mutex;
         const std::lock_guard<std::mutex> lock(print_mutex);
         std::printf("GAME_DONE task=%zu total=%zu a=%d b=%d score_a=%.1f\n", i,
-                    tasks.size(), task.a, task.b, score_a);
+                    tasks.size(), task.a_, task.b_, score_a);
         std::fflush(stdout);
       }
     }
@@ -235,9 +230,9 @@ auto RunTournament(const std::vector<Task> &tasks,
 // Iterates passes over the records, deterministically reshuffling the order
 // each pass with std::mt19937(pass), until the largest rating change in a
 // pass drops below 0.01 or 200 passes ran.
-inline auto ComputeElo(const std::vector<MatchRecord> &records,
-                       int num_policies, double k_factor = 16.0,
-                       double initial = 1500.0) -> std::vector<double> {
+inline std::vector<double> ComputeElo(const std::vector<MatchRecord> &records,
+                                      int num_policies, double k_factor = 16.0,
+                                      double initial = 1500.0) {
   std::vector<double> ratings(num_policies, initial);
   std::vector<MatchRecord> shuffled = records;
   for (int pass = 0; pass < 200; ++pass) {
@@ -260,22 +255,22 @@ inline auto ComputeElo(const std::vector<MatchRecord> &records,
 }
 
 // Prints the standings sorted by rating (desc) with W/D/L counts per policy.
-inline auto PrintStandings(const std::vector<double> &ratings,
+inline void PrintStandings(const std::vector<double> &ratings,
                            const std::vector<std::string> &names,
-                           const std::vector<MatchRecord> &records) -> void {
+                           const std::vector<MatchRecord> &records) {
   std::vector<int> wins(names.size(), 0);
   std::vector<int> draws(names.size(), 0);
   std::vector<int> losses(names.size(), 0);
   for (const auto &record : records) {
-    if (record.score_a == 1.0) {
-      ++wins[record.policy_a];
-      ++losses[record.policy_b];
-    } else if (record.score_a == 0.0) {
-      ++losses[record.policy_a];
-      ++wins[record.policy_b];
+    if (record.score_a_ == 1.0) {
+      ++wins[record.policy_a_];
+      ++losses[record.policy_b_];
+    } else if (record.score_a_ == 0.0) {
+      ++losses[record.policy_a_];
+      ++wins[record.policy_b_];
     } else {
-      ++draws[record.policy_a];
-      ++draws[record.policy_b];
+      ++draws[record.policy_a_];
+      ++draws[record.policy_b_];
     }
   }
 

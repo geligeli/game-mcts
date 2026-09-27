@@ -30,8 +30,8 @@ class PyMcts {
   // One expanded root edge: the action (serialized action proto), the child
   // node's visit count and its per-player accumulated values.
   struct RootAction {
-    std::string action_proto;
-    int visits;
+    std::string action_proto_;
+    int visits_;
     std::vector<double> total_value;
   };
   // Per-iteration observer payload: the selection path (node indices, first
@@ -41,41 +41,41 @@ class PyMcts {
 
   virtual ~PyMcts() = default;
 
-  virtual void step() = 0;
-  void run(int iterations) {
+  virtual void Step() = 0;
+  void Run(int iterations) {
     for (int i = 0; i < iterations; ++i) {
-      step();
+      Step();
     }
   }
 
   // Serialized action proto of the most-visited root child. Precondition:
   // the root is a decision node with at least one expanded child.
-  virtual auto best_action_proto() const -> std::string = 0;
+  virtual std::string BestActionProto() const = 0;
   // The visit-count policy over the root's expanded edges.
-  virtual auto root_policy() const -> std::vector<RootAction> = 0;
+  virtual std::vector<RootAction> RootPolicy() const = 0;
   // Serialized mcts.proto.MctsTree: the full tree for offline inspection.
-  virtual auto export_tree() const -> std::string = 0;
-  virtual auto num_nodes() const -> int = 0;
+  virtual std::string export_tree() const = 0;
+  virtual int NumNodes() const = 0;
 
-  virtual auto state_proto_type() const -> std::string = 0;
-  virtual auto action_proto_type() const -> std::string = 0;
+  virtual std::string StateProtoType() const = 0;
+  virtual std::string ActionProtoType() const = 0;
 
   // Calls |callback| after every iteration (empty = off). Debugging aid; the
   // per-call copies make this unsuitable for hot loops.
-  virtual void set_observer(iteration_callback_t callback) = 0;
+  virtual void SetObserver(iteration_callback_t callback) = 0;
 };
 
 // Compile-time MctsObserver for PyMcts: forwards each iteration to the
 // type-erased callback. Only ever instantiated in the Python bindings;
 // production runners keep the default NullMctsObserver.
 struct PyIterationObserver {
-  PyMcts::iteration_callback_t callback;
+  PyMcts::iteration_callback_t callback_;
 
   template <typename RUNNER>
   void on_iteration(const RUNNER &runner,
                     const typename RUNNER::value_t &value) {
-    if (callback) {
-      callback(runner.path, {value.begin(), value.end()});
+    if (callback_) {
+      callback_(runner.path, {value.begin(), value.end()});
     }
   }
 };
@@ -98,7 +98,7 @@ class PyMctsImpl final : public PyMcts {
         widening_c_(widening_c),
         widening_alpha_(widening_alpha) {}
 
-  void step() override {
+  void Step() override {
     if constexpr (ChanceGame<G>) {
       auto picker =
           MctsStochasticNodePicker<G>(gen_, widening_c_, widening_alpha_);
@@ -109,11 +109,11 @@ class PyMctsImpl final : public PyMcts {
     }
   }
 
-  auto best_action_proto() const -> std::string override {
+  std::string BestActionProto() const override {
     return traits_t::ActionToProto(runner_.best_action()).SerializeAsString();
   }
 
-  auto root_policy() const -> std::vector<RootAction> override {
+  std::vector<RootAction> RootPolicy() const override {
     using node_t = typename runner_t::NodeType;
     const auto &root = runner_.node_storage[0];
     std::vector<RootAction> policy;
@@ -157,23 +157,23 @@ class PyMctsImpl final : public PyMcts {
     return policy;
   }
 
-  auto export_tree() const -> std::string override {
+  std::string export_tree() const override {
     return ExportTree(runner_).SerializeAsString();
   }
 
-  auto num_nodes() const -> int override {
+  int NumNodes() const override {
     return static_cast<int>(runner_.node_storage.size());
   }
 
-  auto state_proto_type() const -> std::string override {
+  std::string StateProtoType() const override {
     return std::string(typename traits_t::state_proto_t{}.GetTypeName());
   }
-  auto action_proto_type() const -> std::string override {
+  std::string ActionProtoType() const override {
     return std::string(typename traits_t::action_proto_t{}.GetTypeName());
   }
 
-  void set_observer(iteration_callback_t callback) override {
-    runner_.observer.callback = std::move(callback);
+  void SetObserver(iteration_callback_t callback) override {
+    runner_.observer.callback_ = std::move(callback);
   }
 
  private:
@@ -186,9 +186,10 @@ class PyMctsImpl final : public PyMcts {
 template <typename G, typename PROPOSER, typename ROLLOUT_POLICY>
   requires ProtoSerializableGame<G> && ActionProposer<PROPOSER, G> &&
            RolloutPolicy<ROLLOUT_POLICY, G>
-auto MakePyMcts(G root, PROPOSER proposer, ROLLOUT_POLICY rollout_policy,
-                double widening_c, double widening_alpha, std::uint32_t seed)
-    -> std::unique_ptr<PyMcts> {
+std::unique_ptr<PyMcts> MakePyMcts(G root, PROPOSER proposer,
+                                   ROLLOUT_POLICY rollout_policy,
+                                   double widening_c, double widening_alpha,
+                                   std::uint32_t seed) {
   return std::make_unique<PyMctsImpl<G, PROPOSER, ROLLOUT_POLICY>>(
       std::move(root), std::move(proposer), std::move(rollout_policy),
       widening_c, widening_alpha, seed);
@@ -198,10 +199,11 @@ auto MakePyMcts(G root, PROPOSER proposer, ROLLOUT_POLICY rollout_policy,
 template <typename G, typename PROPOSER, typename ROLLOUT_POLICY>
   requires ProtoSerializableGame<G> && ActionProposer<PROPOSER, G> &&
            RolloutPolicy<ROLLOUT_POLICY, G>
-auto MakePyMcts(const std::string &state_proto, PROPOSER proposer,
-                ROLLOUT_POLICY rollout_policy, double widening_c,
-                double widening_alpha, std::uint32_t seed)
-    -> std::unique_ptr<PyMcts> {
+std::unique_ptr<PyMcts> MakePyMcts(const std::string &state_proto,
+                                   PROPOSER proposer,
+                                   ROLLOUT_POLICY rollout_policy,
+                                   double widening_c, double widening_alpha,
+                                   std::uint32_t seed) {
   using traits_t = GameSerializationTraits<G>;
   typename traits_t::state_proto_t proto;
   if (!proto.ParseFromString(state_proto)) {

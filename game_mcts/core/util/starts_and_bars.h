@@ -19,39 +19,39 @@ class StarsAndBars {
     // Default constructor creates an end-of-sequence iterator
     Iterator();
 
-    Iterator(int N, int K);
+    Iterator(int n, int k);
 
-    auto operator*() const -> reference;
-    auto operator->() const -> pointer;
+    reference operator*() const;
+    pointer operator->() const;
 
     // Prefix increment
-    auto operator++() -> Iterator&;
+    Iterator& operator++();
 
     // Postfix increment
-    auto operator++(int) -> Iterator;
+    Iterator operator++(int);
 
-    friend auto operator==(const Iterator& a, const Iterator& b) -> bool;
-    friend auto operator!=(const Iterator& a, const Iterator& b) -> bool;
+    friend bool operator==(const Iterator& a, const Iterator& b);
+    friend bool operator!=(const Iterator& a, const Iterator& b);
 
    private:
     std::vector<int> sequence_;
     std::vector<int> urns_;
-    int K_;
+    int k_;
     bool is_end_;
 
     // Translates the 0s and 1s back into bin counts.
     // Runs in O(N + K) time.
-    void update_urns();
+    void UpdateUrns();
   };
 
-  StarsAndBars(int N, int K);
+  StarsAndBars(int n, int k);
 
-  auto begin() const -> Iterator;
-  auto end() const -> Iterator;
+  Iterator begin() const;
+  Iterator end() const;
 
  private:
-  int N_;
-  int K_;
+  int n_;
+  int k_;
 };
 
 }  // namespace mcts

@@ -9,7 +9,7 @@ namespace fitters {
 namespace {
 
 // Helper to generate test data
-auto linspace(double start, double end, size_t n) -> std::vector<double> {
+std::vector<double> linspace(double start, double end, size_t n) {
   std::vector<double> result(n);
   for (size_t i = 0; i < n; ++i) {
     result[i] = start + (end - start) * i / (n - 1);
@@ -31,10 +31,10 @@ TEST(ExponentialFitTest, FitsPerfectExponential) {
 
   auto result = fit_exponential(x, y);
 
-  EXPECT_TRUE(result.valid);
-  EXPECT_NEAR(result.a, a_true, 1e-6);
-  EXPECT_NEAR(result.b, b_true, 1e-6);
-  EXPECT_NEAR(result.r_squared, 1.0, 1e-10);
+  EXPECT_TRUE(result.valid_);
+  EXPECT_NEAR(result.a_, a_true, 1e-6);
+  EXPECT_NEAR(result.b_, b_true, 1e-6);
+  EXPECT_NEAR(result.r_squared_, 1.0, 1e-10);
 }
 
 TEST(ExponentialFitTest, FitsDecayingExponential) {
@@ -51,10 +51,10 @@ TEST(ExponentialFitTest, FitsDecayingExponential) {
 
   auto result = fit_exponential(x, y);
 
-  EXPECT_TRUE(result.valid);
-  EXPECT_NEAR(result.a, a_true, 1e-6);
-  EXPECT_NEAR(result.b, b_true, 1e-6);
-  EXPECT_NEAR(result.r_squared, 1.0, 1e-10);
+  EXPECT_TRUE(result.valid_);
+  EXPECT_NEAR(result.a_, a_true, 1e-6);
+  EXPECT_NEAR(result.b_, b_true, 1e-6);
+  EXPECT_NEAR(result.r_squared_, 1.0, 1e-10);
 }
 
 TEST(ExponentialFitTest, HandlesNegativeValues) {
@@ -65,7 +65,7 @@ TEST(ExponentialFitTest, HandlesNegativeValues) {
   auto result = fit_exponential(x, y);
 
   // Should still fit the positive values
-  EXPECT_TRUE(result.valid);
+  EXPECT_TRUE(result.valid_);
   // Should have filtered out negative values
 }
 
@@ -75,7 +75,7 @@ TEST(ExponentialFitTest, HandlesInsufficientData) {
 
   auto result = fit_exponential(x, y);
 
-  EXPECT_FALSE(result.valid);
+  EXPECT_FALSE(result.valid_);
 }
 
 TEST(ExponentialFitTest, HandlesAllNegativeY) {
@@ -84,7 +84,7 @@ TEST(ExponentialFitTest, HandlesAllNegativeY) {
 
   auto result = fit_exponential(x, y);
 
-  EXPECT_FALSE(result.valid);
+  EXPECT_FALSE(result.valid_);
 }
 
 TEST(PowerLawFitTest, FitsPerfectPowerLaw) {
@@ -101,10 +101,10 @@ TEST(PowerLawFitTest, FitsPerfectPowerLaw) {
 
   auto result = fit_power_law(x, y);
 
-  EXPECT_TRUE(result.valid);
-  EXPECT_NEAR(result.a, a_true, 1e-6);
-  EXPECT_NEAR(result.alpha, alpha_true, 1e-6);
-  EXPECT_NEAR(result.r_squared, 1.0, 1e-10);
+  EXPECT_TRUE(result.valid_);
+  EXPECT_NEAR(result.a_, a_true, 1e-6);
+  EXPECT_NEAR(result.alpha_, alpha_true, 1e-6);
+  EXPECT_NEAR(result.r_squared_, 1.0, 1e-10);
 }
 
 TEST(PowerLawFitTest, FitsDecayingPowerLaw) {
@@ -121,10 +121,10 @@ TEST(PowerLawFitTest, FitsDecayingPowerLaw) {
 
   auto result = fit_power_law(x, y);
 
-  EXPECT_TRUE(result.valid);
-  EXPECT_NEAR(result.a, a_true, 1e-6);
-  EXPECT_NEAR(result.alpha, alpha_true, 1e-6);
-  EXPECT_NEAR(result.r_squared, 1.0, 1e-10);
+  EXPECT_TRUE(result.valid_);
+  EXPECT_NEAR(result.a_, a_true, 1e-6);
+  EXPECT_NEAR(result.alpha_, alpha_true, 1e-6);
+  EXPECT_NEAR(result.r_squared_, 1.0, 1e-10);
 }
 
 TEST(PowerLawFitTest, HandlesNonPositiveX) {
@@ -135,7 +135,7 @@ TEST(PowerLawFitTest, HandlesNonPositiveX) {
   auto result = fit_power_law(x, y);
 
   // Should still fit the positive x values
-  EXPECT_TRUE(result.valid);
+  EXPECT_TRUE(result.valid_);
 }
 
 TEST(PowerLawFitTest, HandlesInsufficientData) {
@@ -144,7 +144,7 @@ TEST(PowerLawFitTest, HandlesInsufficientData) {
 
   auto result = fit_power_law(x, y);
 
-  EXPECT_FALSE(result.valid);
+  EXPECT_FALSE(result.valid_);
 }
 
 TEST(PowerLawFitTest, HandlesAllNonPositive) {
@@ -153,7 +153,7 @@ TEST(PowerLawFitTest, HandlesAllNonPositive) {
 
   auto result = fit_power_law(x, y);
 
-  EXPECT_FALSE(result.valid);
+  EXPECT_FALSE(result.valid_);
 }
 
 TEST(ChooseBestFitTest, ChoosesExponentialForExponentialData) {

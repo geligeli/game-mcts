@@ -9,16 +9,16 @@ namespace pig_game {
 
 class PigGame {
  private:
-  int p0_score = 0;
-  int p1_score = 0;
-  int turn_total = 0;
-  int player_turn = 0;            // 0 or 1
-  bool waiting_for_roll = false;  // True = Chance Node, False = Decision Node
+  int p0_score_ = 0;
+  int p1_score_ = 0;
+  int turn_total_ = 0;
+  int player_turn_ = 0;            // 0 or 1
+  bool waiting_for_roll_ = false;  // True = Chance Node, False = Decision Node
 
   // Constants for Decision Actions
-  static constexpr int ACT_ROLL = 0;
-  static constexpr int ACT_HOLD = 1;
-  static constexpr int GOAL_SCORE = 100;
+  static constexpr int act_roll_ = 0;
+  static constexpr int act_hold_ = 1;
+  static constexpr int goal_score_ = 100;
 
  public:
   using action_t = int;
@@ -49,7 +49,7 @@ class PigGame {
   action_t sample_chance_action(std::mt19937 &gen) const;
   // Decision nodes: the game's default policy, picked up by
   // mcts::DefaultProposer as an allocation-free alternative to valid_moves().
-  action_t sample_action(std::mt19937 &gen) const;
+  action_t SampleAction(std::mt19937 &gen) const;
 
   void SetState(int p0, int p1, int turn, int player, bool waiting);
 };

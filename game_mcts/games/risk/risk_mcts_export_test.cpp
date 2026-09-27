@@ -22,7 +22,7 @@ using risk_game_t = RiskState<2>;
 using proposer_t = RiskProposer<2>;
 using traits_t = mcts::GameSerializationTraits<risk_game_t>;
 
-auto ParseEdgeAction(const std::string &bytes) -> RiskAction {
+RiskAction ParseEdgeAction(const std::string &bytes) {
   proto::RiskAction action_proto;
   EXPECT_TRUE(action_proto.ParseFromString(bytes));
   return traits_t::ActionFromProto(action_proto);
@@ -32,11 +32,11 @@ auto ParseEdgeAction(const std::string &bytes) -> RiskAction {
 // placement over, at least one battle resolved. Rooting MCTS there reaches
 // chance nodes within a few plies (from the opening state the tree would
 // need ~80 plies to leave initial placement).
-auto MakeMidGameRoot(std::mt19937 &gen) -> risk_game_t {
+risk_game_t MakeMidGameRoot(std::mt19937 &gen) {
   const proposer_t proposer{};
   risk_game_t state;
   int battles = 0;
-  while (state.m_initial_placement || battles < 2 || state.is_chance_node()) {
+  while (state.initial_placement_ || battles < 2 || state.is_chance_node()) {
     const RiskAction action = state.is_chance_node()
                                   ? state.sample_chance_action(gen)
                                   : proposer.sample(state, gen);
@@ -47,10 +47,10 @@ auto MakeMidGameRoot(std::mt19937 &gen) -> risk_game_t {
 }
 
 TEST(RiskMctsExportTest, TreeExportWithChanceNodes) {
-  constexpr int kIterations = 300;
+  constexpr int iterations = 300;
   std::mt19937 gen(42);
   const risk_game_t root = MakeMidGameRoot(gen);
-  ASSERT_FALSE(root.m_initial_placement);
+  ASSERT_FALSE(root.initial_placement_);
 
   // Rollouts resolve battles with the expectation table (cheaper); the tree
   // itself uses exact logic.
@@ -60,14 +60,14 @@ TEST(RiskMctsExportTest, TreeExportWithChanceNodes) {
   mcts::MctsRunner<risk_game_t, proposer_t, decltype(rollout_policy)> runner(
       root, proposer_t{}, rollout_policy);
   auto picker = mcts::MctsStochasticNodePicker<risk_game_t>(gen);
-  for (int i = 0; i < kIterations; ++i) {
+  for (int i = 0; i < iterations; ++i) {
     runner.OneIteration(picker, gen);
   }
 
   const mcts::proto::MctsTree tree = mcts::ExportTree(runner);
 
   ASSERT_EQ(tree.nodes_size(), static_cast<int>(runner.node_storage.size()));
-  EXPECT_EQ(tree.nodes(0).num_visits(), kIterations);
+  EXPECT_EQ(tree.nodes(0).num_visits(), iterations);
 
   bool saw_chance_node = false;
   for (int i = 0; i < tree.nodes_size(); ++i) {

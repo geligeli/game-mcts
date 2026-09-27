@@ -152,43 +152,43 @@ TEST(StateSpaceTest, ProductOfConcatenatedSize) {
 
 TEST(PlaceNElementsIntoKBinsTest, SizeBasic) {
   // C(N+K-1, K-1) = C(5+3-1, 3-1) = C(7,2) = 21
-  PlaceNElementsIntoKBinsStateSpace space{.N = 5, .K = 3};
+  PlaceNElementsIntoKBinsStateSpace space{.n_ = 5, .k_ = 3};
   EXPECT_EQ(space.size(), 21);
 }
 
 TEST(PlaceNElementsIntoKBinsTest, SizeOneBin) {
   // C(N+0, 0) = 1: only one way to put everything in one bin
-  PlaceNElementsIntoKBinsStateSpace space{.N = 10, .K = 1};
+  PlaceNElementsIntoKBinsStateSpace space{.n_ = 10, .k_ = 1};
   EXPECT_EQ(space.size(), 1);
 }
 
 TEST(PlaceNElementsIntoKBinsTest, SizeZeroElements) {
   // C(0+K-1, K-1) = 1: all bins are empty
-  PlaceNElementsIntoKBinsStateSpace space{.N = 0, .K = 5};
+  PlaceNElementsIntoKBinsStateSpace space{.n_ = 0, .k_ = 5};
   EXPECT_EQ(space.size(), 1);
 }
 
 TEST(PlaceNElementsIntoKBinsTest, SizeOneElementManyBins) {
   // C(1+K-1, K-1) = C(K, K-1) = K
-  PlaceNElementsIntoKBinsStateSpace space{.N = 1, .K = 7};
+  PlaceNElementsIntoKBinsStateSpace space{.n_ = 1, .k_ = 7};
   EXPECT_EQ(space.size(), 7);
 }
 
 TEST(PlaceNElementsIntoKBinsTest, SizeLarge) {
   // C(20+5-1, 5-1) = C(24,4) = 10626
-  PlaceNElementsIntoKBinsStateSpace space{.N = 20, .K = 5};
+  PlaceNElementsIntoKBinsStateSpace space{.n_ = 20, .k_ = 5};
   EXPECT_EQ(space.size(), 10626);
 }
 
 TEST(PlaceNElementsIntoKBinsTest, SizeOverflows64Bit) {
   // C(50+51-1, 51-1) = C(100,50) which is ~1.0 * 10^29, well beyond 2^64.
-  PlaceNElementsIntoKBinsStateSpace space{.N = 50, .K = 51};
+  PlaceNElementsIntoKBinsStateSpace space{.n_ = 50, .k_ = 51};
   cpp_int expected("100891344545564193334812497256");
   EXPECT_EQ(space.size(), expected);
 }
 
 TEST(PlaceNElementsIntoKBinsTest, SampleReturnsCorrectBinCount) {
-  PlaceNElementsIntoKBinsStateSpace space{.N = 10, .K = 4};
+  PlaceNElementsIntoKBinsStateSpace space{.n_ = 10, .k_ = 4};
   std::mt19937 gen(42);
   for (int i = 0; i < 50; ++i) {
     std::vector<int> result;
@@ -198,7 +198,7 @@ TEST(PlaceNElementsIntoKBinsTest, SampleReturnsCorrectBinCount) {
 }
 
 TEST(PlaceNElementsIntoKBinsTest, SampleSumsToN) {
-  PlaceNElementsIntoKBinsStateSpace space{.N = 15, .K = 6};
+  PlaceNElementsIntoKBinsStateSpace space{.n_ = 15, .k_ = 6};
   std::mt19937 gen(99);
   for (int i = 0; i < 100; ++i) {
     std::vector<int> result;
@@ -209,7 +209,7 @@ TEST(PlaceNElementsIntoKBinsTest, SampleSumsToN) {
 }
 
 TEST(PlaceNElementsIntoKBinsTest, SampleValuesNonNegative) {
-  PlaceNElementsIntoKBinsStateSpace space{.N = 8, .K = 5};
+  PlaceNElementsIntoKBinsStateSpace space{.n_ = 8, .k_ = 5};
   std::mt19937 gen(7);
   for (int i = 0; i < 100; ++i) {
     std::vector<int> result;
@@ -221,7 +221,7 @@ TEST(PlaceNElementsIntoKBinsTest, SampleValuesNonNegative) {
 }
 
 TEST(PlaceNElementsIntoKBinsTest, SampleOneBinReturnsAll) {
-  PlaceNElementsIntoKBinsStateSpace space{.N = 12, .K = 1};
+  PlaceNElementsIntoKBinsStateSpace space{.n_ = 12, .k_ = 1};
   std::mt19937 gen(42);
   std::vector<int> result;
   space.sample(gen, result);
@@ -230,7 +230,7 @@ TEST(PlaceNElementsIntoKBinsTest, SampleOneBinReturnsAll) {
 }
 
 TEST(PlaceNElementsIntoKBinsTest, SampleZeroElements) {
-  PlaceNElementsIntoKBinsStateSpace space{.N = 0, .K = 3};
+  PlaceNElementsIntoKBinsStateSpace space{.n_ = 0, .k_ = 3};
   std::mt19937 gen(42);
   std::vector<int> result;
   space.sample(gen, result);
@@ -241,7 +241,7 @@ TEST(PlaceNElementsIntoKBinsTest, SampleZeroElements) {
 }
 
 TEST(PlaceNElementsIntoKBinsTest, UnrankSumsToN) {
-  PlaceNElementsIntoKBinsStateSpace space{.N = 15, .K = 6};
+  PlaceNElementsIntoKBinsStateSpace space{.n_ = 15, .k_ = 6};
   for (cpp_int rank = 0; rank < space.size(); ++rank) {
     std::vector<int> result = space.unrank(rank);
     ASSERT_EQ(result.size(), 6u);
@@ -250,7 +250,7 @@ TEST(PlaceNElementsIntoKBinsTest, UnrankSumsToN) {
 }
 
 TEST(PlaceNElementsIntoKBinsTest, UnrankIsBijective) {
-  PlaceNElementsIntoKBinsStateSpace space{.N = 7, .K = 4};
+  PlaceNElementsIntoKBinsStateSpace space{.n_ = 7, .k_ = 4};
   std::set<std::vector<int>> seen;
   for (cpp_int rank = 0; rank < space.size(); ++rank) {
     seen.insert(space.unrank(rank));
@@ -260,9 +260,9 @@ TEST(PlaceNElementsIntoKBinsTest, UnrankIsBijective) {
 }
 
 TEST(PlaceNElementsIntoKBinsTest, UnrankMatchesEnumeration) {
-  PlaceNElementsIntoKBinsStateSpace space{.N = 5, .K = 3};
+  PlaceNElementsIntoKBinsStateSpace space{.n_ = 5, .k_ = 3};
   std::set<std::vector<int>> enumerated;
-  for (const auto& placement : space.all()) {
+  for (const auto& placement : space.All()) {
     enumerated.insert(placement);
   }
   for (cpp_int rank = 0; rank < space.size(); ++rank) {
@@ -271,14 +271,14 @@ TEST(PlaceNElementsIntoKBinsTest, UnrankMatchesEnumeration) {
 }
 
 TEST(PlaceNElementsIntoKBinsTest, UnrankOneBin) {
-  PlaceNElementsIntoKBinsStateSpace space{.N = 12, .K = 1};
+  PlaceNElementsIntoKBinsStateSpace space{.n_ = 12, .k_ = 1};
   EXPECT_EQ(space.unrank(0), std::vector<int>{12});
 }
 
 // --- IndexActionSampler tests ---
 
 TEST(IndexActionSamplerTest, DrawsWithoutReplacementUntilExhausted) {
-  IndexActionSampler sampler{.space_size = 100};
+  IndexActionSampler sampler{.space_size_ = 100};
   std::mt19937 gen(42);
   std::set<uint64_t> seen;
   for (int i = 0; i < 100; ++i) {
@@ -291,7 +291,7 @@ TEST(IndexActionSamplerTest, DrawsWithoutReplacementUntilExhausted) {
 }
 
 TEST(IndexActionSamplerTest, CoversWholeSpace) {
-  IndexActionSampler sampler{.space_size = 50};
+  IndexActionSampler sampler{.space_size_ = 50};
   std::mt19937 gen(7);
   std::set<uint64_t> seen;
   while (auto value = sampler.next(gen)) {
@@ -303,7 +303,7 @@ TEST(IndexActionSamplerTest, CoversWholeSpace) {
 }
 
 TEST(IndexActionSamplerTest, EmptySpaceIsImmediatelyExhausted) {
-  IndexActionSampler sampler{.space_size = 0};
+  IndexActionSampler sampler{.space_size_ = 0};
   std::mt19937 gen(42);
   EXPECT_EQ(sampler.next(gen), std::nullopt);
 }
@@ -312,7 +312,7 @@ TEST(IndexActionSamplerTest, EmptySpaceIsImmediatelyExhausted) {
 
 TEST(RankedActionSetTest, DrawsDistinctPlacementsUntilExhausted) {
   RankedActionSet<PlaceNElementsIntoKBinsStateSpace, std::vector<int>>
-      action_set(PlaceNElementsIntoKBinsStateSpace{.N = 5, .K = 3});
+      action_set(PlaceNElementsIntoKBinsStateSpace{.n_ = 5, .k_ = 3});
   std::mt19937 gen(42);
   std::set<std::vector<int>> seen;
   while (auto action = action_set.next(gen)) {

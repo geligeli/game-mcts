@@ -3,8 +3,8 @@
 namespace risk_game {
 
 struct BattleRemnants {
-  int attackers;
-  int defenders;
+  int attackers_;
+  int defenders_;
 };
 
 BattleRemnants ComputeExpectedRemnants(int initial_a, int initial_d);

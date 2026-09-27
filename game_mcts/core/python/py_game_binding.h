@@ -20,31 +20,30 @@ inline void BindPyGameClass(pybind11::module_ &m, const char *name = "Game") {
     return;
   }
   pybind11::class_<PyGame>(m, name)
-      .def("state_proto",
-           [](const PyGame &game) {
-             return pybind11::bytes(game.state_proto());
-           })
-      .def("state_proto_type", &PyGame::state_proto_type)
-      .def("action_proto_type", &PyGame::action_proto_type)
+      .def(
+          "state_proto",
+          [](const PyGame &game) { return pybind11::bytes(game.StateProto()); })
+      .def("state_proto_type", &PyGame::StateProtoType)
+      .def("action_proto_type", &PyGame::ActionProtoType)
       // pybind11's std::string caster accepts Python bytes verbatim, so the
       // caller passes serialized protos as bytes.
       .def("apply_action_proto",
            [](PyGame &game, const std::string &action) {
-             game.apply_action_proto(action);
+             game.ApplyActionProto(action);
            })
       .def("check_action_proto",
            [](const PyGame &game, const std::string &action) {
-             return game.check_action_proto(action);
+             return game.CheckActionProto(action);
            })
       .def("current_player", &PyGame::current_player)
-      .def("num_players", &PyGame::num_players)
+      .def("num_players", &PyGame::NumPlayers)
       .def("is_chance_node", &PyGame::is_chance_node)
       .def("sample_chance_action_proto",
            [](PyGame &game) {
-             return pybind11::bytes(game.sample_chance_action_proto());
+             return pybind11::bytes(game.SampleChanceActionProto());
            })
       .def("is_terminal", &PyGame::is_terminal)
-      .def("result", &PyGame::result)
+      .def("result", &PyGame::Result)
       .def("winning_player", &PyGame::winning_player);
 }
 

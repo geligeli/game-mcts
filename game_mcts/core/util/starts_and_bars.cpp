@@ -9,35 +9,33 @@
 namespace mcts {
 
 // Default constructor creates an end-of-sequence iterator
-StarsAndBars::Iterator::Iterator() : K_(0), is_end_(true) {}
+StarsAndBars::Iterator::Iterator() : k_(0), is_end_(true) {}
 
-StarsAndBars::Iterator::Iterator(int N, int K) : K_(K), is_end_(false) {
-  if (K_ <= 0) {
+StarsAndBars::Iterator::Iterator(int n, int k) : k_(k), is_end_(false) {
+  if (k_ <= 0) {
     is_end_ = true;
     return;
   }
   // Initialize sequence: N zeros (balls), K-1 ones (bars)
-  sequence_.resize(N + K_ - 1, 0);
-  std::fill(sequence_.begin() + N, sequence_.end(), 1);
+  sequence_.resize(n + k_ - 1, 0);
+  std::fill(sequence_.begin() + n, sequence_.end(), 1);
 
-  update_urns();
+  UpdateUrns();
 }
 
-auto StarsAndBars::Iterator::operator*() const
-    -> StarsAndBars::Iterator::reference {
+StarsAndBars::Iterator::reference StarsAndBars::Iterator::operator*() const {
   return urns_;
 }
-auto StarsAndBars::Iterator::operator->() const
-    -> StarsAndBars::Iterator::pointer {
+StarsAndBars::Iterator::pointer StarsAndBars::Iterator::operator->() const {
   return &urns_;
 }
 
 // Prefix increment
-auto StarsAndBars::Iterator::operator++() -> StarsAndBars::Iterator& {
+StarsAndBars::Iterator& StarsAndBars::Iterator::operator++() {
   if (is_end_) return *this;
 
   if (std::next_permutation(sequence_.begin(), sequence_.end())) {
-    update_urns();
+    UpdateUrns();
   } else {
     is_end_ = true;
   }
@@ -45,7 +43,7 @@ auto StarsAndBars::Iterator::operator++() -> StarsAndBars::Iterator& {
 }
 
 // Postfix increment
-auto StarsAndBars::Iterator::operator++(int) -> StarsAndBars::Iterator {
+StarsAndBars::Iterator StarsAndBars::Iterator::operator++(int) {
   Iterator tmp = *this;
   ++(*this);
   return tmp;
@@ -53,8 +51,8 @@ auto StarsAndBars::Iterator::operator++(int) -> StarsAndBars::Iterator {
 
 // Translates the 0s and 1s back into bin counts.
 // Runs in O(N + K) time.
-void StarsAndBars::Iterator::update_urns() {
-  urns_.assign(K_, 0);
+void StarsAndBars::Iterator::UpdateUrns() {
+  urns_.assign(k_, 0);
   int current_urn = 0;
   for (int item : sequence_) {
     if (item == 1) {
@@ -65,27 +63,25 @@ void StarsAndBars::Iterator::update_urns() {
   }
 }
 
-auto operator==(const StarsAndBars::Iterator& a,
-                const StarsAndBars::Iterator& b) -> bool {
+bool operator==(const StarsAndBars::Iterator& a,
+                const StarsAndBars::Iterator& b) {
   if (a.is_end_ != b.is_end_) return false;
   if (a.is_end_) return true;  // Both are end iterators
   return a.sequence_ == b.sequence_;
 }
 
-auto operator!=(const StarsAndBars::Iterator& a,
-                const StarsAndBars::Iterator& b) -> bool {
+bool operator!=(const StarsAndBars::Iterator& a,
+                const StarsAndBars::Iterator& b) {
   return !(a == b);
 }
 
-StarsAndBars::StarsAndBars(int N, int K) : N_(N), K_(K) {
-  if (N < 0 || K < 0) {
+StarsAndBars::StarsAndBars(int n, int k) : n_(n), k_(k) {
+  if (n < 0 || k < 0) {
     throw std::invalid_argument("N and K must be non-negative.");
   }
 }
 
-auto StarsAndBars::begin() const -> StarsAndBars::Iterator {
-  return Iterator(N_, K_);
-}
-auto StarsAndBars::end() const -> StarsAndBars::Iterator { return Iterator(); }
+StarsAndBars::Iterator StarsAndBars::begin() const { return Iterator(n_, k_); }
+StarsAndBars::Iterator StarsAndBars::end() const { return Iterator(); }
 
 }  // namespace mcts

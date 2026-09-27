@@ -4,7 +4,7 @@
 
 #include "game_mcts/tools/viz/visualisations.h"
 
-auto main(int argc, char* argv[]) -> int {
+int main(int argc, char* argv[]) {
   visualisations::Figure fig;
 
   // Generate some interesting data
@@ -21,27 +21,27 @@ auto main(int argc, char* argv[]) -> int {
   }
 
   // Add multiple traces
-  fig.plot(x, linear);
-  fig.plot(x, quadratic);
-  fig.plot(x, exponential);
+  fig.Plot(x, linear);
+  fig.Plot(x, quadratic);
+  fig.Plot(x, exponential);
 
   // Configure the plot
-  fig.set_log_y(true);
-  fig.set_title("Comparison of Growth Functions (Log Scale)");
+  fig.SetLogY(true);
+  fig.SetTitle("Comparison of Growth Functions (Log Scale)");
 
   // Check command line argument for mode
   if (argc > 1 && std::string(argv[1]) == "--serve") {
     std::cout << "Starting HTTP server mode..." << std::endl;
     std::cout << "Open http://localhost:8080 in your browser" << std::endl;
-    fig.serve_once(8080);
+    fig.ServeOnce(8080);
   } else if (argc > 1 && std::string(argv[1]) == "--serve-continuous") {
     std::cout << "Starting continuous HTTP server mode..." << std::endl;
     std::cout << "Open http://localhost:8080 in your browser" << std::endl;
     std::cout << "Press Ctrl+C to stop" << std::endl;
-    fig.serve(8080);
+    fig.Serve(8080);
   } else {
     std::cout << "Saving to file mode..." << std::endl;
-    fig.save("comprehensive_demo.html");
+    fig.Save("comprehensive_demo.html");
     std::cout << "\nTo serve via HTTP instead:" << std::endl;
     std::cout
         << "  bazel run //game_mcts/tools/viz:comprehensive_demo -- --serve"

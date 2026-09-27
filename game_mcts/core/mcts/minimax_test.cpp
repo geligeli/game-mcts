@@ -47,7 +47,7 @@ TEST(MinimaxTest, BlunderLeadsToLoss) {
 TEST(MinimaxTest, TicTacToeIsAlwaysADraw) {
   tictactoe::TicTacToe game;
   auto valid_moves = game.valid_moves();
-  for (int action : valid_moves.actions) {
+  for (int action : valid_moves.actions_) {
     EXPECT_EQ(ComputeActionValue(game, action, 0), 0.0f);
   }
 }
@@ -55,7 +55,7 @@ TEST(MinimaxTest, TicTacToeIsAlwaysADraw) {
 TEST(MinimaxTest, TicTacToeIsAlwaysADrawBinaryOutcome) {
   tictactoe::TicTacToe game;
   auto valid_moves = game.valid_moves();
-  for (int action : valid_moves.actions) {
+  for (int action : valid_moves.actions_) {
     EXPECT_EQ(ComputeActionValueBinaryOutcome(game, action, 0), 0);
   }
 }

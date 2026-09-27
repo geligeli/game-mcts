@@ -29,8 +29,8 @@
 namespace {
 
 template <std::size_t NUM_PLAYERS>
-auto MakeRiskPyGame(const risk_game::proto::RiskState *state,
-                    std::uint32_t seed) -> std::unique_ptr<mcts::PyGame> {
+std::unique_ptr<mcts::PyGame> MakeRiskPyGame(
+    const risk_game::proto::RiskState *state, std::uint32_t seed) {
   using game_t = risk_game::RiskState<NUM_PLAYERS>;
   game_t initial;
   if (state != nullptr) {
@@ -41,9 +41,9 @@ auto MakeRiskPyGame(const risk_game::proto::RiskState *state,
   return mcts::MakePyGame<game_t>(std::move(initial), seed);
 }
 
-auto NewGame(int num_players, const std::optional<std::string> &state_proto,
-             std::optional<std::uint32_t> seed)
-    -> std::unique_ptr<mcts::PyGame> {
+std::unique_ptr<mcts::PyGame> NewGame(
+    int num_players, const std::optional<std::string> &state_proto,
+    std::optional<std::uint32_t> seed) {
   risk_game::proto::RiskState parsed;
   const risk_game::proto::RiskState *state = nullptr;
   if (state_proto.has_value()) {
@@ -73,10 +73,9 @@ auto NewGame(int num_players, const std::optional<std::string> &state_proto,
 }
 
 template <std::size_t NUM_PLAYERS>
-auto MakeRiskPyMcts(const risk_game::proto::RiskState *state,
-                    bool exact_rollouts, double widening_c,
-                    double widening_alpha, std::uint32_t seed)
-    -> std::unique_ptr<mcts::PyMcts> {
+std::unique_ptr<mcts::PyMcts> MakeRiskPyMcts(
+    const risk_game::proto::RiskState *state, bool exact_rollouts,
+    double widening_c, double widening_alpha, std::uint32_t seed) {
   using game_t = risk_game::RiskState<NUM_PLAYERS>;
   using proposer_t = risk_game::RiskProposer<NUM_PLAYERS>;
   using traits_t = mcts::GameSerializationTraits<game_t>;
@@ -96,10 +95,10 @@ auto MakeRiskPyMcts(const risk_game::proto::RiskState *state,
       widening_c, widening_alpha, seed);
 }
 
-auto NewMcts(int num_players, const std::optional<std::string> &state_proto,
-             const std::string &rollout, double widening_c,
-             double widening_alpha, std::optional<std::uint32_t> seed)
-    -> std::unique_ptr<mcts::PyMcts> {
+std::unique_ptr<mcts::PyMcts> NewMcts(
+    int num_players, const std::optional<std::string> &state_proto,
+    const std::string &rollout, double widening_c, double widening_alpha,
+    std::optional<std::uint32_t> seed) {
   bool exact_rollouts;
   if (rollout == "exact") {
     exact_rollouts = true;

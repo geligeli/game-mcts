@@ -3,17 +3,17 @@
 namespace mcts {
 
 auto Uint64StateSpace::size() const -> cpp_int {
-  return boost::multiprecision::cpp_int(max_value) - min_value + 1;
+  return boost::multiprecision::cpp_int(max_value_) - min_value_ + 1;
 }
 
 auto Uint64StateSpace::sample(std::mt19937& gen) const -> value_type {
-  thread_local std::uniform_int_distribution<uint64_t> distribution(min_value,
-                                                                    max_value);
+  thread_local std::uniform_int_distribution<uint64_t> distribution(min_value_,
+                                                                    max_value_);
   return distribution(gen);
 };
 
 namespace {
-auto exact_binomial(uint64_t n, uint64_t k) -> cpp_int {
+cpp_int exact_binomial(uint64_t n, uint64_t k) {
   if (k > n) return 0;
   if (k == 0 || k == n) return 1;
 
@@ -33,17 +33,16 @@ auto exact_binomial(uint64_t n, uint64_t k) -> cpp_int {
 }  // namespace
 
 auto PlaceNElementsIntoKBinsStateSpace::size() const -> cpp_int {
-  return exact_binomial(N + K - 1, K - 1);
+  return exact_binomial(n_ + k_ - 1, k_ - 1);
 }
 
-auto PlaceNElementsIntoKBinsStateSpace::all() const -> StarsAndBars {
-  return StarsAndBars(N, K);
+StarsAndBars PlaceNElementsIntoKBinsStateSpace::All() const {
+  return StarsAndBars(n_, k_);
 }
 
-auto PlaceNElementsIntoKBinsStateSpace::unrank(cpp_int rank) const
-    -> std::vector<int> {
-  const int num_slots = N + K - 1;
-  const int num_bars = K - 1;
+std::vector<int> PlaceNElementsIntoKBinsStateSpace::unrank(cpp_int rank) const {
+  const int num_slots = n_ + k_ - 1;
+  const int num_bars = k_ - 1;
 
   // Lexicographic unranking of the sorted bar positions: the bars are a
   // combination of num_bars distinct positions out of [1, num_slots].
@@ -64,7 +63,7 @@ auto PlaceNElementsIntoKBinsStateSpace::unrank(cpp_int rank) const
   }
 
   // Translate bar positions into bin counts, same as sample_stars_and_bars.
-  std::vector<int> out(K);
+  std::vector<int> out(k_);
   auto insert_it = out.begin();
   int prev_bar = 0;
   for (int bar : bars) {

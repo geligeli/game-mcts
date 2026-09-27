@@ -53,12 +53,10 @@ namespace detail {
 // scope in the static_asserts below.
 struct ConceptGame {
   using action_t = int;
-  auto current_player() const -> int { return 0; }
-  auto apply_action(const action_t &) const -> ConceptGame { return *this; }
-  auto current_state() const -> game_state_t { return ongoing_t{}; }
-  auto is_valid_action(const action_t &, std::string &) const -> bool {
-    return true;
-  }
+  int current_player() const { return 0; }
+  ConceptGame apply_action(const action_t &) const { return *this; }
+  game_state_t current_state() const { return ongoing_t{}; }
+  bool is_valid_action(const action_t &, std::string &) const { return true; }
 };
 }  // namespace detail
 
@@ -88,22 +86,21 @@ concept ActionSet = ActionGenerator<T, G>;
 template <Action ACTION>
 struct VectorLegalActionSet {
   using action_t = ACTION;
-  std::vector<action_t> actions;
+  std::vector<action_t> actions_;
 
   template <class GameState, class Generator>
-  auto next(const GameState &, Generator &generator)
-      -> std::optional<action_t> {
-    if (actions.empty()) {
+  std::optional<action_t> next(const GameState &, Generator &generator) {
+    if (actions_.empty()) {
       return std::nullopt;
     }
-    std::uniform_int_distribution<std::size_t> distribution(0,
-                                                            actions.size() - 1);
-    std::swap(actions[distribution(generator)], actions.back());
-    auto result = actions.back();
-    actions.pop_back();
+    std::uniform_int_distribution<std::size_t> distribution(
+        0, actions_.size() - 1);
+    std::swap(actions_[distribution(generator)], actions_.back());
+    auto result = actions_.back();
+    actions_.pop_back();
     return result;
   }
-  auto empty() const -> bool { return actions.empty(); }
+  bool empty() const { return actions_.empty(); }
 };
 static_assert(ActionGenerator<VectorLegalActionSet<int>, detail::ConceptGame>);
 
@@ -111,22 +108,21 @@ template <std::size_t N, Action ACTION>
   requires(N > 0)
 struct ArrayLegalActionSet {
   using action_t = ACTION;
-  std::array<action_t, N> actions;
+  std::array<action_t, N> actions_;
   std::size_t size = N;
 
   template <class GameState, class Generator>
-  auto next(const GameState &, Generator &generator)
-      -> std::optional<action_t> {
+  std::optional<action_t> next(const GameState &, Generator &generator) {
     if (size == 0) {
       return std::nullopt;
     }
     std::uniform_int_distribution<std::size_t> distribution(0, size - 1);
-    std::swap(actions[distribution(generator)], actions[size - 1]);
-    auto result = actions[size - 1];
+    std::swap(actions_[distribution(generator)], actions_[size - 1]);
+    auto result = actions_[size - 1];
     --size;
     return result;
   }
-  auto empty() const -> bool { return size == 0; }
+  bool empty() const { return size == 0; }
 };
 static_assert(
     ActionGenerator<ArrayLegalActionSet<2, int>, detail::ConceptGame>);
@@ -244,21 +240,21 @@ concept BoundedProposer = requires(const P &p, const G &game) {
 template <typename SAMPLER, typename G>
 struct DedupSampler {
   using action_t = typename G::action_t;
-  static constexpr int kMaxConsecutiveCollisions = 64;
+  static constexpr int max_consecutive_collisions_ = 64;
   // Hard ceiling on one next() call, so a huge-but-finite declared support
   // cannot turn a single expansion into an unbounded loop.
-  static constexpr std::size_t kMaxDrawBudget = 1u << 20;
+  static constexpr std::size_t max_draw_budget_ = 1u << 20;
 
   SAMPLER sampler;
-  std::size_t support = kUnknownSupport;
-  std::unordered_set<action_t> seen_actions{};
+  std::size_t support_ = kUnknownSupport;
+  std::unordered_set<action_t> seen_actions_{};
 
   template <class Generator>
-  auto next(const G &state, Generator &generator) -> std::optional<action_t> {
+  std::optional<action_t> next(const G &state, Generator &generator) {
     // Exact stop: everything the sampler can produce has been produced. Also
     // short-circuits deterministic branches (support == 1) after one draw,
     // instead of spending the whole collision budget rediscovering it.
-    if (seen_actions.size() >= support) {
+    if (seen_actions_.size() >= support_) {
       return std::nullopt;
     }
     // With a known support we know an unseen action exists, so the budget
@@ -267,17 +263,17 @@ struct DedupSampler {
     // (seen 29 of 30 => an 11% chance of 64 straight duplicates). The budget
     // then only guards against a support_size() that over-reports.
     const std::size_t budget =
-        support == kUnknownSupport
-            ? std::size_t{kMaxConsecutiveCollisions}
-            : std::min<std::size_t>(kMaxDrawBudget,
-                                    kMaxConsecutiveCollisions * support);
+        support_ == kUnknownSupport
+            ? std::size_t{max_consecutive_collisions_}
+            : std::min<std::size_t>(max_draw_budget_,
+                                    max_consecutive_collisions_ * support_);
     for (std::size_t draws = 0; draws < budget; ++draws) {
       auto action = sampler.sample(state, generator);
-      if (seen_actions.insert(action).second) {
+      if (seen_actions_.insert(action).second) {
         return action;
       }
     }
-    assert(support == kUnknownSupport &&
+    assert(support_ == kUnknownSupport &&
            "support_size() over-reported: it claims more distinct actions "
            "than sample() can produce");
     return std::nullopt;
@@ -288,11 +284,11 @@ struct DedupSampler {
 // Proposers should call this from propose() rather than aggregate-initializing
 // DedupSampler, so the bound is never silently left unset.
 template <typename SAMPLER, typename G>
-auto MakeDedupSampler(const SAMPLER &sampler, const G &state)
-    -> DedupSampler<SAMPLER, G> {
+DedupSampler<SAMPLER, G> MakeDedupSampler(const SAMPLER &sampler,
+                                          const G &state) {
   DedupSampler<SAMPLER, G> result{.sampler = sampler};
   if constexpr (BoundedProposer<SAMPLER, G>) {
-    result.support = sampler.support_size(state);
+    result.support_ = sampler.support_size(state);
   }
   return result;
 }
@@ -307,10 +303,9 @@ struct DefaultProposer {
   auto propose(const G &game) const { return game.valid_moves(); }
 
   template <class Generator>
-  auto sample(const G &game, Generator &generator) const ->
-      typename G::action_t {
-    if constexpr (requires { game.sample_action(generator); }) {
-      return game.sample_action(generator);
+  typename G::action_t sample(const G &game, Generator &generator) const {
+    if constexpr (requires { game.SampleAction(generator); }) {
+      return game.SampleAction(generator);
     } else {
       auto moves = game.valid_moves();
       auto action = moves.next(game, generator);

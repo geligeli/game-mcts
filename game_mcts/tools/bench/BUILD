@@ -3,7 +3,7 @@ load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 package(default_visibility = ["//visibility:public"])
 
 # Benchmark and demo binaries. These sit at the top of the dependency graph:
-# they may depend on the framework, the games and the tournament server;
+# they may depend on the framework and the games;
 # nothing may depend on them.
 
 cc_binary(
@@ -40,30 +40,5 @@ cc_binary(
         "//game_mcts/games/risk/strategies:risk_proposer",
         "//game_mcts/games/risk/strategies:risk_rollout_shortcuts",
         "@google_benchmark//:benchmark_main",
-    ],
-)
-
-# In-process load driver: move throughput vs concurrent clients. Compiles
-# against the pre-refactor broker too, so the two concurrency models can be
-# measured with the same harness.
-cc_binary(
-    name = "throughput_benchmark",
-    srcs = ["throughput_benchmark.cc"],
-    deps = [
-        # Drives the broker directly, so it has to bring a registry of its own:
-        # matchmaker calls GameRegistry(), which the arena only declares.
-        "//game_mcts/arena:game_registry",
-        "//game_mcts/arena/benchgame:bench_game",
-        "//game_mcts/arena/benchgame:bench_serialization",
-        "@game_arena//game_arena/proto:tournament_broker_cc_grpc",
-        "@game_arena//game_arena/referee:broker_service",
-        "@game_arena//game_arena/standings:elo_store",
-        "@game_arena//game_arena/standings:game_history",
-        "@game_arena//game_arena/referee:matchmaker",
-        "@abseil-cpp//absl/flags:flag",
-        "@abseil-cpp//absl/flags:parse",
-        "@abseil-cpp//absl/log:globals",
-        "@abseil-cpp//absl/log:initialize",
-        "@grpc//:grpc++",
     ],
 )

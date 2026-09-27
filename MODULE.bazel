@@ -14,7 +14,8 @@ bazel_dep(name = "rules_cc", version = "0.2.25")
 # sandbox image all compile with the same pinned compiler. Nothing is
 # registered here; .bazelrc turns off bazel's host autodetection so the arena's
 # registration is the only C++ toolchain there is, which is also what lets the
-# build run on RBE workers that have no compiler installed.
+# build run on RBE workers that have no compiler installed. (A repo consuming
+# game_mcts as a module brings its own: the arena is a dev_dependency here.)
 #
 # The dep is declared only so that `@llvm` resolves from this module: the
 # sanitizer configs in .bazelrc set --@llvm//config:<san>. Keep the version in
@@ -30,11 +31,16 @@ bazel_dep(name = "boost.math", version = "1.90.0.bcr.1")
 bazel_dep(name = "boost.multiprecision", version = "1.90.0.bcr.1")
 bazel_dep(name = "boost.random", version = "1.90.0.bcr.1")
 bazel_dep(name = "boost.iterator", version = "1.90.0.bcr.1")
-bazel_dep(name = "grpc", version = "1.74.1")
 
-# The arena: the problem-running framework the tournament server became. It
-# depends on nothing here -- this repo supplies its games through a registry
-# linked at build time (see //game_mcts/arena).
+# The bots' Play-stream client (//bots:bot_deps) names it directly.
+bazel_dep(name = "grpc", version = "1.74.1", dev_dependency = True)
+
+# The arena: the problem-running framework risk2 is hosted on. It depends on
+# nothing here -- //problem:registry supplies the rules and arena_problem in
+# //:BUILD the tournament targets. Nothing under game_mcts/ may depend on it,
+# which is what lets it be a dev_dependency: a repo consuming game_mcts as a
+# module never resolves the arena (it is not on the BCR, and only a root module
+# can override it). The kit and the sandbox build this repo as the root module.
 #
 # Pinned rather than pointed at a sibling checkout so a build needs nothing but
 # this repo. It also suits the sandbox fleet: candidates are built in a
@@ -44,17 +50,15 @@ bazel_dep(name = "grpc", version = "1.74.1")
 #
 # Bump this when the arena changes; the two repos are versioned independently
 # on purpose.
-bazel_dep(name = "game_arena", version = "0.1.0")
+bazel_dep(name = "game_arena", version = "0.1.0", dev_dependency = True)
 git_override(
     module_name = "game_arena",
     remote = "https://github.com/geligeli/game-arena.git",
-    commit = "1b7c843e767c25df3d8d1721e2b60e2c37ce819b",
+    commit = "703a8797faf47ac66604b17b747270715fd6dd9e",
 )
 
-# For co-developing the two repos, swap the override above for this one. It
-# needs the sibling checkout visible to bazel, which inside the devcontainer
-# means widening workspaceMount in .devcontainer/devcontainer.json to
-# /large_nfs -- the default mount is this repo only.
+# For co-developing the two repos, swap the override above for this one,
+# pointing at your sibling checkout.
 # local_path_override(
 #     module_name = "game_arena",
 #     path = "/large_nfs/game-arena",
@@ -85,39 +89,26 @@ single_version_override(
     patches = ["//:protobuf_bzlmod_fixes.patch"],
 )
 
+# Dev-only: not in the BCR, and an archive_override acts only in the root module,
+# so a consumer could not resolve it. Run through tools/cpp_format.sh, with
+# cpp_format.yaml; keep the version in step with the arena's.
+bazel_dep(name = "cpp_formatting", version = "0.1.0", dev_dependency = True)
+
+CPP_FORMAT_VERSION = "20260926-f0228af"
+
+archive_override(
+    module_name = "cpp_formatting",
+    urls = ["https://github.com/geligeli/cpp_formatting/archive/refs/tags/" + CPP_FORMAT_VERSION + ".tar.gz"],
+    strip_prefix = "cpp_formatting-" + CPP_FORMAT_VERSION,
+)
+
+cpp_format = use_extension(
+    "@cpp_formatting//bazel/integration:extensions.bzl",
+    "cpp_format",
+    dev_dependency = True,
+)
+cpp_format.release(version = CPP_FORMAT_VERSION)
+use_repo(cpp_format, "cpp_format_bin")
+
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
 python.toolchain(python_version = "3.12")
-
-# Runtime deps for the MCP servers (mcp_servers/requirements.txt).
-pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
-pip.parse(
-    hub_name = "mcp_pip_deps",
-    python_version = "3.12",
-    requirements_lock = "//mcp_servers:requirements.txt",
-)
-use_repo(pip, "mcp_pip_deps")
-
-# bazel_dep(name = "rules_cuda", version = "0.3.0")
-# bazel_dep(name = "boost.math", version = "1.89.0.bcr.2")
-# bazel_dep(name = "boost.multiprecision", version = "1.89.0.bcr.2")
-# bazel_dep(name = "boost.random", version = "1.89.0.bcr.2")
-# bazel_dep(name = "boost.iterator", version = "1.89.0.bcr.2")
-
-# cuda_toolchain = use_extension("@rules_cuda//cuda:extensions.bzl", "toolchain")
-# cuda_toolchain.toolkit(
-#     name = "cuda",
-#     toolkit_path = "/usr/local/cuda",
-# )
-# use_repo(cuda_toolchain, "cuda")
-
-# register_toolchains("@cuda//toolchain:nvcc-local-toolchain")
-
-# jaxlib_extension = use_extension("//:jaxlib_extension.bzl", "jaxlib_ext")
-# use_repo(jaxlib_extension, "cuda_headers", "jaxlib_ffi")
-
-# system_python_cc_ext = use_extension("//:system_python_ext.bzl", "system_python_cc_ext")
-# use_repo(system_python_cc_ext, "system_python_cc")
-
-# register_toolchains("@system_python_cc//:py_cc_toolchain")
-
-# register_toolchains("@rules_python//python/runtime_env_toolchains:all")

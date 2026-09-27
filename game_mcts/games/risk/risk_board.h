@@ -54,15 +54,15 @@ enum class Country : uint8_t {
 };
 
 struct CountryData {
-  Country id;
-  std::string_view name;
-  std::size_t neighbor_count;
-  std::array<Country, 6> neighbors;  // Max degree in Risk map is 6
+  Country id_;
+  std::string_view name_;
+  std::size_t neighbor_count_;
+  std::array<Country, 6> neighbors_;  // Max degree in Risk map is 6
 };
 
 static constexpr std::array<CountryData,
                             static_cast<std::size_t>(Country::COUNT)>
-    Board = {
+    kBoard = {
         {{Country::Afghanistan,
           "Afghanistan",
           5,
@@ -268,18 +268,18 @@ enum class Continent {
 };
 
 struct ContinentData {
-  Continent id;
-  std::string_view name;
+  Continent id_;
+  std::string_view name_;
 
-  uint8_t bonus_reinforcements;
+  uint8_t bonus_reinforcements_;
 
-  std::size_t country_count;
-  std::array<Country, 12> countries;
+  std::size_t country_count_;
+  std::array<Country, 12> countries_;
 };
 
 static constexpr std::array<ContinentData,
                             static_cast<std::size_t>(Continent::Count)>
-    Continents = {
+    kContinents = {
         {{Continent::Africa,
           "Africa",
           3,
@@ -324,10 +324,10 @@ static constexpr std::array<ContinentData,
 
 constexpr void VisitAllNeighborEdges(auto &&visitor) {
 #pragma GCC unroll 42
-  for (const auto &country_data : Board) {
-    for (std::size_t i = 0; i < country_data.neighbor_count; ++i) {
-      Country neighbor = country_data.neighbors[i];
-      visitor(country_data.id, neighbor);
+  for (const auto &country_data : kBoard) {
+    for (std::size_t i = 0; i < country_data.neighbor_count_; ++i) {
+      Country neighbor = country_data.neighbors_[i];
+      visitor(country_data.id_, neighbor);
     }
   }
 }
@@ -372,9 +372,9 @@ constexpr std::array<uint64_t, static_cast<size_t>(Continent::Count)>
 _GetContinentMasks() {
   std::array<uint64_t, static_cast<size_t>(Continent::Count)> masks{};
   for (size_t c = 0; c < masks.size(); ++c) {
-    for (size_t i = 0; i < Continents[c].country_count; ++i) {
+    for (size_t i = 0; i < kContinents[c].country_count_; ++i) {
       masks[c] |= uint64_t{1}
-                  << static_cast<size_t>(Continents[c].countries[i]);
+                  << static_cast<size_t>(kContinents[c].countries_[i]);
     }
   }
   return masks;

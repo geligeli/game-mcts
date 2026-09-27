@@ -19,10 +19,10 @@
 
 namespace mcts {
 
-auto WriteHtmlGraphSuffix(std::ostream &os) -> void;
-auto WriteHtmlGraphPrefix(std::ostream &os) -> void;
-auto GameStateToString(const mcts::game_state_t &state) -> std::string;
-auto ucb_value(float total_value, int num_visits, int parent_visits) -> float;
+void WriteHtmlGraphSuffix(std::ostream &os);
+void WriteHtmlGraphPrefix(std::ostream &os);
+std::string GameStateToString(const mcts::game_state_t &state);
+float ucb_value(float total_value, int num_visits, int parent_visits);
 
 // Helper to check if a game type has chance nodes at compile time.
 template <typename T>
@@ -37,7 +37,7 @@ struct MctsNode {
   struct Child {
     typename GAME_STATE::action_t action;
     std::size_t node_index;
-    auto operator==(const Child &other) const -> bool = default;
+    bool operator==(const Child &other) const = default;
   };
 
   using untried_moves_t = decltype(std::declval<const PROPOSER &>().propose(
@@ -48,11 +48,9 @@ struct MctsNode {
   using value_t = std::array<double, num_players_v<GAME_STATE>>;
 
   MctsNode(GAME_STATE state, const PROPOSER &proposer);
-  auto operator==(const MctsNode<GAME_STATE, PROPOSER> &other) const
-      -> bool = default;
-  auto DebugPrint(
-      const std::vector<MctsNode<GAME_STATE, PROPOSER>> &node_storage) const
-      -> void;
+  bool operator==(const MctsNode<GAME_STATE, PROPOSER> &other) const = default;
+  void DebugPrint(
+      const std::vector<MctsNode<GAME_STATE, PROPOSER>> &node_storage) const;
 
   value_t total_value;
   int num_visits;
@@ -62,7 +60,7 @@ struct MctsNode {
   untried_moves_t untried_moves;
   // Set once untried_moves.next() reports exhaustion; disables further
   // expansion attempts so huge/infinite spaces stop widening the node.
-  bool untried_exhausted = false;
+  bool untried_exhausted_ = false;
   std::vector<Child> children;
 };
 
@@ -76,7 +74,7 @@ struct MctsStochasticNode {
   struct Child {
     typename GAME_STATE::action_t action;
     std::size_t node_index;
-    auto operator==(const Child &other) const -> bool = default;
+    bool operator==(const Child &other) const = default;
   };
 
   using untried_moves_t = decltype(std::declval<const PROPOSER &>().propose(
@@ -84,10 +82,10 @@ struct MctsStochasticNode {
   using value_t = std::array<double, num_players_v<GAME_STATE>>;
 
   MctsStochasticNode(GAME_STATE state, const PROPOSER &proposer);
-  auto operator==(const MctsStochasticNode<GAME_STATE, PROPOSER> &other) const
-      -> bool = default;
-  auto DebugPrint(const std::vector<MctsStochasticNode<GAME_STATE, PROPOSER>>
-                      &node_storage) const -> void;
+  bool operator==(const MctsStochasticNode<GAME_STATE, PROPOSER> &other) const =
+      default;
+  void DebugPrint(const std::vector<MctsStochasticNode<GAME_STATE, PROPOSER>>
+                      &node_storage) const;
 
   value_t total_value;
   int num_visits;
@@ -96,20 +94,19 @@ struct MctsStochasticNode {
 
   struct PlayerNode {
     untried_moves_t untried_moves;
-    bool untried_exhausted = false;
+    bool untried_exhausted_ = false;
     std::vector<Child> children;
-    auto operator==(const PlayerNode &other) const -> bool = default;
+    bool operator==(const PlayerNode &other) const = default;
   };
   struct ChanceNode {
     std::unordered_map<typename GAME_STATE::action_t, Child> children;
-    auto operator==(const ChanceNode &other) const -> bool = default;
+    bool operator==(const ChanceNode &other) const = default;
   };
   std::variant<PlayerNode, ChanceNode> node_variant;
 
  private:
-  static auto make_node_variant(const GAME_STATE &state,
-                                const PROPOSER &proposer)
-      -> std::variant<PlayerNode, ChanceNode> {
+  static std::variant<PlayerNode, ChanceNode> make_node_variant(
+      const GAME_STATE &state, const PROPOSER &proposer) {
     if (state.is_chance_node()) {
       return ChanceNode{};
     } else {
@@ -125,8 +122,8 @@ std::ostream &operator<<(std::ostream &os,
 
 // |exploration_c| scales the UCB1 exploration term: 1.0 is vanilla UCB1
 // (sqrt(2*ln(parent_visits)/visits)); lower exploits more, higher explores.
-auto compute_ucb(const auto &node, float two_log_parents_visits,
-                 int parent_node_player, float exploration_c = 1.0f) -> float;
+float compute_ucb(const auto &node, float two_log_parents_visits,
+                  int parent_node_player, float exploration_c = 1.0f);
 
 struct NodePickerResult {
   std::size_t node_index;
@@ -155,9 +152,9 @@ concept MctsObserver = requires(O &o, const RUNNER &runner,
 inline constexpr int kUnlimitedRolloutSteps = std::numeric_limits<int>::max();
 
 template <Game GAME_STATE, ActionProposer<GAME_STATE> PROPOSER>
-auto Rollout(GAME_STATE game, const PROPOSER &proposer,
-             std::uniform_random_bit_generator auto &gen,
-             int max_steps = kUnlimitedRolloutSteps) -> game_state_t;
+game_state_t Rollout(GAME_STATE game, const PROPOSER &proposer,
+                     std::uniform_random_bit_generator auto &gen,
+                     int max_steps = kUnlimitedRolloutSteps);
 
 // ---------------------------------------------------------------------------
 // Pluggable rollout policies
@@ -207,12 +204,11 @@ concept RolloutPolicy =
 template <Game GAME_STATE,
           ActionProposer<GAME_STATE> PROPOSER = DefaultProposer<GAME_STATE>>
 struct RandomRollout {
-  PROPOSER proposer{};
-  int max_steps = kUnlimitedRolloutSteps;
-  auto operator()(GAME_STATE game,
-                  std::uniform_random_bit_generator auto &gen) const
-      -> game_state_t {
-    return Rollout(std::move(game), proposer, gen, max_steps);
+  PROPOSER proposer_{};
+  int max_steps_ = kUnlimitedRolloutSteps;
+  game_state_t operator()(GAME_STATE game,
+                          std::uniform_random_bit_generator auto &gen) const {
+    return Rollout(std::move(game), proposer_, gen, max_steps_);
   }
 };
 
@@ -224,26 +220,25 @@ template <Game GAME_STATE, typename SHORTCUT,
   requires MoveShortcut<SHORTCUT, GAME_STATE> ||
            MoveShortcutInPlace<SHORTCUT, GAME_STATE>
 struct ShortcutRollout {
-  SHORTCUT shortcut;
-  PROPOSER proposer{};
-  int max_steps = kUnlimitedRolloutSteps;
-  auto operator()(GAME_STATE game,
-                  std::uniform_random_bit_generator auto &gen) const
-      -> game_state_t {
+  SHORTCUT shortcut_;
+  PROPOSER proposer_{};
+  int max_steps_ = kUnlimitedRolloutSteps;
+  game_state_t operator()(GAME_STATE game,
+                          std::uniform_random_bit_generator auto &gen) const {
     auto state = game.current_state();
     for (int steps = 0; !is_terminal(state); ++steps) {
-      if (steps >= max_steps) {
+      if (steps >= max_steps_) {
         return draw_t{};
       }
       bool advanced = false;
       if constexpr (MoveShortcutInPlace<SHORTCUT, GAME_STATE>) {
-        advanced = shortcut(game, gen);
-      } else if (auto next = shortcut(game, gen)) {
+        advanced = shortcut_(game, gen);
+      } else if (auto next = shortcut_(game, gen)) {
         game = std::move(*next);
         advanced = true;
       }
       if (!advanced) {
-        PlayoutStep(game, proposer, gen);
+        PlayoutStep(game, proposer_, gen);
       }
       state = game.current_state();
     }
@@ -256,9 +251,9 @@ template <Game GAME_STATE,
           typename SHORTCUT>
   requires MoveShortcut<SHORTCUT, GAME_STATE> ||
            MoveShortcutInPlace<SHORTCUT, GAME_STATE>
-auto MakeShortcutRollout(SHORTCUT shortcut, PROPOSER proposer = {},
-                         int max_steps = kUnlimitedRolloutSteps)
-    -> ShortcutRollout<GAME_STATE, SHORTCUT, PROPOSER> {
+ShortcutRollout<GAME_STATE, SHORTCUT, PROPOSER> MakeShortcutRollout(
+    SHORTCUT shortcut, PROPOSER proposer = {},
+    int max_steps = kUnlimitedRolloutSteps) {
   return ShortcutRollout<GAME_STATE, SHORTCUT, PROPOSER>{
       std::move(shortcut), std::move(proposer), max_steps};
 }
@@ -312,13 +307,13 @@ struct MctsRunner {
   explicit MctsRunner(GAME_STATE root, PROPOSER proposer = {},
                       ROLLOUT_POLICY rollout_policy = {});
 
-  auto rollout(GAME_STATE game,
-               std::uniform_random_bit_generator auto &gen) const -> value_t;
+  value_t rollout(GAME_STATE game,
+                  std::uniform_random_bit_generator auto &gen) const;
   template <typename Picker>
-  auto select(Picker &&picker) -> std::size_t;
+  std::size_t select(Picker &&picker);
   template <typename Picker, typename Gen>
-  auto OneIteration(Picker &&picker, Gen &gen) -> void;
-  auto best_action() const -> typename GAME_STATE::action_t;
+  void OneIteration(Picker &&picker, Gen &gen);
+  typename GAME_STATE::action_t best_action() const;
 };
 
 /*
@@ -351,13 +346,13 @@ std::ostream &operator<<(
     const MctsRunner<GAME_STATE, PROPOSER, ROLLOUT_POLICY, OBSERVER> &runner);
 
 template <Game GAME_STATE, ActionProposer<GAME_STATE> PROPOSER>
-auto PlotGraphviz(
+void PlotGraphviz(
     std::ostream &os,
-    const std::vector<MctsNode<GAME_STATE, PROPOSER>> &node_storage) -> void;
+    const std::vector<MctsNode<GAME_STATE, PROPOSER>> &node_storage);
 
 template <typename NodeType, typename Renderer>
-auto PlotHtmlGraph(std::ostream &os, const std::vector<NodeType> &node_storage,
-                   Renderer &&game_state_html_renderer) -> void;
+void PlotHtmlGraph(std::ostream &os, const std::vector<NodeType> &node_storage,
+                   Renderer &&game_state_html_renderer);
 
 template <typename NodeType>
 auto PlotHtmlGraph(std::ostream &os, const std::vector<NodeType> &node_storage);

@@ -47,20 +47,19 @@ struct RiskProposer {
   // exactly once support_size() actions have been handed out. Only the
   // reinforce branch is unbounded; there, progressive widening is what bounds
   // the node.
-  auto propose(const game_t &state) const
-      -> mcts::DedupSampler<RiskProposer, game_t> {
+  mcts::DedupSampler<RiskProposer, game_t> propose(const game_t &state) const {
     return mcts::MakeDedupSampler(*this, state);
   }
 
   // Exact count of the distinct actions sample() can return from |state|, or
   // mcts::kUnknownSupport when the space is too large to enumerate. Mirrors
   // the branch structure of sample() below; keep the two in step.
-  auto support_size(const game_t &state) const -> std::size_t {
+  std::size_t support_size(const game_t &state) const {
     // Initial placement: one action per claimable territory.
-    if (state.m_initial_placement) {
+    if (state.initial_placement_) {
       const int8_t wanted_owner =
-          state.m_num_initial_placements >= kNumTerritories
-              ? state.m_current_player
+          state.num_initial_placements_ >= kNumTerritories
+              ? state.current_player_
               : -1;
       std::size_t count = 0;
       for (const Territory &t : state.m_map) {
@@ -70,15 +69,15 @@ struct RiskProposer {
     }
 
     // Defense is deterministic: always the maximum allowed dice.
-    if (state.queued_attack.has_value()) {
+    if (state.queued_attack_.has_value()) {
       return 1;
     }
 
     // Reinforcement scatters each reserve unit independently over the owned
     // territories, so the number of distinct placements is
     // C(reserves + owned - 1, owned - 1) — far too many to enumerate.
-    if (state.m_first_attack_of_turn &&
-        state.m_reserves[state.m_current_player] > 0) {
+    if (state.first_attack_of_turn_ &&
+        state.reserves_[state.current_player_] > 0) {
       return mcts::kUnknownSupport;
     }
 
@@ -89,7 +88,7 @@ struct RiskProposer {
     uint64_t mine;
     uint64_t strong;
     internal::OwnershipMasks(state.m_map.data(), state.m_map.size(),
-                             state.m_current_player, mine, strong);
+                             state.current_player_, mine, strong);
     std::size_t num_candidates = 0;
     uint64_t sources = mine & strong;
     while (sources != 0) {
@@ -111,14 +110,14 @@ struct RiskProposer {
   }
 
   // One i.i.d. draw for playouts: no allocation, no dedup set.
-  auto sample(const game_t &state, std::mt19937 &gen) const -> action_t {
+  action_t sample(const game_t &state, std::mt19937 &gen) const {
     // Initial placement
-    if (state.m_initial_placement) {
+    if (state.initial_placement_) {
       // Before all territories are claimed, place on an unowned one;
       // afterwards only on own territories.
       const int8_t wanted_owner =
-          state.m_num_initial_placements >= kNumTerritories
-              ? state.m_current_player
+          state.num_initial_placements_ >= kNumTerritories
+              ? state.current_player_
               : -1;
       int territory_to_place = -1;
       uint32_t territory_score = 0;
@@ -137,10 +136,11 @@ struct RiskProposer {
     // A queued attack without a queued defense is the defender's decision
     // node. (With both queued it is a chance node, handled by the game's
     // sample_chance_action, and this proposer is never asked.)
-    if (state.queued_attack.has_value()) {
-      assert(!state.queued_defense.has_value());
+    if (state.queued_attack_.has_value()) {
+      assert(!state.queued_defense_.has_value());
       return QueueDefenseAction{std::min(
-          2, static_cast<int>(state.m_map[state.queued_attack->target].units))};
+          2,
+          static_cast<int>(state.m_map[state.queued_attack_->target].units))};
     }
 
     PlayerAction pa;
@@ -151,10 +151,10 @@ struct RiskProposer {
     uint64_t mine;
     uint64_t strong;
     internal::OwnershipMasks(state.m_map.data(), state.m_map.size(),
-                             state.m_current_player, mine, strong);
+                             state.current_player_, mine, strong);
 
-    if (state.m_first_attack_of_turn) {
-      const int reserves = state.m_reserves[state.m_current_player];
+    if (state.first_attack_of_turn_) {
+      const int reserves = state.reserves_[state.current_player_];
       if (reserves > 0) {
         // Each reserve unit lands independently and uniformly at random on an
         // owned territory (same distribution as the previous 0/1-weighted
@@ -189,10 +189,10 @@ struct RiskProposer {
         }
         ReinforceAction ra{};
         for (int i = 0; i < reserves; ++i) {
-          ra.units_to_place[owned_territories[internal::UniformBelow(
+          ra.units_to_place_[owned_territories[internal::UniformBelow(
               gen, static_cast<uint32_t>(num_owned))]] += 1;
         }
-        pa.reinforce_action = ra;
+        pa.reinforce_action_ = ra;
       }
     }
 
@@ -222,7 +222,7 @@ struct RiskProposer {
     // Not offered while |pa| still carries this turn's reinforcement: that
     // PlayerAction has to be applied before the turn can end, or the reserves
     // it places would be dropped.
-    const bool may_end_turn = !pa.reinforce_action.has_value();
+    const bool may_end_turn = !pa.reinforce_action_.has_value();
     if (num_candidates > 0) {
       if constexpr (ATTACK_FAVORABLE) {
         // Keep only attacks whose source outnumbers the target, drawn
@@ -247,7 +247,7 @@ struct RiskProposer {
           if (pick < num_favorable) {
             const uint16_t candidate = favorable[pick];
             const int src = candidate >> 8;
-            pa.attack_action = QueueAttackAction{
+            pa.attack_action_ = QueueAttackAction{
                 src, candidate & 0xFF, std::min(3, state.m_map[src].units - 1)};
           }
           // Otherwise end turn: fall through to the fortify below.
@@ -258,7 +258,7 @@ struct RiskProposer {
               candidates[static_cast<int>(internal::UniformBelow(
                   gen, static_cast<uint32_t>(num_candidates)))];
           const int src = candidate >> 8;
-          pa.attack_action = QueueAttackAction{
+          pa.attack_action_ = QueueAttackAction{
               src, candidate & 0xFF, std::min(3, state.m_map[src].units - 1)};
         }
         // Otherwise no favorable attack: fall through to the fortify below.
@@ -270,13 +270,13 @@ struct RiskProposer {
         if (pick < num_candidates) {
           const uint16_t candidate = candidates[pick];
           const int src = candidate >> 8;
-          pa.attack_action = QueueAttackAction{
+          pa.attack_action_ = QueueAttackAction{
               src, candidate & 0xFF, std::min(3, state.m_map[src].units - 1)};
         }
       }
     }
 
-    if (pa.attack_action.has_value() || pa.reinforce_action.has_value()) {
+    if (pa.attack_action_.has_value() || pa.reinforce_action_.has_value()) {
       return pa;
     }
     // Turn over, either by choice or because no attack is possible: fortify
@@ -291,7 +291,7 @@ struct RiskProposer {
       // fortify source the player does not own.)
       int num_enemy_neighbors = std::numeric_limits<int>::max();
       int num_units = -1;
-      auto operator<(const SourceCandidate &other) const -> bool {
+      bool operator<(const SourceCandidate &other) const {
         if (num_enemy_neighbors != other.num_enemy_neighbors) {
           return num_enemy_neighbors > other.num_enemy_neighbors;
         }
@@ -303,7 +303,7 @@ struct RiskProposer {
       size_t country_id = 0;
       int num_enemy_neighbors = -1;
       int num_units = 1000;
-      auto operator<(const TargetCandidate &other) const -> bool {
+      bool operator<(const TargetCandidate &other) const {
         if (num_enemy_neighbors != other.num_enemy_neighbors) {
           return num_enemy_neighbors < other.num_enemy_neighbors;
         }
@@ -339,9 +339,9 @@ struct RiskProposer {
       best_source = std::max(best_source, sc);
       best_target = std::max(best_target, tc);
     }
-    fa.source = best_source.country_id;
+    fa.source_ = best_source.country_id;
     fa.target = best_target.country_id;
-    fa.num_units = state.m_map[fa.source].units - 1;
+    fa.num_units = state.m_map[fa.source_].units - 1;
     return fa;
   }
 };

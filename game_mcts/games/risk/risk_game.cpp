@@ -6,43 +6,45 @@
 
 namespace risk_game {
 
-auto operator<<(std::ostream &os, const RiskAction &action) -> std::ostream & {
+std::ostream &operator<<(std::ostream &os, const RiskAction &action) {
   os << std::visit(
       overloaded{
           [](const InitialPlaceAction &a) {
-            return std::format("InitialPlace{{{}}}", Board[a.territory].name);
+            return std::format("InitialPlace{{{}}}",
+                               kBoard[a.territory_].name_);
           },
           [](const PlayerAction &a) {
             std::ostringstream ss;
             ss << "PlayerAction{";
-            if (a.reinforce_action) {
-              for (size_t i = 0; i < a.reinforce_action->units_to_place.size();
-                   ++i) {
-                if (a.reinforce_action->units_to_place[i] > 0) {
-                  ss << Board[i].name << "+"
-                     << a.reinforce_action->units_to_place[i] << " ";
+            if (a.reinforce_action_) {
+              for (size_t i = 0;
+                   i < a.reinforce_action_->units_to_place_.size(); ++i) {
+                if (a.reinforce_action_->units_to_place_[i] > 0) {
+                  ss << kBoard[i].name_ << "+"
+                     << a.reinforce_action_->units_to_place_[i] << " ";
                 }
               }
             }
-            if (a.attack_action) {
-              ss << "A:" << Board[a.attack_action->source].name << "->"
-                 << Board[a.attack_action->target].name;
+            if (a.attack_action_) {
+              ss << "A:" << kBoard[a.attack_action_->source_].name_ << "->"
+                 << kBoard[a.attack_action_->target].name_;
             }
             ss << "}";
             return std::move(ss).str();
           },
           [](const QueueDefenseAction &a) {
-            return std::format("Defense{{{}}}", a.num_defend_dice);
+            return std::format("Defense{{{}}}", a.num_defend_dice_);
           },
           [](const FortifyAction &a) {
-            return std::format("Fortify{{{}->{} ({})}}", Board[a.source].name,
-                               Board[a.target].name, a.num_units);
+            return std::format("Fortify{{{}->{} ({})}}",
+                               kBoard[a.source_].name_, kBoard[a.target].name_,
+                               a.num_units);
           },
           [](const RollDiceAction &a) {
             return std::format("RollDice{{A:[{},{},{}] D:[{},{}]}}",
-                               a.attacker_rolls[0], a.attacker_rolls[1],
-                               a.attacker_rolls[2], a.defender_rolls[0],
-                               a.defender_rolls[1]);
+                               a.attacker_rolls_[0], a.attacker_rolls_[1],
+                               a.attacker_rolls_[2], a.defender_rolls_[0],
+                               a.defender_rolls_[1]);
           }},
       action);
   return os;

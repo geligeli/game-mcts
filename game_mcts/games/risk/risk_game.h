@@ -39,7 +39,7 @@ namespace internal {
 // Uniform integer in [0, n) via Lemire's multiply-shift method; consumes a
 // single 32-bit draw in the common case (vs. ~2 draws plus division for the
 // default-range std::uniform_int_distribution, which rejects half its draws).
-inline auto UniformBelow(std::mt19937 &gen, uint32_t n) -> uint32_t {
+inline uint32_t UniformBelow(std::mt19937 &gen, uint32_t n) {
   uint64_t m = static_cast<uint64_t>(gen()) * n;
   uint32_t l = static_cast<uint32_t>(m);
   if (l < n) {
@@ -57,7 +57,7 @@ inline auto UniformBelow(std::mt19937 &gen, uint32_t n) -> uint32_t {
 // when they run out), so units stay uint16_t to keep Territory packed at 4
 // bytes; saturation only guards against wraparound in pathologically long
 // random rollout games, which real play never reaches.
-inline auto SaturatingAddUnits(uint16_t units, uint32_t add) -> uint16_t {
+inline uint16_t SaturatingAddUnits(uint16_t units, uint32_t add) {
   return static_cast<uint16_t>(
       std::min<uint32_t>(std::numeric_limits<uint16_t>::max(), units + add));
 }
@@ -66,7 +66,7 @@ inline auto SaturatingAddUnits(uint16_t units, uint32_t add) -> uint16_t {
 struct Territory {
   int8_t owner;  // Supports up to 16 players
   uint16_t units;
-  constexpr auto operator==(const Territory &other) const -> bool = default;
+  constexpr bool operator==(const Territory &other) const = default;
 };
 
 namespace internal {
@@ -113,56 +113,51 @@ inline void OwnershipMasks(const Territory *map, size_t num_territories,
 }  // namespace internal
 
 struct InitialPlaceAction {
-  int territory;
-  constexpr auto operator==(const InitialPlaceAction &other) const
-      -> bool = default;
+  int territory_;
+  constexpr bool operator==(const InitialPlaceAction &other) const = default;
   constexpr auto operator<=>(const InitialPlaceAction &other) const = default;
 };
 
 struct ReinforceAction {
   std::array<uint16_t, kNumTerritories>
-      units_to_place;  // Indexed by territory ID
-  constexpr auto operator==(const ReinforceAction &other) const
-      -> bool = default;
+      units_to_place_;  // Indexed by territory ID
+  constexpr bool operator==(const ReinforceAction &other) const = default;
   constexpr auto operator<=>(const ReinforceAction &other) const = default;
 };
 
 struct QueueAttackAction {
-  int source;
+  int source_;
   int target;
-  int num_attack_dice;
-  constexpr auto operator==(const QueueAttackAction &other) const
-      -> bool = default;
+  int num_attack_dice_;
+  constexpr bool operator==(const QueueAttackAction &other) const = default;
   constexpr auto operator<=>(const QueueAttackAction &other) const = default;
 };
 
 struct PlayerAction {
-  std::optional<ReinforceAction> reinforce_action;
-  std::optional<QueueAttackAction> attack_action;
-  constexpr auto operator==(const PlayerAction &other) const -> bool = default;
+  std::optional<ReinforceAction> reinforce_action_;
+  std::optional<QueueAttackAction> attack_action_;
+  constexpr bool operator==(const PlayerAction &other) const = default;
   constexpr auto operator<=>(const PlayerAction &other) const = default;
 };
 
 struct QueueDefenseAction {
-  int num_defend_dice;
-  constexpr auto operator==(const QueueDefenseAction &other) const
-      -> bool = default;
+  int num_defend_dice_;
+  constexpr bool operator==(const QueueDefenseAction &other) const = default;
   constexpr auto operator<=>(const QueueDefenseAction &other) const = default;
 };
 
 struct FortifyAction {
-  int source;
+  int source_;
   int target;
   int num_units;
-  constexpr auto operator==(const FortifyAction &other) const -> bool = default;
+  constexpr bool operator==(const FortifyAction &other) const = default;
   constexpr auto operator<=>(const FortifyAction &other) const = default;
 };
 
 struct RollDiceAction {
-  std::array<int, 3> attacker_rolls;
-  std::array<int, 2> defender_rolls;
-  constexpr auto operator==(const RollDiceAction &other) const
-      -> bool = default;
+  std::array<int, 3> attacker_rolls_;
+  std::array<int, 2> defender_rolls_;
+  constexpr bool operator==(const RollDiceAction &other) const = default;
   constexpr auto operator<=>(const RollDiceAction &other) const = default;
 };
 
@@ -170,9 +165,9 @@ using RiskAction =
     std::variant<InitialPlaceAction, PlayerAction, QueueDefenseAction,
                  FortifyAction, RollDiceAction>;
 
-auto operator<<(std::ostream &os, const RiskAction &action) -> std::ostream &;
+std::ostream &operator<<(std::ostream &os, const RiskAction &action);
 
-inline constexpr auto hash_combine(size_t seed, size_t h) -> size_t {
+inline constexpr size_t hash_combine(size_t seed, size_t h) {
   return seed ^ (h + 0x9e3779b9 + (seed << 6) + (seed >> 2));
 }
 
@@ -180,11 +175,12 @@ inline constexpr auto hash_combine(size_t seed, size_t h) -> size_t {
 
 template <>
 struct std::hash<risk_game::ReinforceAction> {
-  auto operator()(const risk_game::ReinforceAction &ra) const -> size_t {
+  size_t operator()(const risk_game::ReinforceAction &ra) const {
     // The array is 42 tightly packed uint16_t (84 bytes, no padding): mix it
     // as 64-bit words instead of a combine round per element.
-    static_assert(sizeof(ra.units_to_place) == 84);
-    const char *data = reinterpret_cast<const char *>(ra.units_to_place.data());
+    static_assert(sizeof(ra.units_to_place_) == 84);
+    const char *data =
+        reinterpret_cast<const char *>(ra.units_to_place_.data());
     uint64_t h = 0x9e3779b97f4a7c15ULL;
     for (size_t offset = 0; offset < 80; offset += sizeof(uint64_t)) {
       uint64_t w;
@@ -204,41 +200,41 @@ struct std::hash<risk_game::ReinforceAction> {
 
 template <>
 struct std::hash<risk_game::RiskAction> {
-  auto operator()(const risk_game::RiskAction &action) const -> size_t {
+  size_t operator()(const risk_game::RiskAction &action) const {
     size_t h = std::hash<size_t>{}(action.index());
     std::visit(
         overloaded{
             [&h](const risk_game::InitialPlaceAction &a) {
-              h = risk_game::hash_combine(h, std::hash<int>{}(a.territory));
+              h = risk_game::hash_combine(h, std::hash<int>{}(a.territory_));
             },
             [&h](const risk_game::PlayerAction &a) {
-              if (a.reinforce_action) {
+              if (a.reinforce_action_) {
                 h = risk_game::hash_combine(
                     h, std::hash<risk_game::ReinforceAction>{}(
-                           *a.reinforce_action));
+                           *a.reinforce_action_));
               }
-              if (a.attack_action) {
+              if (a.attack_action_) {
                 h = risk_game::hash_combine(
-                    h, std::hash<int>{}(a.attack_action->source));
+                    h, std::hash<int>{}(a.attack_action_->source_));
                 h = risk_game::hash_combine(
-                    h, std::hash<int>{}(a.attack_action->target));
+                    h, std::hash<int>{}(a.attack_action_->target));
                 h = risk_game::hash_combine(
-                    h, std::hash<int>{}(a.attack_action->num_attack_dice));
+                    h, std::hash<int>{}(a.attack_action_->num_attack_dice_));
               }
             },
             [&h](const risk_game::QueueDefenseAction &a) {
               h = risk_game::hash_combine(h,
-                                          std::hash<int>{}(a.num_defend_dice));
+                                          std::hash<int>{}(a.num_defend_dice_));
             },
             [&h](const risk_game::FortifyAction &a) {
-              h = risk_game::hash_combine(h, std::hash<int>{}(a.source));
+              h = risk_game::hash_combine(h, std::hash<int>{}(a.source_));
               h = risk_game::hash_combine(h, std::hash<int>{}(a.target));
               h = risk_game::hash_combine(h, std::hash<int>{}(a.num_units));
             },
             [&h](const risk_game::RollDiceAction &a) {
-              for (int v : a.attacker_rolls)
+              for (int v : a.attacker_rolls_)
                 h = risk_game::hash_combine(h, std::hash<int>{}(v));
-              for (int v : a.defender_rolls)
+              for (int v : a.defender_rolls_)
                 h = risk_game::hash_combine(h, std::hash<int>{}(v));
             },
         },
@@ -259,7 +255,7 @@ inline constexpr std::array<uint8_t, 6> kPlayerColors = {1, 2, 3, 5, 6, 7};
 
 // SGR sequence painting text in |player|'s board color (empty for player < 0,
 // i.e. chance nodes / unowned). Terminate with kColorReset.
-inline auto PlayerColor(int player) -> std::string {
+inline std::string PlayerColor(int player) {
   if (player < 0) {
     return "";
   }
@@ -275,8 +271,8 @@ inline constexpr const char *kColorReset = "\033[0m";
 // set in |highlighted| (size kNumTerritories, may be empty) are drawn with a
 // bright background, regardless of owner.
 template <size_t NUM_PLAYERS>
-auto RenderRiskState(const RiskState<NUM_PLAYERS> &state,
-                     std::span<const bool> highlighted = {}) -> std::string;
+std::string RenderRiskState(const RiskState<NUM_PLAYERS> &state,
+                            std::span<const bool> highlighted = {});
 
 template <size_t NUM_PLAYERS>
 struct RiskState {
@@ -287,8 +283,7 @@ struct RiskState {
     }
   }
 
-  static constexpr auto initial_reserves()
-      -> std::array<uint16_t, NUM_PLAYERS> {
+  static constexpr std::array<uint16_t, NUM_PLAYERS> InitialReserves() {
     std::array<uint16_t, NUM_PLAYERS> res{};
     static_assert(NUM_PLAYERS >= 2 && NUM_PLAYERS <= 6,
                   "Supported players: 2 to 6");
@@ -313,32 +308,32 @@ struct RiskState {
     }
     return res;
   }
-  std::array<uint16_t, NUM_PLAYERS> m_reserves = initial_reserves();
+  std::array<uint16_t, NUM_PLAYERS> reserves_ = InitialReserves();
   std::array<Territory, kNumTerritories> m_map;
-  bool m_initial_placement{true};
-  std::size_t m_num_initial_placements{0};
-  bool m_first_attack_of_turn{true};
-  int8_t m_current_player{0};
-  uint32_t turn_count{0};
+  bool initial_placement_{true};
+  std::size_t num_initial_placements_{0};
+  bool first_attack_of_turn_{true};
+  int8_t current_player_{0};
+  uint32_t turn_count_{0};
 
-  std::optional<QueueAttackAction> queued_attack;
-  std::optional<QueueDefenseAction> queued_defense;
+  std::optional<QueueAttackAction> queued_attack_;
+  std::optional<QueueDefenseAction> queued_defense_;
 
-  auto operator==(const RiskState &other) const -> bool = default;
+  bool operator==(const RiskState &other) const = default;
 
   void AddTurnStartReinforcements() {
     // Ownership bitmask over the map: cheaper than a per-territory scan and
     // directly gives both the owned count and the continent checks.
     uint64_t mine;
     uint64_t strong;
-    internal::OwnershipMasks(m_map.data(), m_map.size(), m_current_player, mine,
+    internal::OwnershipMasks(m_map.data(), m_map.size(), current_player_, mine,
                              strong);
-    m_reserves[m_current_player] =
+    reserves_[current_player_] =
         std::max(3, static_cast<int>(std::popcount(mine)) / 3);
-    for (size_t c = 0; c < risk_game::Continents.size(); ++c) {
+    for (size_t c = 0; c < risk_game::kContinents.size(); ++c) {
       if ((mine & kContinentMasks[c]) == kContinentMasks[c]) {
-        m_reserves[m_current_player] +=
-            risk_game::Continents[c].bonus_reinforcements;
+        reserves_[current_player_] +=
+            risk_game::kContinents[c].bonus_reinforcements_;
       }
     }
   }
@@ -347,44 +342,44 @@ struct RiskState {
     // Skip eliminated players (no territories owned). Terminates because the
     // game is only ongoing while at least one player owns a territory.
     do {
-      m_current_player = (m_current_player + 1) % NUM_PLAYERS;
+      current_player_ = (current_player_ + 1) % NUM_PLAYERS;
     } while (std::none_of(m_map.begin(), m_map.end(), [&](const Territory &t) {
-      return t.owner == m_current_player;
+      return t.owner == current_player_;
     }));
-    if (m_current_player == 0) {
-      turn_count++;
+    if (current_player_ == 0) {
+      turn_count_++;
     }
     AddTurnStartReinforcements();
-    m_first_attack_of_turn = true;
+    first_attack_of_turn_ = true;
   }
 
   void InitialPlace(int territory) {
     Territory &t = m_map[territory];
-    t.owner = m_current_player;
+    t.owner = current_player_;
     t.units = internal::SaturatingAddUnits(t.units, 1);
-    m_reserves[m_current_player] -= 1;
+    reserves_[current_player_] -= 1;
 
-    m_current_player = (m_current_player + 1) % NUM_PLAYERS;
-    if (m_current_player == 0) {
-      turn_count++;
-      if (m_reserves[0] == 0) {
-        m_initial_placement = false;
+    current_player_ = (current_player_ + 1) % NUM_PLAYERS;
+    if (current_player_ == 0) {
+      turn_count_++;
+      if (reserves_[0] == 0) {
+        initial_placement_ = false;
       }
     }
-    m_num_initial_placements++;
+    num_initial_placements_++;
   }
 
   void ReinforceWithReserves(const ReinforceAction &reinforce_action) {
 #pragma GCC unroll 42
     for (size_t i = 0; i < m_map.size(); ++i) {
-      if (reinforce_action.units_to_place[i] > 0) {
+      if (reinforce_action.units_to_place_[i] > 0) {
         Territory &t = m_map[i];
-        assert(t.owner == m_current_player);
-        assert(m_reserves[m_current_player] >=
-               reinforce_action.units_to_place[i]);
+        assert(t.owner == current_player_);
+        assert(reserves_[current_player_] >=
+               reinforce_action.units_to_place_[i]);
         t.units = internal::SaturatingAddUnits(
-            t.units, reinforce_action.units_to_place[i]);
-        m_reserves[m_current_player] -= reinforce_action.units_to_place[i];
+            t.units, reinforce_action.units_to_place_[i]);
+        reserves_[current_player_] -= reinforce_action.units_to_place_[i];
       }
     }
   }
@@ -394,42 +389,42 @@ struct RiskState {
       NextPlayer();
       return;
     }
-    assert(fortify_action.source >= 0 &&
-           fortify_action.source < static_cast<int>(m_map.size()));
+    assert(fortify_action.source_ >= 0 &&
+           fortify_action.source_ < static_cast<int>(m_map.size()));
     assert(fortify_action.target >= 0 &&
            fortify_action.target < static_cast<int>(m_map.size()));
     assert(fortify_action.num_units > 0);
-    assert(m_map[fortify_action.source].units >= fortify_action.num_units);
-    m_map[fortify_action.source].units -= fortify_action.num_units;
+    assert(m_map[fortify_action.source_].units >= fortify_action.num_units);
+    m_map[fortify_action.source_].units -= fortify_action.num_units;
     m_map[fortify_action.target].units = internal::SaturatingAddUnits(
         m_map[fortify_action.target].units, fortify_action.num_units);
     NextPlayer();
   }
 
   void Attack(QueueAttackAction attack_action) {
-    assert(attack_action.source != attack_action.target);
-    assert(attack_action.source >= 0 &&
-           attack_action.source < static_cast<int>(m_map.size()));
+    assert(attack_action.source_ != attack_action.target);
+    assert(attack_action.source_ >= 0 &&
+           attack_action.source_ < static_cast<int>(m_map.size()));
     assert(attack_action.target >= 0 &&
            attack_action.target < static_cast<int>(m_map.size()));
-    assert(attack_action.num_attack_dice >= 1 &&
-           attack_action.num_attack_dice <= 3);
-    assert(m_map[attack_action.source].units > attack_action.num_attack_dice);
-    assert(!queued_attack.has_value());
-    assert(!queued_defense.has_value());
-    queued_attack = attack_action;
-    m_current_player = m_map[attack_action.target].owner;
-    m_first_attack_of_turn = false;
+    assert(attack_action.num_attack_dice_ >= 1 &&
+           attack_action.num_attack_dice_ <= 3);
+    assert(m_map[attack_action.source_].units > attack_action.num_attack_dice_);
+    assert(!queued_attack_.has_value());
+    assert(!queued_defense_.has_value());
+    queued_attack_ = attack_action;
+    current_player_ = m_map[attack_action.target].owner;
+    first_attack_of_turn_ = false;
   }
 
   void ResolveAttackRolls(const RollDiceAction &roll_action) {
-    assert(queued_attack.has_value());
-    assert(queued_defense.has_value());
+    assert(queued_attack_.has_value());
+    assert(queued_defense_.has_value());
 
-    Territory &src = m_map[queued_attack->source];
-    Territory &tgt = m_map[queued_attack->target];
-    std::array<int, 3> attacker_rolls = roll_action.attacker_rolls;
-    std::array<int, 2> defender_rolls = roll_action.defender_rolls;
+    Territory &src = m_map[queued_attack_->source_];
+    Territory &tgt = m_map[queued_attack_->target];
+    std::array<int, 3> attacker_rolls = roll_action.attacker_rolls_;
+    std::array<int, 2> defender_rolls = roll_action.defender_rolls_;
 
     std::sort(attacker_rolls.begin(), attacker_rolls.end(),
               std::greater<int>());
@@ -449,27 +444,27 @@ struct RiskState {
     }
 
     if (tgt.units == 0) {
-      int move_units = std::min(queued_attack->num_attack_dice, src.units - 1);
+      int move_units =
+          std::min(queued_attack_->num_attack_dice_, src.units - 1);
       src.units -= move_units;
       // tgt was just reduced to 0, so this cannot saturate in practice; use
       // the saturating add anyway to keep "all unit growth is saturating".
       tgt.units = internal::SaturatingAddUnits(tgt.units, move_units);
-      tgt.owner = m_map[queued_attack->source].owner;
+      tgt.owner = m_map[queued_attack_->source_].owner;
     }
-    m_current_player = m_map[queued_attack->source].owner;
-    queued_attack = std::nullopt;
-    queued_defense = std::nullopt;
+    current_player_ = m_map[queued_attack_->source_].owner;
+    queued_attack_ = std::nullopt;
+    queued_defense_ = std::nullopt;
   }
 
   using action_t = RiskAction;
 
-  friend auto operator<<(std::ostream &os, const RiskState &state)
-      -> std::ostream & {
+  friend std::ostream &operator<<(std::ostream &os, const RiskState &state) {
     os << RenderRiskState(state);
     return os;
   }
 
-  auto current_player() const -> int { return m_current_player; }
+  int current_player() const { return current_player_; }
 
   // In-place variant of apply_action: same transitions, but mutates this
   // state instead of copying it. Hot loops that operate on a scratch state
@@ -478,23 +473,25 @@ struct RiskState {
   void apply_action_in_place(const action_t &action) {
     std::visit(
         overloaded{
-            [&](const InitialPlaceAction &act) { InitialPlace(act.territory); },
+            [&](const InitialPlaceAction &act) {
+              InitialPlace(act.territory_);
+            },
             [&](const PlayerAction &act) {
-              assert(m_initial_placement == false);
-              assert(m_current_player >= 0 &&
-                     m_current_player < static_cast<int32_t>(NUM_PLAYERS));
-              if (act.reinforce_action.has_value()) {
-                ReinforceWithReserves(*act.reinforce_action);
+              assert(initial_placement_ == false);
+              assert(current_player_ >= 0 &&
+                     current_player_ < static_cast<int32_t>(NUM_PLAYERS));
+              if (act.reinforce_action_.has_value()) {
+                ReinforceWithReserves(*act.reinforce_action_);
               }
-              if (act.attack_action.has_value()) {
-                Attack(*act.attack_action);
+              if (act.attack_action_.has_value()) {
+                Attack(*act.attack_action_);
               }
             },
             [&](const QueueDefenseAction &act) {
-              assert(!queued_defense.has_value());
-              assert(queued_attack.has_value());
-              queued_defense = act;
-              m_current_player = -1;
+              assert(!queued_defense_.has_value());
+              assert(queued_attack_.has_value());
+              queued_defense_ = act;
+              current_player_ = -1;
             },
             [&](const RollDiceAction &act) { ResolveAttackRolls(act); },
             [&](const FortifyAction &act) { FortifyToMoveUnits(act); },
@@ -502,13 +499,13 @@ struct RiskState {
         action);
   }
 
-  auto apply_action(const action_t &action) const -> RiskState<NUM_PLAYERS> {
+  RiskState<NUM_PLAYERS> apply_action(const action_t &action) const {
     auto next = *this;
     next.apply_action_in_place(action);
     return next;
   }
 
-  auto current_state() const -> mcts::game_state_t {
+  mcts::game_state_t current_state() const {
     int seen_owner = -1;
     for (const Territory &t : m_map) {
       if (t.owner == -1) {
@@ -526,18 +523,18 @@ struct RiskState {
   // A battle with both sides committed is the only chance node in Risk: the
   // attacker has queued the attack and the defender has answered with a dice
   // count, so nothing is left to decide.
-  auto is_chance_node() const -> bool { return m_current_player == -1; }
+  bool is_chance_node() const { return current_player_ == -1; }
 
   // Samples the rules-defined chance distribution (the dice). This is game
   // logic, not policy: MCTS builds its chance-node children straight from it,
   // so it deliberately is not swappable the way an ActionProposer is.
   // Precondition: is_chance_node().
-  auto sample_chance_action(std::mt19937 &gen) const -> action_t {
-    assert(queued_attack.has_value() && queued_defense.has_value());
+  action_t sample_chance_action(std::mt19937 &gen) const {
+    assert(queued_attack_.has_value() && queued_defense_.has_value());
     std::array<int, 3> attacker_rolls = {0, 0, 0};
     std::array<int, 2> defender_rolls = {0, 0};
-    const int num_attack_dice = queued_attack->num_attack_dice;
-    const int num_defend_dice = queued_defense->num_defend_dice;
+    const int num_attack_dice = queued_attack_->num_attack_dice_;
+    const int num_defend_dice = queued_defense_->num_defend_dice_;
     for (int i = 0; i < num_attack_dice; ++i) {
       attacker_rolls[i] = static_cast<int>(gen() % 6) + 1;
     }
@@ -552,53 +549,52 @@ struct RiskState {
   // legal under the engine's current transition semantics. On failure sets
   // |reason| to a short human-readable explanation; on success leaves it
   // untouched.
-  auto is_valid_action(const action_t &action, std::string &reason) const
-      -> bool {
+  bool is_valid_action(const action_t &action, std::string &reason) const {
     return std::visit(
         overloaded{
             [&](const InitialPlaceAction &act) -> bool {
-              if (!m_initial_placement) {
+              if (!initial_placement_) {
                 reason = "initial placement phase is over";
                 return false;
               }
-              if (act.territory < 0 ||
-                  act.territory >= static_cast<int>(m_map.size())) {
+              if (act.territory_ < 0 ||
+                  act.territory_ >= static_cast<int>(m_map.size())) {
                 reason = "territory out of range";
                 return false;
               }
-              if (m_num_initial_placements < kNumTerritories) {
-                if (m_map[act.territory].owner != -1) {
+              if (num_initial_placements_ < kNumTerritories) {
+                if (m_map[act.territory_].owner != -1) {
                   reason = "territory already owned during claiming phase";
                   return false;
                 }
-              } else if (m_map[act.territory].owner != m_current_player) {
+              } else if (m_map[act.territory_].owner != current_player_) {
                 reason =
                     "can only reinforce own territories during initial "
                     "placement";
                 return false;
               }
-              if (m_reserves[m_current_player] == 0) {
+              if (reserves_[current_player_] == 0) {
                 reason = "no reserves left to place";
                 return false;
               }
               return true;
             },
             [&](const PlayerAction &act) -> bool {
-              if (m_initial_placement) {
+              if (initial_placement_) {
                 reason = "still in initial placement phase";
                 return false;
               }
-              if (queued_attack.has_value()) {
+              if (queued_attack_.has_value()) {
                 reason = "a queued attack must be resolved first";
                 return false;
               }
-              if (m_current_player < 0 ||
-                  m_current_player >= static_cast<int>(NUM_PLAYERS)) {
+              if (current_player_ < 0 ||
+                  current_player_ >= static_cast<int>(NUM_PLAYERS)) {
                 reason = "no player to move at this node";
                 return false;
               }
-              if (act.reinforce_action.has_value()) {
-                if (!m_first_attack_of_turn) {
+              if (act.reinforce_action_.has_value()) {
+                if (!first_attack_of_turn_) {
                   reason =
                       "reinforcements must be placed before the first "
                       "attack of the turn";
@@ -606,53 +602,53 @@ struct RiskState {
                 }
                 uint32_t sum = 0;
                 for (size_t i = 0; i < m_map.size(); ++i) {
-                  if (act.reinforce_action->units_to_place[i] == 0) {
+                  if (act.reinforce_action_->units_to_place_[i] == 0) {
                     continue;
                   }
-                  if (m_map[i].owner != m_current_player) {
+                  if (m_map[i].owner != current_player_) {
                     reason =
                         "cannot reinforce a territory not owned by the "
                         "current player";
                     return false;
                   }
-                  sum += act.reinforce_action->units_to_place[i];
+                  sum += act.reinforce_action_->units_to_place_[i];
                 }
-                if (sum != m_reserves[m_current_player]) {
+                if (sum != reserves_[current_player_]) {
                   reason = "all reserve armies must be placed";
                   return false;
                 }
               }
-              if (act.attack_action.has_value()) {
-                const QueueAttackAction &atk = *act.attack_action;
-                if (atk.source < 0 ||
-                    atk.source >= static_cast<int>(m_map.size()) ||
+              if (act.attack_action_.has_value()) {
+                const QueueAttackAction &atk = *act.attack_action_;
+                if (atk.source_ < 0 ||
+                    atk.source_ >= static_cast<int>(m_map.size()) ||
                     atk.target < 0 ||
                     atk.target >= static_cast<int>(m_map.size())) {
                   reason = "attack source/target out of range";
                   return false;
                 }
-                if (atk.source == atk.target) {
+                if (atk.source_ == atk.target) {
                   reason = "attack source and target must differ";
                   return false;
                 }
-                if (m_map[atk.source].owner != m_current_player) {
+                if (m_map[atk.source_].owner != current_player_) {
                   reason = "attack source not owned by the current player";
                   return false;
                 }
-                if (!((kNeighborMasks[atk.source] >> atk.target) & 1)) {
+                if (!((kNeighborMasks[atk.source_] >> atk.target) & 1)) {
                   reason = "attack target not adjacent to source";
                   return false;
                 }
-                if (m_map[atk.target].owner == m_current_player) {
+                if (m_map[atk.target].owner == current_player_) {
                   reason = "cannot attack own territory";
                   return false;
                 }
-                if (atk.num_attack_dice < 1 || atk.num_attack_dice > 3) {
+                if (atk.num_attack_dice_ < 1 || atk.num_attack_dice_ > 3) {
                   reason = "num_attack_dice out of range [1, 3]";
                   return false;
                 }
-                if (m_map[atk.source].units <=
-                    static_cast<uint32_t>(atk.num_attack_dice)) {
+                if (m_map[atk.source_].units <=
+                    static_cast<uint32_t>(atk.num_attack_dice_)) {
                   reason =
                       "attack source must keep one army behind (units "
                       "must exceed num_attack_dice)";
@@ -662,52 +658,52 @@ struct RiskState {
               return true;
             },
             [&](const QueueDefenseAction &act) -> bool {
-              if (!queued_attack.has_value() || queued_defense.has_value()) {
+              if (!queued_attack_.has_value() || queued_defense_.has_value()) {
                 reason = "no attack awaiting a defense";
                 return false;
               }
-              if (m_current_player != m_map[queued_attack->target].owner) {
+              if (current_player_ != m_map[queued_attack_->target].owner) {
                 reason = "only the defender of the queued attack may defend";
                 return false;
               }
-              if (act.num_defend_dice < 1 || act.num_defend_dice > 2) {
+              if (act.num_defend_dice_ < 1 || act.num_defend_dice_ > 2) {
                 reason = "num_defend_dice out of range [1, 2]";
                 return false;
               }
-              if (act.num_defend_dice >
-                  static_cast<int>(m_map[queued_attack->target].units)) {
+              if (act.num_defend_dice_ >
+                  static_cast<int>(m_map[queued_attack_->target].units)) {
                 reason = "cannot defend with more dice than defending armies";
                 return false;
               }
               return true;
             },
             [&](const RollDiceAction &act) -> bool {
-              if (!queued_attack.has_value() || !queued_defense.has_value()) {
+              if (!queued_attack_.has_value() || !queued_defense_.has_value()) {
                 reason = "no battle awaiting dice rolls";
                 return false;
               }
-              for (size_t i = 0; i < act.attacker_rolls.size(); ++i) {
+              for (size_t i = 0; i < act.attacker_rolls_.size(); ++i) {
                 const bool used =
-                    i < static_cast<size_t>(queued_attack->num_attack_dice);
-                if (used &&
-                    (act.attacker_rolls[i] < 1 || act.attacker_rolls[i] > 6)) {
+                    i < static_cast<size_t>(queued_attack_->num_attack_dice_);
+                if (used && (act.attacker_rolls_[i] < 1 ||
+                             act.attacker_rolls_[i] > 6)) {
                   reason = "attacker roll out of range [1, 6]";
                   return false;
                 }
-                if (!used && act.attacker_rolls[i] != 0) {
+                if (!used && act.attacker_rolls_[i] != 0) {
                   reason = "unused attacker roll slots must be 0";
                   return false;
                 }
               }
-              for (size_t i = 0; i < act.defender_rolls.size(); ++i) {
+              for (size_t i = 0; i < act.defender_rolls_.size(); ++i) {
                 const bool used =
-                    i < static_cast<size_t>(queued_defense->num_defend_dice);
-                if (used &&
-                    (act.defender_rolls[i] < 1 || act.defender_rolls[i] > 6)) {
+                    i < static_cast<size_t>(queued_defense_->num_defend_dice_);
+                if (used && (act.defender_rolls_[i] < 1 ||
+                             act.defender_rolls_[i] > 6)) {
                   reason = "defender roll out of range [1, 6]";
                   return false;
                 }
-                if (!used && act.defender_rolls[i] != 0) {
+                if (!used && act.defender_rolls_[i] != 0) {
                   reason = "unused defender roll slots must be 0";
                   return false;
                 }
@@ -715,16 +711,16 @@ struct RiskState {
               return true;
             },
             [&](const FortifyAction &act) -> bool {
-              if (m_initial_placement) {
+              if (initial_placement_) {
                 reason = "still in initial placement phase";
                 return false;
               }
-              if (queued_attack.has_value() || queued_defense.has_value()) {
+              if (queued_attack_.has_value() || queued_defense_.has_value()) {
                 reason = "a queued battle must be resolved first";
                 return false;
               }
-              if (m_current_player < 0 ||
-                  m_current_player >= static_cast<int>(NUM_PLAYERS)) {
+              if (current_player_ < 0 ||
+                  current_player_ >= static_cast<int>(NUM_PLAYERS)) {
                 reason = "no player to move at this node";
                 return false;
               }
@@ -733,31 +729,31 @@ struct RiskState {
               if (act.num_units <= 1) {
                 return true;
               }
-              if (act.source < 0 ||
-                  act.source >= static_cast<int>(m_map.size()) ||
+              if (act.source_ < 0 ||
+                  act.source_ >= static_cast<int>(m_map.size()) ||
                   act.target < 0 ||
                   act.target >= static_cast<int>(m_map.size())) {
                 reason = "fortify source/target out of range";
                 return false;
               }
-              if (m_map[act.source].owner != m_current_player ||
-                  m_map[act.target].owner != m_current_player) {
+              if (m_map[act.source_].owner != current_player_ ||
+                  m_map[act.target].owner != current_player_) {
                 reason = "can only fortify between own territories";
                 return false;
               }
-              if (act.source == act.target) {
+              if (act.source_ == act.target) {
                 // No-op move the engine accepts (FortifyToMoveUnits subtracts
                 // then re-adds); sample_action emits it when the player owns
                 // a single territory. The engine only requires the units to
                 // be present in this case.
-                if (m_map[act.source].units <
+                if (m_map[act.source_].units <
                     static_cast<uint32_t>(act.num_units)) {
                   reason = "fortify moves more units than the source has";
                   return false;
                 }
                 return true;
               }
-              if (m_map[act.source].units <
+              if (m_map[act.source_].units <
                   static_cast<uint32_t>(act.num_units) + 1) {
                 reason = "fortify must leave at least one army behind";
                 return false;
@@ -768,7 +764,7 @@ struct RiskState {
         action);
   }
 
-  auto getConnectedComponent(size_t seed) -> std::bitset<kNumTerritories> {
+  std::bitset<kNumTerritories> GetConnectedComponent(size_t seed) {
     std::bitset<kNumTerritories> result{};
     std::array<size_t, kNumTerritories> stack;
     auto stack_ptr = stack.begin();
@@ -781,9 +777,9 @@ struct RiskState {
 
     while (stack_ptr != stack.begin()) {
       auto currnet_elem = pop();
-      const CountryData &country_data = Board[currnet_elem];
-      for (size_t i = 0; i < country_data.neighbor_count; ++i) {
-        size_t neighbor = static_cast<size_t>(country_data.neighbors[i]);
+      const CountryData &country_data = kBoard[currnet_elem];
+      for (size_t i = 0; i < country_data.neighbor_count_; ++i) {
+        size_t neighbor = static_cast<size_t>(country_data.neighbors_[i]);
         if (!result.test(neighbor) &&
             m_map[currnet_elem].owner == m_map[neighbor].owner) {
           result.set(neighbor);
@@ -796,17 +792,17 @@ struct RiskState {
 };
 
 template <size_t NUM_PLAYERS>
-auto RenderRiskState(const RiskState<NUM_PLAYERS> &state,
-                     std::span<const bool> highlighted) -> std::string {
-  const int current_player = static_cast<int>(state.m_current_player);
+std::string RenderRiskState(const RiskState<NUM_PLAYERS> &state,
+                            std::span<const bool> highlighted) {
+  const int current_player = static_cast<int>(state.current_player_);
   std::ostringstream os;
-  os << "Turn: " << state.turn_count
+  os << "Turn: " << state.turn_count_
      << " Player: " << PlayerColor(current_player) << current_player
      << kColorReset << "\n";
   os << "Reserves: ";
   for (size_t p = 0; p < NUM_PLAYERS; ++p)
     os << PlayerColor(static_cast<int>(p)) << "P" << p << kColorReset << ":"
-       << state.m_reserves[p] << " ";
+       << state.reserves_[p] << " ";
   os << "\n";
   os << "Units: ";
   std::array<int, NUM_PLAYERS> total_units{};
@@ -820,9 +816,9 @@ auto RenderRiskState(const RiskState<NUM_PLAYERS> &state,
        << total_units[p] << " ";
   os << "\n";
 
-  static constexpr int kBoardWidth = 80;
-  static constexpr int kTextWidth = 3;
-  static const auto segments = GetAsciiBoardTemplate(kBoardWidth, kTextWidth);
+  static constexpr int board_width = 80;
+  static constexpr int text_width = 3;
+  static const auto segments = GetAsciiBoardTemplate(board_width, text_width);
   if (segments.empty()) {
     for (size_t i = 0; i < state.m_map.size(); ++i) {
       if (const int owner = static_cast<int>(state.m_map[i].owner);

@@ -7,7 +7,7 @@
 
 namespace visualisations {
 
-auto escape_json_string(const std::string& str) -> std::string {
+std::string escape_json_string(const std::string& str) {
   std::ostringstream oss;
   for (char c : str) {
     switch (c) {
@@ -40,7 +40,7 @@ auto escape_json_string(const std::string& str) -> std::string {
   return oss.str();
 }
 
-auto Figure::generate_html() const -> std::string {
+std::string Figure::GenerateHtml() const {
   std::ostringstream html;
 
   // HTML boilerplate
@@ -62,12 +62,12 @@ auto Figure::generate_html() const -> std::string {
   for (const auto& trace : traces_) {
     if (!first_trace) html << ",";
     html << "\n            {";
-    html << "\n                x: " << vector_to_json(trace.x) << ",";
-    html << "\n                y: " << vector_to_json(trace.y) << ",";
-    html << "\n                mode: '" << trace.mode << "',";
+    html << "\n                x: " << vector_to_json(trace.x_) << ",";
+    html << "\n                y: " << vector_to_json(trace.y_) << ",";
+    html << "\n                mode: '" << trace.mode_ << "',";
     html << "\n                type: 'scatter'";
-    if (!trace.name.empty()) {
-      html << ",\n                name: '" << escape_json_string(trace.name)
+    if (!trace.name_.empty()) {
+      html << ",\n                name: '" << escape_json_string(trace.name_)
            << "'";
     }
     html << "\n            }";
@@ -96,7 +96,7 @@ auto Figure::generate_html() const -> std::string {
   return html.str();
 }
 
-void Figure::plot(const std::vector<double>& y, const std::string& name) {
+void Figure::Plot(const std::vector<double>& y, const std::string& name) {
   std::vector<double> x(y.size());
   for (size_t i = 0; i < y.size(); ++i) {
     x[i] = static_cast<double>(i);
@@ -104,49 +104,49 @@ void Figure::plot(const std::vector<double>& y, const std::string& name) {
   traces_.emplace_back(std::move(x), y, "lines", name);
 }
 
-void Figure::plot(const std::vector<double>& x, const std::vector<double>& y,
+void Figure::Plot(const std::vector<double>& x, const std::vector<double>& y,
                   const std::string& name) {
   traces_.emplace_back(x, y, "lines", name);
 }
 
-void Figure::scatter(const std::vector<double>& x, const std::vector<double>& y,
+void Figure::Scatter(const std::vector<double>& x, const std::vector<double>& y,
                      const std::string& name) {
   traces_.emplace_back(x, y, "markers", name);
 }
 
-void Figure::set_log_x(bool enable) { log_x_ = enable; }
+void Figure::SetLogX(bool enable) { log_x_ = enable; }
 
-void Figure::set_log_y(bool enable) { log_y_ = enable; }
+void Figure::SetLogY(bool enable) { log_y_ = enable; }
 
-void Figure::set_title(const std::string& title) { title_ = title; }
+void Figure::SetTitle(const std::string& title) { title_ = title; }
 
-void Figure::set_trace_name(size_t index, const std::string& name) {
+void Figure::SetTraceName(size_t index, const std::string& name) {
   if (index < traces_.size()) {
-    traces_[index].name = name;
+    traces_[index].name_ = name;
   } else {
     std::cerr << "Error: Trace index " << index << " out of range.\n";
   }
 }
 
-void Figure::save(const std::string& filename) const {
+void Figure::Save(const std::string& filename) const {
   std::ofstream file(filename);
   if (!file.is_open()) {
     std::cerr << "Error: Could not open file " << filename << " for writing.\n";
     return;
   }
-  file << generate_html();
+  file << GenerateHtml();
   file.close();
   std::cout << "Plot saved to " << filename << std::endl;
 }
 
-void Figure::serve_once(int port) const {
+void Figure::ServeOnce(int port) const {
   Server server(port);
-  server.serve_once([this]() { return generate_html(); });
+  server.ServeOnce([this]() { return GenerateHtml(); });
 }
 
-void Figure::serve(int port) const {
+void Figure::Serve(int port) const {
   Server server(port);
-  server.serve([this]() { return generate_html(); });
+  server.Serve([this]() { return GenerateHtml(); });
 }
 
 }  // namespace visualisations

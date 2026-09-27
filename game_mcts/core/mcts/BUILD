@@ -54,6 +54,18 @@ cc_library(
     deps = [":game_traits"],
 )
 
+# Stock policies (random, MCTS) and SerializedPolicy, their byte-level form.
+cc_library(
+    name = "policies",
+    hdrs = ["policies.h"],
+    deps = [
+        ":game_traits",
+        ":mcts",
+        ":serialization",
+        ":tournament",
+    ],
+)
+
 proto_library(
     name = "mcts_tree_proto",
     srcs = ["mcts_tree.proto"],
@@ -147,4 +159,11 @@ cc_test(
         "@abseil-cpp//absl/log",
         "@googletest//:gtest_main",
     ],
+)
+
+# Shipped whole to the arena's sandbox image and kits (see //:BUILD).
+filegroup(
+    name = "tree",
+    srcs = glob(["**"]),
+    visibility = ["//:__pkg__"],
 )

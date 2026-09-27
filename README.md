@@ -24,14 +24,6 @@ on the hot path.
 - `game_mcts/games/pig/` — minimal game with chance nodes (dice).
 - `game_mcts/games/risk/` — a full-size stochastic game (Risk) with a custom
   action proposer, rollout shortcuts, self-play and tournament binaries.
-- `game_mcts/arena/` — this repo's side of the **arena**, the problem-running
-  framework that now lives in
-  [game-arena](https://github.com/geligeli/game-arena): the
-  `mcts::SerializableGame` adapter, the builtins, the registry naming risk2 /
-  tictactoe / bench and the referee binaries built from it, plus `client/`,
-  `candidate_api/`, `candidates/`, `benchgame/` and the problem configs.
-  Agents submit a strategy that is built in a sandbox and rated against the
-  field; see [game_mcts/arena/README.md](game_mcts/arena/README.md).
 - `game_mcts/common/fitters/` — simple curve fitters.
 - `game_mcts/tools/viz/` — HTML/HTTP plot serving.
 - `game_mcts/tools/bench/` — benchmark binaries.
@@ -40,6 +32,13 @@ on the hot path.
 - `game_mcts/common/numpy/` — header-only `.npy` reader.
 
 See [game_mcts/README.md](game_mcts/README.md).
+
+The repo is also a problem repo for
+[game-arena](https://github.com/geligeli/game-arena), which hosts **risk2**:
+participants submit a Risk strategy that is built in a sandbox and rated
+against the field. `problem.textproto` and `arena_problem` in `//:BUILD`
+define it; `problem/` holds the game registry, `bots/` the submission harness
+and the reference bot. Nothing under `game_mcts/` depends on the arena.
 
 The board-vision, pose and training pipeline that feeds a physical Risk board
 lives in the [risk-game-ai](https://github.com/geligeli/risk-game-ai) repo,
@@ -50,6 +49,24 @@ which consumes this one as a Bazel dependency.
 ```sh
 bazel build //...
 bazel test //...
+```
+
+Machine-specific settings go in a git-ignored `.bazelrc.local` (never in
+`.bazelrc`, which ships into the arena's sandbox image and kits), e.g. the
+shared caches:
+
+```
+common --disk_cache=/large_nfs/bazel-cache/disk
+common --repository_cache=/large_nfs/bazel-cache/repo
+common --experimental_disk_cache_gc_max_size=50G
+```
+
+Play a local risk2 match, or run a whole tournament with a participant kit:
+
+```sh
+bazel run //:match_referee -- --game=risk2 --player_a=reference --games=2 &
+bazel run //bots/reference:bot -- --name=reference --opponent=builtin:mcts --games=2
+bazel run //:play
 ```
 
 Run the MCTS benchmark or the convergence-speed plot:

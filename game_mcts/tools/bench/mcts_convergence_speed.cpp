@@ -15,7 +15,7 @@ ABSL_FLAG(std::string, output, "/dev/stderr",
           "Output file for the plot (default: /dev/stderr)");
 ABSL_FLAG(int, port, 0, "Port to serve the plot on (0 = save to file only)");
 
-auto main(int argc, char **argv) -> int {
+int main(int argc, char **argv) {
   absl::InitializeLog();
   absl::SetStderrThreshold(absl::LogSeverityAtLeast::kInfo);
   absl::ParseCommandLine(argc, argv);
@@ -50,13 +50,13 @@ auto main(int argc, char **argv) -> int {
   auto best_fit = fitters::choose_best_fit(iterations, errors);
 
   // Log the results
-  if (exp_result.valid) {
-    LOG(INFO) << "Exponential fit: y = " << exp_result.a << " * exp("
-              << exp_result.b << " * x), R² = " << exp_result.r_squared;
+  if (exp_result.valid_) {
+    LOG(INFO) << "Exponential fit: y = " << exp_result.a_ << " * exp("
+              << exp_result.b_ << " * x), R² = " << exp_result.r_squared_;
   }
-  if (pow_result.valid) {
-    LOG(INFO) << "Power law fit: y = " << pow_result.a << " * x^"
-              << pow_result.alpha << ", R² = " << pow_result.r_squared;
+  if (pow_result.valid_) {
+    LOG(INFO) << "Power law fit: y = " << pow_result.a_ << " * x^"
+              << pow_result.alpha_ << ", R² = " << pow_result.r_squared_;
   }
 
   std::string best_fit_name;
@@ -80,34 +80,35 @@ auto main(int argc, char **argv) -> int {
   std::vector<double> pow_fitted(iterations.size());
 
   for (size_t i = 0; i < iterations.size(); ++i) {
-    if (exp_result.valid) {
-      exp_fitted[i] = exp_result.a * std::exp(exp_result.b * iterations[i]);
+    if (exp_result.valid_) {
+      exp_fitted[i] = exp_result.a_ * std::exp(exp_result.b_ * iterations[i]);
     }
-    if (pow_result.valid) {
-      pow_fitted[i] = pow_result.a * std::pow(iterations[i], pow_result.alpha);
+    if (pow_result.valid_) {
+      pow_fitted[i] =
+          pow_result.a_ * std::pow(iterations[i], pow_result.alpha_);
     }
   }
 
   // Create visualization
   visualisations::Figure fig;
-  fig.set_title("MCTS Convergence Analysis (Best fit: " + best_fit_name + ")");
-  fig.set_log_y(true);
+  fig.SetTitle("MCTS Convergence Analysis (Best fit: " + best_fit_name + ")");
+  fig.SetLogY(true);
 
   // Plot actual errors
-  fig.scatter(iterations, errors);
+  fig.Scatter(iterations, errors);
 
   switch (best_fit) {
     case fitters::FitType::EXPONENTIAL: {
-      std::string label = "Exponential Fit: " + std::to_string(exp_result.a) +
-                          " * exp(" + std::to_string(exp_result.b) + " * x)";
-      fig.plot(iterations, exp_fitted, label);
+      std::string label = "Exponential Fit: " + std::to_string(exp_result.a_) +
+                          " * exp(" + std::to_string(exp_result.b_) + " * x)";
+      fig.Plot(iterations, exp_fitted, label);
       break;
     }
     case fitters::FitType::POWER_LAW: {
-      std::string label = "Power Law Fit: " + std::to_string(pow_result.a) +
-                          " * x^" + std::to_string(pow_result.alpha);
+      std::string label = "Power Law Fit: " + std::to_string(pow_result.a_) +
+                          " * x^" + std::to_string(pow_result.alpha_);
 
-      fig.plot(iterations, pow_fitted, label);
+      fig.Plot(iterations, pow_fitted, label);
       break;
     }
     case fitters::FitType::NONE:
@@ -117,10 +118,10 @@ auto main(int argc, char **argv) -> int {
   int port = absl::GetFlag(FLAGS_port);
   if (port > 0) {
     LOG(INFO) << "Serving plot on port " << port;
-    fig.serve(port);
+    fig.Serve(port);
   } else {
     std::string output_file = absl::GetFlag(FLAGS_output);
     LOG(INFO) << "Saving plot to " << output_file;
-    fig.save(output_file);
+    fig.Save(output_file);
   }
 }

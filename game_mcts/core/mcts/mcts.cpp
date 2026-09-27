@@ -2,7 +2,7 @@
 
 namespace mcts {
 
-auto ucb_value(float total_value, int num_visits, int parent_visits) -> float {
+float ucb_value(float total_value, int num_visits, int parent_visits) {
   if (parent_visits == 0 || num_visits == 0) {
     return std::numeric_limits<float>::infinity();
   }
@@ -10,7 +10,7 @@ auto ucb_value(float total_value, int num_visits, int parent_visits) -> float {
          std::sqrt(2.0f * std::log(parent_visits) / num_visits);
 }
 
-auto GameStateToString(const mcts::game_state_t& state) -> std::string {
+std::string GameStateToString(const mcts::game_state_t& state) {
   return std::visit(
       overloaded{[](const ongoing_t&) -> std::string { return "Ongoing"; },
                  [](const draw_t&) -> std::string { return "Draw"; },
@@ -20,7 +20,7 @@ auto GameStateToString(const mcts::game_state_t& state) -> std::string {
       state);
 }
 
-auto WriteHtmlGraphPrefix(std::ostream& os) -> void {
+void WriteHtmlGraphPrefix(std::ostream& os) {
   os << R"HTML(<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -136,7 +136,7 @@ button:hover {
 )HTML";
 }
 
-auto WriteHtmlGraphSuffix(std::ostream& os) -> void {
+void WriteHtmlGraphSuffix(std::ostream& os) {
   os << R"HTML(</div>
 <script>
 function setAll(open) {

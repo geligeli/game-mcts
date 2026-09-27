@@ -65,11 +65,11 @@ using mcts::tournament::AnyPolicy;
 // two proposal policies can be entered into the same tournament.
 template <typename PROPOSER = proposer_t>
 struct RandomPolicy {
-  PROPOSER proposer{};
+  PROPOSER proposer_{};
 
-  auto operator()(const game_t &game, std::mt19937 &gen) const
-      -> mcts::tournament::PolicyDecision<game_t> {
-    const risk_game::RiskAction action = proposer.sample(game, gen);
+  mcts::tournament::PolicyDecision<game_t> operator()(const game_t &game,
+                                                      std::mt19937 &gen) const {
+    const risk_game::RiskAction action = proposer_.sample(game, gen);
     return {.action = action, .successor = game.apply_action(action)};
   }
 };
@@ -79,20 +79,20 @@ struct RandomPolicy {
 // carries its own.
 template <typename ROLLOUT, typename PROPOSER = proposer_t>
 struct RiskMctsPolicy {
-  int iterations;
-  double widening_c;
-  double widening_alpha;
-  double exploration_c;
-  ROLLOUT rollout_policy;
-  PROPOSER proposer{};
+  int iterations_;
+  double widening_c_;
+  double widening_alpha_;
+  double exploration_c_;
+  ROLLOUT rollout_policy_;
+  PROPOSER proposer_{};
 
-  auto operator()(const game_t &game, std::mt19937 &gen) const
-      -> mcts::tournament::PolicyDecision<game_t> {
-    mcts::MctsRunner<game_t, PROPOSER, ROLLOUT> runner(game, proposer,
-                                                       rollout_policy);
+  mcts::tournament::PolicyDecision<game_t> operator()(const game_t &game,
+                                                      std::mt19937 &gen) const {
+    mcts::MctsRunner<game_t, PROPOSER, ROLLOUT> runner(game, proposer_,
+                                                       rollout_policy_);
     auto picker = mcts::MctsStochasticNodePicker<game_t>(
-        gen, widening_c, widening_alpha, exploration_c);
-    for (int i = 0; i < iterations; ++i) {
+        gen, widening_c_, widening_alpha_, exploration_c_);
+    for (int i = 0; i < iterations_; ++i) {
       runner.OneIteration(picker, gen);
     }
     const risk_game::RiskAction action = runner.best_action();
@@ -100,7 +100,7 @@ struct RiskMctsPolicy {
   }
 };
 
-auto Trim(const std::string &s) -> std::string {
+std::string Trim(const std::string &s) {
   const auto first = s.find_first_not_of(" \t\r\n");
   if (first == std::string::npos) {
     return "";
@@ -110,7 +110,7 @@ auto Trim(const std::string &s) -> std::string {
 
 // Parses an INI-style config: `[policy]` sections with `key = value` lines;
 // `#` starts a comment. Returns one Params map per section.
-auto ParseConfig(const std::string &path) -> std::vector<Params> {
+std::vector<Params> ParseConfig(const std::string &path) {
   std::ifstream in(path);
   if (!in) {
     throw std::runtime_error("cannot open config file: " + path);
@@ -147,13 +147,13 @@ auto ParseConfig(const std::string &path) -> std::vector<Params> {
   return sections;
 }
 
-auto GetString(const Params &params, const std::string &key,
-               const std::string &fallback) -> std::string {
+std::string GetString(const Params &params, const std::string &key,
+                      const std::string &fallback) {
   const auto it = params.find(key);
   return it == params.end() ? fallback : it->second;
 }
 
-auto GetInt(const Params &params, const std::string &key, int fallback) -> int {
+int GetInt(const Params &params, const std::string &key, int fallback) {
   const auto it = params.find(key);
   if (it == params.end()) {
     return fallback;
@@ -165,8 +165,8 @@ auto GetInt(const Params &params, const std::string &key, int fallback) -> int {
   }
 }
 
-auto GetDouble(const Params &params, const std::string &key, double fallback)
-    -> double {
+double GetDouble(const Params &params, const std::string &key,
+                 double fallback) {
   const auto it = params.find(key);
   if (it == params.end()) {
     return fallback;
@@ -178,12 +178,12 @@ auto GetDouble(const Params &params, const std::string &key, double fallback)
   }
 }
 
-auto MakeRandomPolicy(const Params & /*params*/) -> AnyPolicy<game_t> {
+AnyPolicy<game_t> MakeRandomPolicy(const Params & /*params*/) {
   return AnyPolicy<game_t>(RandomPolicy<>{});
 }
 
 template <typename TREE_PROPOSER, typename ROLLOUT_PROPOSER>
-auto MakeMctsPolicySplit(const Params &params) -> AnyPolicy<game_t> {
+AnyPolicy<game_t> MakeMctsPolicySplit(const Params &params) {
   const int iterations = GetInt(params, "iterations", 400);
   const double widening_c = GetDouble(params, "widening_c", 2.0);
   const double widening_alpha = GetDouble(params, "widening_alpha", 0.5);
@@ -207,8 +207,8 @@ auto MakeMctsPolicySplit(const Params &params) -> AnyPolicy<game_t> {
 // Dispatches on the rollout proposer name. atk/smart are rejected here on
 // purpose: their attack-averse playouts stall instead of terminating.
 template <typename TREE_PROPOSER>
-auto MakeMctsPolicyForTree(const std::string &rollout_proposer,
-                           const Params &params) -> AnyPolicy<game_t> {
+AnyPolicy<game_t> MakeMctsPolicyForTree(const std::string &rollout_proposer,
+                                        const Params &params) {
   if (rollout_proposer == "stock") {
     return MakeMctsPolicySplit<TREE_PROPOSER, proposer_t>(params);
   }
@@ -224,7 +224,7 @@ auto MakeMctsPolicyForTree(const std::string &rollout_proposer,
 // the optional `tree_proposer` overrides the tree proposer only and may
 // additionally be atk|smart — those only filter which actions the *tree*
 // expands, so their attack aversion cannot stall the rollout.
-auto MakeMctsPolicy(const Params &params) -> AnyPolicy<game_t> {
+AnyPolicy<game_t> MakeMctsPolicy(const Params &params) {
   const std::string proposer = GetString(params, "proposer", "stock");
   if (proposer != "stock" && proposer != "border") {
     throw std::runtime_error("unknown proposer '" + proposer +
@@ -261,13 +261,13 @@ using traits_t = mcts::GameSerializationTraits<game_t>;
 
 // One recorded game: the trajectory proto plus the file it is written to.
 struct GameRecording {
-  risk_game::proto::RiskTrajectory trajectory;
-  std::filesystem::path path;
+  risk_game::proto::RiskTrajectory trajectory_;
+  std::filesystem::path path_;
 };
 
 // Keeps [A-Za-z0-9-_]; maps everything else to '_', so policy names are safe
 // path components.
-auto SanitizeFilename(const std::string &name) -> std::string {
+std::string SanitizeFilename(const std::string &name) {
   std::string out;
   out.reserve(name.size());
   for (const char c : name) {
@@ -279,7 +279,7 @@ auto SanitizeFilename(const std::string &name) -> std::string {
 
 }  // namespace
 
-auto main(int argc, char **argv) -> int {
+int main(int argc, char **argv) {
   absl::ParseCommandLine(argc, argv);
 
   const std::string config_path = absl::GetFlag(FLAGS_config);
@@ -358,17 +358,17 @@ auto main(int argc, char **argv) -> int {
     std::vector<GameRecording> recordings(tasks.size());
     const auto initial_state = traits_t::StateToProto(game_t{});
     for (std::size_t i = 0; i < tasks.size(); ++i) {
-      *recordings[i].trajectory.mutable_initial_state() = initial_state;
-      recordings[i].path = std::filesystem::path(record_dir) /
-                           ("game_" + std::to_string(i) + "_" +
-                            SanitizeFilename(names[tasks[i].a]) + "_vs_" +
-                            SanitizeFilename(names[tasks[i].b]) + ".pbtxt");
+      *recordings[i].trajectory_.mutable_initial_state() = initial_state;
+      recordings[i].path_ = std::filesystem::path(record_dir) /
+                            ("game_" + std::to_string(i) + "_" +
+                             SanitizeFilename(names[tasks[i].a_]) + "_vs_" +
+                             SanitizeFilename(names[tasks[i].b_]) + ".pbtxt");
     }
     auto observer_factory = [&](std::size_t task_index) {
       GameRecording *recording = &recordings[task_index];
       return [recording](const game_t & /*state_before*/, int player,
                          const risk_game::RiskAction &action) {
-        auto *step = recording->trajectory.add_steps();
+        auto *step = recording->trajectory_.add_steps();
         step->set_player(player);
         *step->mutable_action() = traits_t::ActionToProto(action);
       };
@@ -379,22 +379,22 @@ auto main(int argc, char **argv) -> int {
 
     // Fill in the outcome and write one .pbtxt per game.
     for (std::size_t i = 0; i < recordings.size(); ++i) {
-      auto &trajectory = recordings[i].trajectory;
-      if (records[i].score_a == 0.5) {
+      auto &trajectory = recordings[i].trajectory_;
+      if (records[i].score_a_ == 0.5) {
         trajectory.set_result(risk_game::proto::RiskTrajectory::DRAW);
       } else {
         trajectory.set_result(risk_game::proto::RiskTrajectory::WIN);
-        trajectory.set_winning_player(records[i].score_a == 1.0 ? 0 : 1);
+        trajectory.set_winning_player(records[i].score_a_ == 1.0 ? 0 : 1);
       }
       std::string text;
       if (!google::protobuf::TextFormat::PrintToString(trajectory, &text)) {
         fprintf(stderr, "TextFormat failed for game %zu\n", i);
         return 1;
       }
-      std::ofstream out(recordings[i].path);
+      std::ofstream out(recordings[i].path_);
       if (!out) {
         fprintf(stderr, "Cannot open %s\n",
-                recordings[i].path.string().c_str());
+                recordings[i].path_.string().c_str());
         return 1;
       }
       out << text;
@@ -417,9 +417,9 @@ auto main(int argc, char **argv) -> int {
     }
     out << "policy_a,policy_b,name_a,name_b,score_a\n";
     for (const auto &record : records) {
-      out << record.policy_a << ',' << record.policy_b << ','
-          << names[record.policy_a] << ',' << names[record.policy_b] << ','
-          << record.score_a << '\n';
+      out << record.policy_a_ << ',' << record.policy_b_ << ','
+          << names[record.policy_a_] << ',' << names[record.policy_b_] << ','
+          << record.score_a_ << '\n';
     }
   }
   return 0;

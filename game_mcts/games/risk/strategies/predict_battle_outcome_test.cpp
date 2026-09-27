@@ -11,10 +11,10 @@ TEST(PredictBattleOutcome, TestExpectedRemnants) {
   for (int a = 1; a <= A; ++a) {
     for (int d = 1; d <= D; ++d) {
       BattleRemnants remnants = ComputeExpectedRemnants(a, d);
-      EXPECT_GE(remnants.attackers, 0.0);
-      EXPECT_GE(remnants.defenders, 0.0);
-      EXPECT_LE(remnants.attackers, a);
-      EXPECT_LE(remnants.defenders, d);
+      EXPECT_GE(remnants.attackers_, 0.0);
+      EXPECT_GE(remnants.defenders_, 0.0);
+      EXPECT_LE(remnants.attackers_, a);
+      EXPECT_LE(remnants.defenders_, d);
     }
   }
 }

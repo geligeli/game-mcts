@@ -18,18 +18,18 @@ class Server {
 
   // Serve a single HTML response and then stop
   // content_generator is called to produce the HTML when a request arrives
-  void serve_once(std::function<std::string()> content_generator);
+  void ServeOnce(std::function<std::string()> content_generator);
 
   // Serve HTML content continuously until interrupted (Ctrl+C)
   // content_generator is called for each request
-  void serve(std::function<std::string()> content_generator);
+  void Serve(std::function<std::string()> content_generator);
 
   // Get the URL where the server is accessible
-  std::string get_url() const;
+  std::string GetUrl() const;
 
  private:
   struct ClientState {
-    std::string request_buffer;
+    std::string request_buffer_;
     bool request_complete = false;
   };
 
@@ -38,20 +38,20 @@ class Server {
   std::map<int, ClientState> clients_;
 
   // Initialize the server socket
-  void initialize_socket();
+  void InitializeSocket();
 
   // Accept a new client connection
-  void accept_client();
+  void AcceptClient();
 
   // Handle data from a client
-  void handle_client_data(int client_fd,
-                          std::function<std::string()> content_generator);
+  void HandleClientData(int client_fd,
+                        std::function<std::string()> content_generator);
 
   // Send HTTP response
-  void send_response(int client_fd, const std::string& content);
+  void SendResponse(int client_fd, const std::string& content);
 
   // Close a client connection
-  void close_client(int client_fd);
+  void CloseClient(int client_fd);
 };
 
 }  // namespace visualisations
