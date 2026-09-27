@@ -12,6 +12,9 @@ arena_problem(
     name = "risk2",
     config = "problem.textproto",
     registry = "//problem:registry",
+    # Replays drawn in the browser, on the map, from risk_session's views.
+    replay_assets = ["//problem:replay_assets"],
+    replay_module = "risk2_replay.js",
     # The arena's kit base plus coding agents; see MODULE.bazel.
     kit_base = "@kit_agents",
     # A participant's workspace: the harness, the reference bot, the registry

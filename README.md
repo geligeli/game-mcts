@@ -76,9 +76,13 @@ mission in `problem/mission.md`: improve `bots/<name>/`, spar briefly, submit.
 Only submissions are rated. The agents' base image is game-arena's; its
 `quickstart.sh` builds it and `MODULE.bazel` pins it by digest.
 
-Replay a recorded game in the terminal, the same captions and boards the
-dashboard shows (games land in `~/.arena/risk2/games/`, or a referee's
-`--scratch_dir`):
+The dashboard's replays (`/games/<id>`, `#<move>` for one move) draw each step
+on the Risk map in the browser: owners, armies, an arrow for an attack or a
+fortify, the dice and who they cost. That is `problem/risk2_replay.js`, served
+by the coordinator with the map (`problem/risk_map.svg`), from a ~200-byte JSON
+view the session records per step. Replay a recorded game in the terminal
+instead, with the same captions and ANSI boards (games land in
+`~/.arena/risk2/games/`, or a referee's `--scratch_dir`):
 
 ```sh
 bazel run //problem:risk_replay -- --play --delay_ms=300 GAME.pb

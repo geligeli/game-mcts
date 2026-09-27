@@ -1,6 +1,7 @@
 load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
+load("@rules_python//python:defs.bzl", "py_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -22,7 +23,10 @@ cc_library(
 # risk2's session: the round cap and the replay view on top of the adapter.
 cc_library(
     name = "risk_session",
-    hdrs = ["risk_session.h"],
+    hdrs = [
+        "risk_session.h",
+        "risk_view.h",
+    ],
     deps = [
         ":session",
         "//game_mcts/core/mcts:serialization",
@@ -106,6 +110,23 @@ cc_binary(
     ],
 )
 
+# The browser replay (arena_problem's replay_assets): the module that draws a
+# view, and the map it draws on (export_board_svg.py in
+# game_mcts/tools/ascii_rendering made it).
+filegroup(
+    name = "replay_assets",
+    srcs = [
+        "risk2_replay.js",
+        "risk_map.svg",
+    ],
+)
+
+py_test(
+    name = "risk_map_test",
+    srcs = ["risk_map_test.py"],
+    data = ["risk_map.svg"],
+)
+
 # What a participant gets of this package (arena_problem's kit_files).
 filegroup(
     name = "kit",
@@ -113,6 +134,9 @@ filegroup(
         "BUILD",
         "*.cc",
         "*.h",
+        "*.js",
+        "*.py",
+        "*.svg",
     ]),
 )
 

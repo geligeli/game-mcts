@@ -54,7 +54,7 @@ bazel_dep(name = "game_arena", version = "0.1.0", dev_dependency = True)
 git_override(
     module_name = "game_arena",
     remote = "https://github.com/geligeli/game-arena.git",
-    commit = "539d0eaabe692840d3cef1fad33cf6cf26acbd47",
+    commit = "98d732af71c676452ea3367e00791485f3765137",
 )
 
 # The kit's base: the arena's image with coding agents (Claude Code, opencode,

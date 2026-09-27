@@ -16,6 +16,7 @@
 #include <random>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <unordered_map>
 #include <utility>
@@ -58,7 +59,7 @@ namespace {
 
 using game_t = risk_game::RiskState<2>;
 using proposer_t = risk_game::RiskProposer<2>;
-using Params = std::map<std::string, std::string>;
+using Params = std::map<std::string, std::string, std::less<>>;
 using mcts::tournament::AnyPolicy;
 
 // Plays a single draw from its proposer. Parameterised on the proposer, so
@@ -147,13 +148,13 @@ std::vector<Params> ParseConfig(const std::string &path) {
   return sections;
 }
 
-std::string GetString(const Params &params, const std::string &key,
-                      const std::string &fallback) {
+std::string GetString(const Params &params, std::string_view key,
+                      std::string_view fallback) {
   const auto it = params.find(key);
-  return it == params.end() ? fallback : it->second;
+  return it == params.end() ? std::string(fallback) : it->second;
 }
 
-int GetInt(const Params &params, const std::string &key, int fallback) {
+int GetInt(const Params &params, std::string_view key, int fallback) {
   const auto it = params.find(key);
   if (it == params.end()) {
     return fallback;
@@ -161,12 +162,12 @@ int GetInt(const Params &params, const std::string &key, int fallback) {
   try {
     return std::stoi(it->second);
   } catch (const std::exception &) {
-    throw std::runtime_error("bad integer for '" + key + "': " + it->second);
+    throw std::runtime_error("bad integer for '" + std::string(key) +
+                             "': " + it->second);
   }
 }
 
-double GetDouble(const Params &params, const std::string &key,
-                 double fallback) {
+double GetDouble(const Params &params, std::string_view key, double fallback) {
   const auto it = params.find(key);
   if (it == params.end()) {
     return fallback;
@@ -174,7 +175,8 @@ double GetDouble(const Params &params, const std::string &key,
   try {
     return std::stod(it->second);
   } catch (const std::exception &) {
-    throw std::runtime_error("bad number for '" + key + "': " + it->second);
+    throw std::runtime_error("bad number for '" + std::string(key) +
+                             "': " + it->second);
   }
 }
 

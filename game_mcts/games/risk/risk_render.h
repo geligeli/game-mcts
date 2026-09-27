@@ -24,14 +24,6 @@
 
 namespace risk_game {
 
-enum class BoardDetail {
-  kNone,
-  // Only the rows around what the step touched; the others are blank lines,
-  // so the board keeps its height and the band sits where it would.
-  kBand,
-  kFull,
-};
-
 // What a step touched, drawn on the board.
 struct BoardMarks {
   std::array<bool, kNumTerritories> highlighted_{};
@@ -40,11 +32,11 @@ struct BoardMarks {
 };
 
 // The 80-column board from colours and troop counts indexed by template
-// territory id (see RenderAsciiBoard), with |marks| drawn on it. Empty for
-// kNone, or when the template is missing.
+// territory id (see RenderAsciiBoard), with |marks| drawn on it. Empty when
+// the template is missing.
 std::string RenderMarkedBoard(std::span<const uint8_t> colors,
                               std::span<const int> troops,
-                              const BoardMarks &marks, BoardDetail detail);
+                              const BoardMarks &marks);
 
 namespace render_internal {
 
@@ -258,10 +250,7 @@ BoardMarks StepMarks(const RiskState<NUM_PLAYERS> &before,
 // territories bright.
 template <size_t NUM_PLAYERS>
 std::string RenderBoard(const RiskState<NUM_PLAYERS> &state,
-                        const BoardMarks &marks, BoardDetail detail) {
-  if (detail == BoardDetail::kNone) {
-    return {};
-  }
+                        const BoardMarks &marks) {
   std::array<uint8_t, 43> colors{};
   colors[0] = 4;  // the sea
   std::array<int, 43> troops{};
@@ -277,7 +266,7 @@ std::string RenderBoard(const RiskState<NUM_PLAYERS> &state,
     }
     troops[id] = state.map_[t].units;
   }
-  return RenderMarkedBoard(colors, troops, marks, detail);
+  return RenderMarkedBoard(colors, troops, marks);
 }
 
 // A player's battles over one turn, for the line that ends it.

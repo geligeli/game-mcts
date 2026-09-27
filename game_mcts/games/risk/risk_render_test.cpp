@@ -128,18 +128,13 @@ TEST(RiskRenderTest, MarksWhatTheStepTouched) {
   EXPECT_EQ(StepMarks(state, FortifyAction{0, 0, 1}).arrow_from_, -1);
 }
 
-TEST(RiskRenderTest, TheBandIsTheFullBoardWithOtherRowsBlank) {
+TEST(RiskRenderTest, TheBoardMarksWhatTheStepTouched) {
   const RiskState<2> state = Midgame();
-  const BoardMarks marks =
-      StepMarks(state, FortifyAction{kAlaska, kAlberta, 3});
-  const std::string full = RenderBoard(state, marks, BoardDetail::kFull);
-  const std::string band = RenderBoard(state, marks, BoardDetail::kBand);
-  ASSERT_FALSE(full.empty());
-  EXPECT_TRUE(OnlySgr(full));
-  EXPECT_NE(full.find("\x1b[10"), std::string::npos) << "marked is bright";
-  EXPECT_EQ(std::ranges::count(band, '\n'), std::ranges::count(full, '\n'));
-  EXPECT_LT(band.size(), full.size() / 2);
-  EXPECT_TRUE(RenderBoard(state, marks, BoardDetail::kNone).empty());
+  const std::string board =
+      RenderBoard(state, StepMarks(state, FortifyAction{kAlaska, kAlberta, 3}));
+  ASSERT_FALSE(board.empty());
+  EXPECT_TRUE(OnlySgr(board));
+  EXPECT_NE(board.find("\x1b[10"), std::string::npos) << "marked is bright";
 }
 
 TEST(RiskRenderTest, ArrowsPointFromSourceToTarget) {
@@ -147,15 +142,14 @@ TEST(RiskRenderTest, ArrowsPointFromSourceToTarget) {
   // Alaska sits at the left edge and Kamchatka at the right: the arrow leaves
   // Alaska westwards and arrives at Kamchatka from the east.
   const std::string across =
-      RenderBoard(state, StepMarks(state, Attack(kAlaska, kKamchatka, 3)),
-                  BoardDetail::kFull);
+      RenderBoard(state, StepMarks(state, Attack(kAlaska, kKamchatka, 3)));
   EXPECT_NE(across.find("←"), std::string::npos);
   EXPECT_EQ(across.find("→"), std::string::npos);
 
   BoardMarks marks;
   marks.arrow_from_ = kAlaska;
   marks.arrow_to_ = static_cast<int>(Country::Argentina);
-  const std::string south = RenderBoard(state, marks, BoardDetail::kFull);
+  const std::string south = RenderBoard(state, marks);
   EXPECT_TRUE(south.find("↓") != std::string::npos ||
               south.find("↘") != std::string::npos)
       << south;

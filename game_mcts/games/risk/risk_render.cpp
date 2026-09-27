@@ -79,37 +79,15 @@ std::vector<BoardOverlay> ArrowCells(const CellPos &from, const CellPos &to,
   return cells;
 }
 
-// |board| with every line outside [first, last] left blank.
-std::string Band(std::string_view board, int first, int last) {
-  std::string out;
-  int row = 0;
-  for (std::size_t start = 0; start < board.size();) {
-    std::size_t end = board.find('\n', start);
-    const bool last_line = end == std::string_view::npos;
-    if (last_line) {
-      end = board.size();
-    }
-    if (row >= first && row <= last) {
-      out.append(board.substr(start, end - start));
-    }
-    if (!last_line) {
-      out += '\n';
-    }
-    start = end + 1;
-    ++row;
-  }
-  return out;
-}
-
 }  // namespace
 
 std::string RenderMarkedBoard(std::span<const uint8_t> colors,
                               std::span<const int> troops,
-                              const BoardMarks &marks, BoardDetail detail) {
+                              const BoardMarks &marks) {
   static const std::span<const AsciiBoardSegmentT> segments =
       GetAsciiBoardTemplate(kBoardWidth, kTextWidth);
   static const std::array<CellPos, 43> counters = CounterPositions(segments);
-  if (detail == BoardDetail::kNone || segments.empty()) {
+  if (segments.empty()) {
     return {};
   }
   std::string board = RenderAsciiBoard(segments, colors, troops);
@@ -120,18 +98,7 @@ std::string RenderMarkedBoard(std::span<const uint8_t> colors,
     board = OverlayCells(board, ArrowCells(at(marks.arrow_from_),
                                            at(marks.arrow_to_), counters));
   }
-  if (detail == BoardDetail::kFull) {
-    return board;
-  }
-  int first = kBoardWidth;
-  int last = -1;
-  for (int t = 0; t < kNumTerritories; ++t) {
-    if (marks.highlighted_[t] && at(t).row_ >= 0) {
-      first = std::min(first, at(t).row_ - 1);
-      last = std::max(last, at(t).row_ + 1);
-    }
-  }
-  return Band(board, first, last);
+  return board;
 }
 
 }  // namespace risk_game

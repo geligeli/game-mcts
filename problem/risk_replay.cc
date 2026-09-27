@@ -5,11 +5,12 @@
 //   bazel run //problem:risk_replay -- --mode=full --play --delay_ms=300 g.pb
 //   bazel run //problem:risk_replay -- --stats ~/.arena/risk2/games/*.pb
 //
-// --mode=arena prints what the referee records for the dashboard: every
-// step's caption, and the board when the step draws one. --mode=full draws
-// the board, marked, on every step. --stats prints only the bytes a game's
-// captions and views take, by kind.
+// Every step's caption, the same the dashboard shows, with the ANSI board
+// drawn at each turn's start (--mode=turns) or on every step, marked
+// (--mode=full). --stats prints only the bytes a game's captions and views
+// (the JSON the browser replay draws) take.
 
+#include <algorithm>
 #include <chrono>
 #include <cstddef>
 #include <cstdio>
@@ -28,8 +29,8 @@
 #include "game_mcts/games/risk/risk_serialization.h"
 #include "problem/risk_session.h"
 
-ABSL_FLAG(std::string, mode, "arena", "arena | full");
-ABSL_FLAG(bool, stats, false, "Print only view bytes per game, by kind");
+ABSL_FLAG(std::string, mode, "turns", "turns | full");
+ABSL_FLAG(bool, stats, false, "Print only caption and view bytes per game");
 ABSL_FLAG(bool, play, false, "Animate: redraw each step in place");
 ABSL_FLAG(int, delay_ms, 400, "With --play, the time per step");
 ABSL_FLAG(int, max_rounds, 40, "The round cap the game was played with");
@@ -41,11 +42,22 @@ using traits = mcts::GameSerializationTraits<state_t>;
 
 struct Stats {
   std::size_t captions_ = 0;
-  std::size_t full_ = 0;
-  std::size_t full_bytes_ = 0;
-  std::size_t bands_ = 0;
-  std::size_t band_bytes_ = 0;
+  std::size_t views_ = 0;
+  std::size_t largest_view_ = 0;
 };
+
+// The step taken from |before| was a player's first of their turn.
+bool TurnStart(const state_t &before) {
+  return !before.initial_placement_ && before.current_player_ >= 0 &&
+         !before.queued_attack_.has_value() && before.first_attack_of_turn_ &&
+         before.reserves_[before.current_player_] > 0;
+}
+
+std::string Board(const state_t &state, const risk_game::BoardMarks &marks) {
+  return "Round " +
+         std::to_string(tournament_broker::RiskSession::Rounds(state)) + "\n" +
+         risk_game::RenderBoard(state, marks);
+}
 
 void Show(const std::string &text) {
   if (absl::GetFlag(FLAGS_play)) {
@@ -80,10 +92,9 @@ bool Replay(const std::string &path) {
   }
   title += "  (" + record.termination_reason() + ")\n";
 
-  std::string view = session.RenderState();
-  Stats counts{.full_ = 1, .full_bytes_ = view.size()};
+  Stats counts{.views_ = session.RenderState().size()};
   if (!stats) {
-    Show(title + view);
+    Show(title + Board(session.State(), {}));
   }
   for (int i = 0; i < record.steps_size(); ++i) {
     const state_t before = session.State();
@@ -93,37 +104,30 @@ bool Replay(const std::string &path) {
       return false;
     }
     const std::string caption = session.RenderLastStep();
-    const std::string step_view = session.RenderState();
+    const std::size_t view = session.RenderState().size();
     counts.captions_ += caption.size();
-    if (!step_view.empty()) {
-      const bool turn_board = step_view.starts_with("Round ");
-      (turn_board ? counts.full_ : counts.bands_) += 1;
-      (turn_board ? counts.full_bytes_ : counts.band_bytes_) +=
-          step_view.size();
-    }
+    counts.views_ += view;
+    counts.largest_view_ = std::max(counts.largest_view_, view);
     if (stats) {
       continue;
     }
-    if (full) {
+    std::string text = "Move " + std::to_string(i + 1) + ": " + caption + "\n";
+    if (full || TurnStart(before)) {
       traits::action_proto_t proto;
       proto.ParseFromString(record.steps(i).action());
-      view = risk_game::RenderBoard(
-          session.State(),
-          risk_game::StepMarks(before, traits::ActionFromProto(proto)),
-          risk_game::BoardDetail::kFull);
-    } else if (!step_view.empty() || !absl::GetFlag(FLAGS_play)) {
-      view = step_view;
+      text +=
+          Board(session.State(),
+                risk_game::StepMarks(before, traits::ActionFromProto(proto)));
     }
-    Show("Move " + std::to_string(i + 1) + ": " + caption + "\n" + view);
+    Show(text);
   }
   if (stats) {
     std::printf(
-        "%s %d steps: captions %zu KB, %zu turn boards %zu KB, %zu bands %zu "
-        "KB, total %zu KB\n",
+        "%s %d steps: captions %zu KB, views %zu KB (largest %zu B), total "
+        "%zu KB\n",
         record.game_id().c_str(), record.steps_size(), counts.captions_ / 1024,
-        counts.full_, counts.full_bytes_ / 1024, counts.bands_,
-        counts.band_bytes_ / 1024,
-        (counts.captions_ + counts.full_bytes_ + counts.band_bytes_) / 1024);
+        counts.views_ / 1024, counts.largest_view_,
+        (counts.captions_ + counts.views_) / 1024);
   }
   return true;
 }
@@ -133,7 +137,7 @@ bool Replay(const std::string &path) {
 int main(int argc, char **argv) {
   const std::vector<char *> paths = absl::ParseCommandLine(argc, argv);
   if (paths.size() < 2) {
-    std::cerr << "usage: risk_replay [--mode=arena|full] [--stats] [--play] "
+    std::cerr << "usage: risk_replay [--mode=turns|full] [--stats] [--play] "
                  "GAME.pb...\n";
     return 2;
   }

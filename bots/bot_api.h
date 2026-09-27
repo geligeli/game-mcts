@@ -16,10 +16,10 @@
 // that is not MCTS at all, without any of those types crossing the boundary.
 
 #include <cstdlib>
+#include <functional>
 #include <map>
 #include <string>
 #include <string_view>
-#include <utility>
 
 #include "game_arena/common/kv_options/kv_options.h"
 #include "game_mcts/core/mcts/policies.h"
@@ -44,20 +44,21 @@ using policy_t = mcts::tournament::AnyPolicy<game_t>;
 class Params {
  public:
   Params() = default;
-  explicit Params(std::map<std::string, std::string> values)
-      : values_(std::move(values)) {}
+  explicit Params(std::map<std::string, std::string> values) {
+    values_.merge(values);
+  }
 
   static Params Parse(std::string_view spec) {
     return Params(kv_options::Parse(spec));
   }
 
   std::string get(std::string_view key, std::string_view fallback) const {
-    const auto it = values_.find(std::string(key));
+    const auto it = values_.find(key);
     return it == values_.end() ? std::string(fallback) : it->second;
   }
 
   int GetInt(std::string_view key, int fallback) const {
-    const auto it = values_.find(std::string(key));
+    const auto it = values_.find(key);
     if (it == values_.end()) {
       return fallback;
     }
@@ -69,7 +70,7 @@ class Params {
   }
 
   double GetDouble(std::string_view key, double fallback) const {
-    const auto it = values_.find(std::string(key));
+    const auto it = values_.find(key);
     if (it == values_.end()) {
       return fallback;
     }
@@ -78,14 +79,14 @@ class Params {
     return (end == it->second.c_str() || *end != '\0') ? fallback : parsed;
   }
 
-  bool contains(std::string_view key) const {
-    return values_.contains(std::string(key));
+  bool contains(std::string_view key) const { return values_.contains(key); }
+
+  const std::map<std::string, std::string, std::less<>> &Values() const {
+    return values_;
   }
 
-  const std::map<std::string, std::string> &Values() const { return values_; }
-
  private:
-  std::map<std::string, std::string> values_;
+  std::map<std::string, std::string, std::less<>> values_;
 };
 
 }  // namespace candidate
