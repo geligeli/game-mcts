@@ -41,7 +41,8 @@ case $AGENT in
       echo "quickstart: CLAUDE_CODE_OAUTH_TOKEN is unset; the agents will ask you to log in" >&2
     RUN_AGENT='claude --dangerously-skip-permissions "$(cat /mission.md)"' ;;
   opencode)
-    RUN_AGENT="opencode -m $MODEL --prompt \"\$(cat /mission.md)\"" ;;
+    # --auto: approve whatever is not denied, e.g. reading /tmp/spar.* logs.
+    RUN_AGENT="opencode --auto -m $MODEL --prompt \"\$(cat /mission.md)\"" ;;
   *) echo "quickstart: AGENT is claude or opencode, not $AGENT" >&2; exit 1 ;;
 esac
 for port in $GRPC_PORT $HTTP_PORT; do
