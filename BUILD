@@ -30,6 +30,12 @@ arena_problem(
         "//game_mcts/games/risk/strategies:tree",
         "//game_mcts/tools/ascii_rendering:tree",
     ],
+    # Git-ignored editor and tool output in the root: the root glob would ship
+    # it into the sandbox image (tools/cpp_format.sh writes both).
+    exclude = [
+        "compile_commands.json",
+        "index.*",
+    ],
     # Every package the bots and the referee build from, beyond this one.
     # bots/reference is left out: it is a participant, not the rules.
     tree = [
