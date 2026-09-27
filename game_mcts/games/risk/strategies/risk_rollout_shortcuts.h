@@ -24,8 +24,8 @@ bool ResolveBattleWithExpectationInPlace(RiskState<NUM_PLAYERS> &state,
   if (!state.queued_attack_.has_value() || !state.queued_defense_.has_value()) {
     return false;
   }
-  Territory &src = state.m_map[state.queued_attack_->source_];
-  Territory &tgt = state.m_map[state.queued_attack_->target];
+  Territory &src = state.map_[state.queued_attack_->source_];
+  Territory &tgt = state.map_[state.queued_attack_->target];
   const int attackers = static_cast<int>(src.units) - 1;  // keep one behind
   const int defenders = static_cast<int>(tgt.units);
   const BattleRemnants outcome = LookupExpectedRemnants(attackers, defenders);

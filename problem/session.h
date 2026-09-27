@@ -23,7 +23,7 @@
 namespace tournament_broker {
 
 template <mcts::SerializableGame G>
-class GameSessionImpl final : public GameSession {
+class GameSessionImpl : public GameSession {
  public:
   using traits = mcts::GameSerializationTraits<G>;
 

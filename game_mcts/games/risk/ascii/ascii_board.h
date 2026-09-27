@@ -78,6 +78,31 @@ TerritoryMap GetTerritoryMap(int width, int text_width);
 // List all available pre-generated board templates.
 std::span<const BoardInfo> GetAvailableBoardTemplates();
 
+// A cell of a rendered board: rows are lines, columns count what a terminal
+// shows (UTF-8 code points), not bytes, and skip colour codes.
+struct CellPos {
+  int row_ = -1;
+  int col_ = -1;
+  int width_ = 0;  // cells the troop counter takes
+};
+
+// Where each territory's troop counter is drawn, by territory id (1..42);
+// row_ -1 for an id the template has no counter for.
+std::array<CellPos, 43> CounterPositions(
+    std::span<const AsciiBoardSegmentT> segments);
+
+// One glyph drawn over a cell of a rendered board.
+struct BoardOverlay {
+  int row_;
+  int col_;
+  std::string_view glyph_;  // one cell wide
+};
+
+// |board| with each overlay's cell replaced by its glyph, bold bright white
+// over the colours already there.
+std::string OverlayCells(std::string_view board,
+                         std::span<const BoardOverlay> overlay);
+
 }  // namespace risk_game
 
 #endif  // GAME_MCTS_GAME_MCTS_GAMES_RISK_ASCII_ASCII_BOARD_H

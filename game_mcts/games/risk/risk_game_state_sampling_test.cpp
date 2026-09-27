@@ -12,7 +12,7 @@ namespace {
 
 int CountUnits(const RiskState<2> &state) {
   int total = 0;
-  for (const Territory &t : state.m_map) {
+  for (const Territory &t : state.map_) {
     total += t.units;
   }
   return total;
@@ -22,8 +22,8 @@ RiskState<2> MakeAlternatingOwnershipGame() {
   RiskState<2> game;
   game.initial_placement_ = false;
   for (int8_t i = 0; i < kNumTerritories; ++i) {
-    game.m_map[i] = {.owner = static_cast<int8_t>(i % 2),
-                     .units = 2};  // Alternate ownership
+    game.map_[i] = {.owner = static_cast<int8_t>(i % 2),
+                    .units = 2};  // Alternate ownership
   }
   game.turn_count_ = kNumTerritories * 2;
   return game;
@@ -85,7 +85,7 @@ TEST(RiskGameStateSampling, AttackResolvesExpectedBattleOutcome) {
 
   // The successor must be a valid post-battle state: every territory has at
   // least one unit, and no battle left a territory empty.
-  for (const Territory &t : successor->m_map) {
+  for (const Territory &t : successor->map_) {
     EXPECT_GE(t.units, 1);
   }
   // A full battle was fought, so the total unit count must have dropped.
@@ -108,9 +108,9 @@ TEST(RiskGameStateSampling, AttackSetExhausts) {
   // into an enemy territory is attackable.
   size_t expected = 0;
   for (const auto &edge : kAllNeighborEdges) {
-    if (game.m_map[static_cast<size_t>(edge.first)].owner ==
+    if (game.map_[static_cast<size_t>(edge.first)].owner ==
             game.current_player_ &&
-        game.m_map[static_cast<size_t>(edge.second)].owner !=
+        game.map_[static_cast<size_t>(edge.second)].owner !=
             game.current_player_) {
       ++expected;
     }
@@ -155,12 +155,12 @@ TEST(RiskGameStateSampling, NoAttackYieldsFortifySet) {
   // All of player 0's territories bordering territory 0 have a single unit,
   // so no attack is possible (attacks require units > 1).
   for (int8_t i = 0; i < kNumTerritories; ++i) {
-    game.m_map[i] = {.owner = 0, .units = 2};
+    game.map_[i] = {.owner = 0, .units = 2};
   }
-  game.m_map[0] = {.owner = 1, .units = 2};
+  game.map_[0] = {.owner = 1, .units = 2};
   for (const auto &edge : kAllNeighborEdges) {
     if (static_cast<size_t>(edge.second) == 0) {
-      game.m_map[static_cast<size_t>(edge.first)].units = 1;
+      game.map_[static_cast<size_t>(edge.first)].units = 1;
     }
   }
 
@@ -188,9 +188,9 @@ TEST(RiskGameStateSampling, FortifySetAlwaysOffersEndTurn) {
   // Player 0 holds a single one-unit territory: no fortify edge has a source
   // with units to spare.
   for (int8_t i = 0; i < kNumTerritories; ++i) {
-    game.m_map[i] = {.owner = 1, .units = 2};
+    game.map_[i] = {.owner = 1, .units = 2};
   }
-  game.m_map[0] = {.owner = 0, .units = 1};
+  game.map_[0] = {.owner = 0, .units = 1};
 
   FortifyActionSet<2> fortify_set(game);
   std::mt19937 gen(42);

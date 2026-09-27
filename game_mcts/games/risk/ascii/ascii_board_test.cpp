@@ -4,6 +4,7 @@
 
 #include <array>
 #include <iostream>
+#include <string>
 
 namespace risk_game {
 
@@ -56,6 +57,32 @@ TEST(AsciiBoardTest, AllTemplatesNonEmpty) {
       }
     }
   }
+}
+
+// The replay's arrows start and end at the troop counters, so every territory
+// needs one inside the visible board.
+TEST(AsciiBoardTest, EveryTerritoryHasACounterOnTheBoard) {
+  const auto segments = GetAsciiBoardTemplate(80, 3);
+  ASSERT_FALSE(segments.empty());
+  const std::array<CellPos, 43> counters = CounterPositions(segments);
+  for (int id = 1; id <= kNumTerritories; ++id) {
+    EXPECT_GE(counters[id].row_, 0) << "territory id " << id;
+    EXPECT_LT(counters[id].row_, 25) << "territory id " << id;
+    EXPECT_GE(counters[id].col_, 0) << "territory id " << id;
+    EXPECT_LE(counters[id].col_ + counters[id].width_, 80)
+        << "territory id " << id;
+    EXPECT_EQ(counters[id].width_, 3) << "territory id " << id;
+  }
+}
+
+// An overlay replaces exactly one visible cell and leaves the colours around
+// it alone.
+TEST(AsciiBoardTest, OverlayReplacesOneCell) {
+  const std::string board = "\x1b[44mab\x1b[0m\n\x1b[41mcd\x1b[0m\n";
+  const std::array<BoardOverlay, 1> arrow = {
+      BoardOverlay{.row_ = 1, .col_ = 1, .glyph_ = "→"}};
+  EXPECT_EQ(OverlayCells(board, arrow),
+            "\x1b[44mab\x1b[0m\n\x1b[41mc\x1b[1;97m→\x1b[22;39m\x1b[0m\n");
 }
 
 }  // namespace risk_game

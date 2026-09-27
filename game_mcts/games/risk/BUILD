@@ -31,6 +31,32 @@ cc_library(
     ],
 )
 
+# A step for a person: its caption, and the board with what it touched marked.
+cc_library(
+    name = "risk_render",
+    srcs = ["risk_render.cpp"],
+    hdrs = ["risk_render.h"],
+    deps = [
+        ":risk_board",
+        ":risk_game",
+        "//game_mcts/core/util:overloaded",
+        "//game_mcts/games/risk/ascii:ascii_board",
+        "//game_mcts/games/risk/ascii:ascii_board_templates",
+    ],
+)
+
+cc_test(
+    name = "risk_render_test",
+    srcs = ["risk_render_test.cpp"],
+    deps = [
+        ":risk_game",
+        ":risk_render",
+        "//game_mcts/games/risk/ascii:ascii_board",
+        "//game_mcts/games/risk/ascii:ascii_board_templates",
+        "@googletest//:gtest_main",
+    ],
+)
+
 # Strategy policies (proposers, rollout shortcuts, battle-outcome heuristics)
 # live in //game_mcts/games/risk/strategies.
 

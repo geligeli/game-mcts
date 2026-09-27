@@ -12,6 +12,8 @@ arena_problem(
     name = "risk2",
     config = "problem.textproto",
     registry = "//problem:registry",
+    # The arena's kit base plus coding agents; see MODULE.bazel.
+    kit_base = "@kit_agents",
     # A participant's workspace: the harness, the reference bot, the registry
     # (so `arena_cli spar` can referee locally) and what they link against. A
     # kit builds //..., so this is closed under every shipped target's deps,
@@ -35,6 +37,8 @@ arena_problem(
     exclude = [
         "compile_commands.json",
         "index.*",
+        # Host cache addresses, for quickstart.sh's image priming only.
+        "prime.bazelrc",
     ],
     # Every package the bots and the referee build from, beyond this one.
     # bots/reference is left out: it is a participant, not the rules.

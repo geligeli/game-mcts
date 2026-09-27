@@ -54,8 +54,25 @@ bazel_dep(name = "game_arena", version = "0.1.0", dev_dependency = True)
 git_override(
     module_name = "game_arena",
     remote = "https://github.com/geligeli/game-arena.git",
-    commit = "2b4a1ed86c153cea37396d55eaa2a220a3de1877",
+    commit = "8e8a5105da18fc63b8749fe97605635ef2d28d98",
 )
+
+# The kit's base: the arena's image with coding agents (Claude Code, opencode,
+# Antigravity) installed, which game-arena's quickstart.sh builds and pushes.
+# Pinned by digest; bump it to what game-arena's examples/connect4 pins.
+bazel_dep(name = "rules_oci", version = "2.3.0", dev_dependency = True)
+
+oci = use_extension(
+    "@rules_oci//oci:extensions.bzl",
+    "oci",
+    dev_dependency = True,
+)
+oci.pull(
+    name = "kit_agents",
+    digest = "sha256:73cb97998482134edeab224f91e09955846e2048709eb662d6c2a231091733ff",
+    image = "registry.takumi.city/game-arena-kit-agents",
+)
+use_repo(oci, "kit_agents")
 
 # For co-developing the two repos, swap the override above for this one,
 # pointing at your sibling checkout.

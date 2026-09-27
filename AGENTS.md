@@ -169,9 +169,22 @@ This repo is a problem repo in the arena's `examples/connect4` layout:
 - `problem/`: `session.h` (the `mcts::SerializableGame` -> `GameSession`
   adapter) and `registry.cc`, which **defines** the `GameRegistry()` that
   `@game_arena//game_arena/referee:game_registry` only declares
-  (`alwayslink = 1`). Builtins (`random`, `mcts[:iterations=N]`) are stock
+  (`alwayslink = 1`). Builtins (`random`, `mcts[:iterations=N]`,
+  `mcts_smart[:iterations=N]`, tuning_result.md's strongest) are stock
   policies through `SerializedPolicy`. Adding a game or builtin is an entry
   there; if you think game-arena has to change for it, the seam is wrong.
+- `problem/risk_session.h`: risk2 on top of the rules. After `max_rounds`
+  (a registry option) the game is won on territories, then armies; an exact
+  tie is left to the referee's time tiebreak. The replay: `RenderLastStep()`
+  is every step's caption, `RenderState()` the board in full once a turn (and
+  when setup ends and the game is over), a band around a conquest, a new
+  attack or a fortify, and empty otherwise (the dashboard keeps the last
+  view). The session paces bands to `view_kb` (a registry option), never
+  dropping a turn's board; that must stay under `match.max_view_bytes`, and a
+  whole `GameRecord` under one gRPC message (4 MB). The captions and boards
+  come from `game_mcts/games/risk/risk_render.h`, shared with
+  `//problem:risk_replay`, which replays recorded `.pb` games in a terminal
+  (`--mode=full`, `--play`, and `--stats` to measure a game's views).
 - `bots/`: the submission contract. `bot_api.h` (`MakePolicy(const
   candidate::Params&) -> candidate::policy_t`), `bot.cc` (the harness, on
   `@game_arena//game_arena/client:play_loop`), `bot_deps`. Each participant
@@ -191,7 +204,9 @@ This repo is a problem repo in the arena's `examples/connect4` layout:
   --player_a=reference --games=2` and, against its port, `bazel run
   //bots/reference:bot -- --name=reference --opponent=builtin:mcts`. Opponents
   are `builtin:<spec>` or `player:<name>` (both sides name each other).
-  Whole tournament with a kit shell: `bazel run //:play`. Protocol, referee
+  Whole tournament with a kit shell: `bazel run //:play`; with coding agents
+  as the players: `./quickstart.sh [--local]`, which starts each on
+  `problem/mission.md`. Protocol, referee
   flags and the submission loop: `game_arena/README.md` and
   `game_arena/ARENA.md` in the arena repo.
 

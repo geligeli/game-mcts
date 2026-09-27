@@ -303,11 +303,11 @@ void Render(const risk_game::RiskState<NUM_PLAYERS> &game, const Stats &stats,
   std::array<bool, risk_game::kNumTerritories> changed{};
   if (history.valid_ && absl::GetFlag(FLAGS_highlight_changes)) {
     for (size_t i = 0; i < changed.size(); ++i) {
-      changed[i] = game.m_map[i].units != history.units[i];
+      changed[i] = game.map_[i].units != history.units[i];
     }
   }
   for (size_t i = 0; i < changed.size(); ++i) {
-    history.units[i] = game.m_map[i].units;
+    history.units[i] = game.map_[i].units;
   }
   history.valid_ = true;
 

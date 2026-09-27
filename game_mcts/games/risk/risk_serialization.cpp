@@ -149,7 +149,7 @@ auto GameSerializationTraits<risk_game::RiskState<NUM_PLAYERS>>::StateToProto(
   }
   proto.mutable_territories()->Reserve(
       static_cast<int>(risk_game::kNumTerritories));
-  for (const risk_game::Territory &territory : state.m_map) {
+  for (const risk_game::Territory &territory : state.map_) {
     *proto.add_territories() = TerritoryToProto(territory);
   }
   proto.set_initial_placement(state.initial_placement_);
@@ -186,7 +186,7 @@ GameSerializationTraits<risk_game::RiskState<NUM_PLAYERS>>::StateFromProto(
         static_cast<uint16_t>(proto.reserves(p));
   }
   for (int i = 0; i < proto.territories_size(); ++i) {
-    state.m_map[static_cast<std::size_t>(i)] =
+    state.map_[static_cast<std::size_t>(i)] =
         TerritoryFromProto(proto.territories(i), NUM_PLAYERS);
   }
   state.initial_placement_ = proto.initial_placement();

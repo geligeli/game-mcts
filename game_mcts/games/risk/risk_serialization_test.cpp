@@ -76,9 +76,9 @@ RiskState<2> MakeMidGameState() {
   state.initial_placement_ = false;
   state.num_initial_placements_ = kNumTerritories;
   state.reserves_ = {0, 0};
-  for (size_t i = 0; i < state.m_map.size(); ++i) {
-    state.m_map[i].owner = static_cast<int8_t>(i % 2);
-    state.m_map[i].units = 5;
+  for (size_t i = 0; i < state.map_.size(); ++i) {
+    state.map_[i].owner = static_cast<int8_t>(i % 2);
+    state.map_[i].units = 5;
   }
   state.current_player_ = 0;
   state.first_attack_of_turn_ = true;
@@ -104,8 +104,8 @@ TEST(RiskSerializationTest, InitialStateRoundTrips) {
 
 TEST(RiskSerializationTest, SaturatedTerritoryRoundTrips) {
   RiskState<2> state = MakeMidGameState();
-  state.m_map[0].units = std::numeric_limits<uint16_t>::max();
-  state.m_map[1].units = std::numeric_limits<uint16_t>::max();
+  state.map_[0].units = std::numeric_limits<uint16_t>::max();
+  state.map_[1].units = std::numeric_limits<uint16_t>::max();
   EXPECT_EQ(RoundTripState(state), state);
 }
 
@@ -113,7 +113,7 @@ TEST(RiskSerializationTest, QueuedAttackRoundTrips) {
   RiskState<2> state = MakeMidGameState();
   state.queued_attack_ =
       QueueAttackAction{.source_ = 7, .target = 0, .num_attack_dice_ = 3};
-  state.current_player_ = state.m_map[0].owner;
+  state.current_player_ = state.map_[0].owner;
   state.first_attack_of_turn_ = false;
   EXPECT_EQ(RoundTripState(state), state);
 }
@@ -131,7 +131,7 @@ TEST(RiskSerializationTest, ChanceNodeRoundTrips) {
 
 TEST(RiskSerializationTest, TerminalStateRoundTrips) {
   RiskState<2> state = MakeMidGameState();
-  for (Territory &t : state.m_map) {
+  for (Territory &t : state.map_) {
     t.owner = 1;
   }
   ASSERT_TRUE(mcts::is_terminal(state.current_state()));

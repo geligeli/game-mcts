@@ -1,3 +1,4 @@
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
@@ -18,19 +19,34 @@ cc_library(
     ],
 )
 
+# risk2's session: the round cap and the replay view on top of the adapter.
+cc_library(
+    name = "risk_session",
+    hdrs = ["risk_session.h"],
+    deps = [
+        ":session",
+        "//game_mcts/core/mcts:serialization",
+        "//game_mcts/games/risk:risk_game",
+        "//game_mcts/games/risk:risk_render",
+        "//game_mcts/games/risk:risk_serialization",
+        "@game_arena//game_arena/referee:game_session",
+    ],
+)
+
 # alwayslink: nothing depends on it by label; it defines a symbol the arena declares.
 cc_library(
     name = "registry",
     srcs = ["registry.cc"],
     alwayslink = 1,
     deps = [
-        ":session",
+        ":risk_session",
         "//game_mcts/core/mcts:policies",
         "//game_mcts/games/risk:risk_game",
         "//game_mcts/games/risk:risk_serialization",
         "//game_mcts/games/risk/strategies:risk_proposer",
         "//game_mcts/games/risk/strategies:risk_rollout_shortcuts",
         "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/strings",
         "@game_arena//game_arena/referee:game_registry",
     ],
 )
@@ -52,12 +68,41 @@ cc_test(
 )
 
 cc_test(
+    name = "risk_session_test",
+    srcs = ["risk_session_test.cc"],
+    deps = [
+        ":risk_session",
+        "//game_mcts/core/mcts:serialization",
+        "//game_mcts/games/risk:risk_game",
+        "//game_mcts/games/risk:risk_serialization",
+        "//game_mcts/games/risk/strategies:risk_proposer",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "registry_test",
     srcs = ["registry_test.cc"],
     deps = [
         ":registry",
         "@game_arena//game_arena/referee:game_registry",
         "@googletest//:gtest_main",
+    ],
+)
+
+# Replays recorded games in the terminal; --stats measures a game's views.
+cc_binary(
+    name = "risk_replay",
+    srcs = ["risk_replay.cc"],
+    deps = [
+        ":risk_session",
+        "//game_mcts/core/mcts:serialization",
+        "//game_mcts/games/risk:risk_game",
+        "//game_mcts/games/risk:risk_render",
+        "//game_mcts/games/risk:risk_serialization",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@game_arena//game_arena/proto:tournament_broker_cc_proto",
     ],
 )
 

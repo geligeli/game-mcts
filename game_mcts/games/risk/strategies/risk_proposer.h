@@ -62,7 +62,7 @@ struct RiskProposer {
               ? state.current_player_
               : -1;
       std::size_t count = 0;
-      for (const Territory &t : state.m_map) {
+      for (const Territory &t : state.map_) {
         count += (t.owner == wanted_owner);
       }
       return count;
@@ -87,7 +87,7 @@ struct RiskProposer {
     // sample()'s filter: only edges whose source outnumbers the target count.
     uint64_t mine;
     uint64_t strong;
-    internal::OwnershipMasks(state.m_map.data(), state.m_map.size(),
+    internal::OwnershipMasks(state.map_.data(), state.map_.size(),
                              state.current_player_, mine, strong);
     std::size_t num_candidates = 0;
     uint64_t sources = mine & strong;
@@ -100,7 +100,7 @@ struct RiskProposer {
           const int tgt = std::countr_zero(targets);
           targets &= targets - 1;
           num_candidates +=
-              (state.m_map[src].units - 1 > state.m_map[tgt].units) ? 1 : 0;
+              (state.map_[src].units - 1 > state.map_[tgt].units) ? 1 : 0;
         }
       } else {
         num_candidates += static_cast<std::size_t>(std::popcount(targets));
@@ -121,8 +121,8 @@ struct RiskProposer {
               : -1;
       int territory_to_place = -1;
       uint32_t territory_score = 0;
-      for (size_t i = 0; i < state.m_map.size(); ++i) {
-        if (state.m_map[i].owner == wanted_owner) {
+      for (size_t i = 0; i < state.map_.size(); ++i) {
+        if (state.map_[i].owner == wanted_owner) {
           const uint32_t val = gen();
           if (territory_to_place < 0 || val > territory_score) {
             territory_score = val;
@@ -139,8 +139,7 @@ struct RiskProposer {
     if (state.queued_attack_.has_value()) {
       assert(!state.queued_defense_.has_value());
       return QueueDefenseAction{std::min(
-          2,
-          static_cast<int>(state.m_map[state.queued_attack_->target].units))};
+          2, static_cast<int>(state.map_[state.queued_attack_->target].units))};
     }
 
     PlayerAction pa;
@@ -150,7 +149,7 @@ struct RiskProposer {
     // iff territory i has units to spare.
     uint64_t mine;
     uint64_t strong;
-    internal::OwnershipMasks(state.m_map.data(), state.m_map.size(),
+    internal::OwnershipMasks(state.map_.data(), state.map_.size(),
                              state.current_player_, mine, strong);
 
     if (state.first_attack_of_turn_) {
@@ -235,7 +234,7 @@ struct RiskProposer {
         for (int i = 0; i < num_candidates; ++i) {
           const int src = candidates[i] >> 8;
           const int tgt = candidates[i] & 0xFF;
-          if (state.m_map[src].units - 1 > state.m_map[tgt].units) {
+          if (state.map_[src].units - 1 > state.map_[tgt].units) {
             favorable[num_favorable++] = candidates[i];
           }
         }
@@ -248,7 +247,7 @@ struct RiskProposer {
             const uint16_t candidate = favorable[pick];
             const int src = candidate >> 8;
             pa.attack_action_ = QueueAttackAction{
-                src, candidate & 0xFF, std::min(3, state.m_map[src].units - 1)};
+                src, candidate & 0xFF, std::min(3, state.map_[src].units - 1)};
           }
           // Otherwise end turn: fall through to the fortify below.
         } else if (!may_end_turn) {
@@ -259,7 +258,7 @@ struct RiskProposer {
                   gen, static_cast<uint32_t>(num_candidates)))];
           const int src = candidate >> 8;
           pa.attack_action_ = QueueAttackAction{
-              src, candidate & 0xFF, std::min(3, state.m_map[src].units - 1)};
+              src, candidate & 0xFF, std::min(3, state.map_[src].units - 1)};
         }
         // Otherwise no favorable attack: fall through to the fortify below.
       } else {
@@ -271,7 +270,7 @@ struct RiskProposer {
           const uint16_t candidate = candidates[pick];
           const int src = candidate >> 8;
           pa.attack_action_ = QueueAttackAction{
-              src, candidate & 0xFF, std::min(3, state.m_map[src].units - 1)};
+              src, candidate & 0xFF, std::min(3, state.map_[src].units - 1)};
         }
       }
     }
@@ -328,20 +327,20 @@ struct RiskProposer {
         const size_t neighbor =
             static_cast<size_t>(std::countr_zero(enemy_neighbors));
         enemy_neighbors &= enemy_neighbors - 1;
-        enemy_neighbors_units += state.m_map[neighbor].units;
+        enemy_neighbors_units += state.map_[neighbor].units;
       }
       TargetCandidate tc{.country_id = i,
                          .num_enemy_neighbors = enemy_neighbors_units,
-                         .num_units = state.m_map[i].units};
+                         .num_units = state.map_[i].units};
       SourceCandidate sc{.country_id = i,
                          .num_enemy_neighbors = enemy_neighbors_units,
-                         .num_units = state.m_map[i].units};
+                         .num_units = state.map_[i].units};
       best_source = std::max(best_source, sc);
       best_target = std::max(best_target, tc);
     }
     fa.source_ = best_source.country_id;
     fa.target = best_target.country_id;
-    fa.num_units = state.m_map[fa.source_].units - 1;
+    fa.num_units = state.map_[fa.source_].units - 1;
     return fa;
   }
 };

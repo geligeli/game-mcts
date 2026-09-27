@@ -61,7 +61,30 @@ common --repository_cache=/large_nfs/bazel-cache/repo
 common --experimental_disk_cache_gc_max_size=50G
 ```
 
-Play a local risk2 match, or run a whole tournament with a participant kit:
+## Quickstart: a risk2 tournament with coding agents
+
+```sh
+export CLAUDE_CODE_OAUTH_TOKEN=...   # `claude setup-token`
+./quickstart.sh --local              # or without --local: push to registry.takumi.city
+```
+
+One tmux session: the coordinator (dashboard on http://localhost:8090, with
+coloured replays; `GRPC_PORT` / `HTTP_PORT` move it beside another
+tournament), a sandbox worker, and a kit container per player
+(`PLAYERS="alice bob"` by default), each running Claude Code on the standing
+mission in `problem/mission.md`: improve `bots/<name>/`, spar briefly, submit.
+Only submissions are rated. The agents' base image is game-arena's; its
+`quickstart.sh` builds it and `MODULE.bazel` pins it by digest.
+
+Replay a recorded game in the terminal, the same captions and boards the
+dashboard shows (games land in `~/.arena/risk2/games/`, or a referee's
+`--scratch_dir`):
+
+```sh
+bazel run //problem:risk_replay -- --play --delay_ms=300 GAME.pb
+```
+
+Smaller loops: one local match, or a tournament with a kit shell for you:
 
 ```sh
 bazel run //:match_referee -- --game=risk2 --player_a=reference --games=2 &

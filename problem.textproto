@@ -16,8 +16,15 @@ description:
   "through `arena_cli source <name>` -- reading the leader and improving on "
   "it is the intended loop, not cheating.\n"
   "\n"
-  "You are placed against `builtin:random` and `builtin:mcts` first, then "
-  "matched against other submissions.\n"
+  "The game ends when one side owns the whole map, or after 40 rounds (a "
+  "round is one turn each): then the side holding more territories wins, then "
+  "the one with more armies. A passive bot loses. A turn ends with a "
+  "FortifyAction; a PlayerAction must reinforce or attack.\n"
+  "\n"
+  "Only submissions are rated. Each submit plays 10 games against every "
+  "builtin (`random`, `mcts`, `mcts_smart`, the strongest known) and up to 3 "
+  "rated rivals, and replaces your previous entry. `arena_cli spar` is a "
+  "local sanity check; nothing it plays counts.\n"
 
 submission {
   # A strategy is a header or two. A patch an order of magnitude larger than
@@ -48,14 +55,14 @@ build {
   targets: "//bots/{submission_id}:bot"
   targets: "//:match_referee"
   # Here rather than in .bazelrc, so only what a match runs is optimized.
-  bazel_flags: "-c opt"
+  bazel_flags: "--compilation_mode=opt"
   timeout_s: 1800
 }
 
 sandbox {
   # What a worker asks its daemon for, as `bazel run //:sandbox_image_issue`
   # makes it. Bump the tag whenever the tree or the toolchain changes.
-  image: "registry.takumi.city/game-mcts-sandbox:1"
+  image: "registry.takumi.city/game-mcts-sandbox:2"
   # So a build needs no network, and a submitted genrule cannot exfiltrate.
   allow_build_network: false
   # Owns the image's primed cache, which fills a worker's empty cache volume.
@@ -69,14 +76,27 @@ match {
   games_per_order: 10
   placement_opponents: "builtin:random"
   placement_opponents: "builtin:mcts"
+  placement_opponents: "builtin:mcts_smart"
   turn_timeout_ms: 10000
-  # Without a whole-game budget the per-turn clock bounds nothing: a slow
-  # strategy can burn ten seconds on each of thousands of moves.
-  game_time_budget_ms: 120000
+  # Without a whole-game budget the per-turn clock bounds nothing. 400 MCTS
+  # iterations think ~2.3 s a round, so 40 rounds take ~90 s of it.
+  game_time_budget_ms: 180000
+  # A safety net only: max_rounds ends games long before it (~20-50 steps a
+  # round).
   max_moves_per_game: 50000
-  # Handed to the referee's registry verbatim; problem/registry.cc reads it.
+  # Handed to the referee's registry verbatim; problem/registry.cc reads them.
+  # Measured uncapped (400 iterations, 40 games of random/mcts/mcts_smart):
+  # every decided game ended within 21 rounds, the rest were stalemates still
+  # going at 300.
   registry_options { key: "mcts_iterations" value: "400" }
-  timeout_s: 1800
+  registry_options { key: "max_rounds" value: "40" }
+  # The replay's captions and views per game, which the session paces itself
+  # to (problem/risk_session.h): below the referee's default max_view_bytes
+  # (1 MiB), so that is left unset. 30 placement games took 235-609 KB
+  # (`bazel run //problem:risk_replay -- --stats <games>.pb`).
+  registry_options { key: "view_kb" value: "700" }
+  # Ten games in sequence, each at most ~6 min at the cap.
+  timeout_s: 3600
 }
 
 # Copied to bots/<your name>/ the first time.

@@ -49,6 +49,22 @@ TEST(RiskGameTest, InitialReinforcements) {
   EXPECT_EQ(state.current_player(), 0);
 }
 
+// Player 0 moves first once placement ends, with that turn's reinforcements
+// like every later turn: without them the second seat started ahead.
+TEST(RiskGameTest, TheFirstTurnAfterPlacementIsReinforced) {
+  RiskState<2> state;
+  for (int t = 0; state.initial_placement_; t = (t + 1) % kNumTerritories) {
+    std::string reason;
+    if (state.is_valid_action(InitialPlaceAction{t}, reason)) {
+      state.apply_action_in_place(InitialPlaceAction{t});
+    }
+  }
+  EXPECT_EQ(state.current_player(), 0);
+  EXPECT_TRUE(state.first_attack_of_turn_);
+  // 21 territories: max(3, 21 / 3) = 7, and no continent is whole.
+  EXPECT_EQ(state.reserves_[0], 7);
+}
+
 TEST(RiskGameTest, RunGameWithRandomActions) {
   RiskState<2> state;
 
@@ -93,9 +109,9 @@ TEST(RiskGameTest, BattleExpectationShortcutResolvesQueuedBattle) {
 
   const int src = state.queued_attack_->source_;
   const int tgt = state.queued_attack_->target;
-  const int attackers = state.m_map[src].units - 1;
-  const int defenders = state.m_map[tgt].units;
-  const int8_t attacker_owner = state.m_map[src].owner;
+  const int attackers = state.map_[src].units - 1;
+  const int defenders = state.map_[tgt].units;
+  const int8_t attacker_owner = state.map_[src].owner;
 
   const auto next_opt = ResolveBattleWithExpectation(state, gen);
   ASSERT_TRUE(next_opt.has_value());
@@ -108,14 +124,14 @@ TEST(RiskGameTest, BattleExpectationShortcutResolvesQueuedBattle) {
   const BattleRemnants expected = LookupExpectedRemnants(attackers, defenders);
   // Winner = side with more expected survivors.
   if (expected.attackers_ > expected.defenders_) {
-    EXPECT_EQ(next.m_map[tgt].owner, attacker_owner);
-    EXPECT_EQ(next.m_map[tgt].units, expected.attackers_);
-    EXPECT_EQ(next.m_map[src].units,
-              state.m_map[src].units - (attackers - expected.attackers_));
+    EXPECT_EQ(next.map_[tgt].owner, attacker_owner);
+    EXPECT_EQ(next.map_[tgt].units, expected.attackers_);
+    EXPECT_EQ(next.map_[src].units,
+              state.map_[src].units - (attackers - expected.attackers_));
   } else {
-    EXPECT_EQ(next.m_map[src].units, 1);
-    EXPECT_EQ(next.m_map[src].owner, attacker_owner);
-    EXPECT_EQ(next.m_map[tgt].units, expected.defenders_);
+    EXPECT_EQ(next.map_[src].units, 1);
+    EXPECT_EQ(next.map_[src].owner, attacker_owner);
+    EXPECT_EQ(next.map_[tgt].units, expected.defenders_);
   }
 }
 
@@ -141,10 +157,10 @@ TEST(RiskGameTest, NextPlayerSkipsEliminatedPlayers) {
   RiskState<3> state;
   // Players 0 and 2 own one territory each; player 1 is eliminated.
   state.initial_placement_ = false;
-  state.m_map[0].owner = 0;
-  state.m_map[0].units = 2;
-  state.m_map[1].owner = 2;
-  state.m_map[1].units = 2;
+  state.map_[0].owner = 0;
+  state.map_[0].units = 2;
+  state.map_[1].owner = 2;
+  state.map_[1].units = 2;
   state.current_player_ = 0;
 
   // Passing on the fortify step advances to the next player.
@@ -251,9 +267,9 @@ RiskState<2> MakeMidGameState() {
   state.initial_placement_ = false;
   state.num_initial_placements_ = kNumTerritories;
   state.reserves_ = {0, 0};
-  for (size_t i = 0; i < state.m_map.size(); ++i) {
-    state.m_map[i].owner = static_cast<int8_t>(i % 2);
-    state.m_map[i].units = 5;
+  for (size_t i = 0; i < state.map_.size(); ++i) {
+    state.map_[i].owner = static_cast<int8_t>(i % 2);
+    state.map_[i].units = 5;
   }
   state.current_player_ = 0;
   state.first_attack_of_turn_ = true;
@@ -266,7 +282,7 @@ RiskState<2> MakeQueuedAttackState() {
   RiskState<2> state = MakeMidGameState();
   state.queued_attack_ =
       QueueAttackAction{.source_ = 7, .target = 0, .num_attack_dice_ = 1};
-  state.current_player_ = state.m_map[0].owner;
+  state.current_player_ = state.map_[0].owner;
   state.first_attack_of_turn_ = false;
   return state;
 }
@@ -296,9 +312,9 @@ TEST(RiskGameTest, IsValidActionInitialPlacement) {
   // territories.
   RiskState<2> late;
   late.num_initial_placements_ = kNumTerritories;
-  for (size_t i = 0; i < late.m_map.size(); ++i) {
-    late.m_map[i].owner = static_cast<int8_t>(i % 2);
-    late.m_map[i].units = 1;
+  for (size_t i = 0; i < late.map_.size(); ++i) {
+    late.map_[i].owner = static_cast<int8_t>(i % 2);
+    late.map_[i].units = 1;
   }
   late.current_player_ = 0;
   EXPECT_TRUE(late.is_valid_action(InitialPlaceAction{0}, reason));
@@ -336,7 +352,7 @@ TEST(RiskGameTest, IsValidActionAttack) {
   EXPECT_FALSE(reason.empty());
   // Attacking own (adjacent) territory.
   RiskState<2> own_target = state;
-  own_target.m_map[7].owner = 0;
+  own_target.map_[7].owner = 0;
   EXPECT_FALSE(own_target.is_valid_action(attack(0, 7, 1), reason));
   EXPECT_FALSE(reason.empty());
   // Dice count 0 and 4 are out of [1, 3].
@@ -346,7 +362,7 @@ TEST(RiskGameTest, IsValidActionAttack) {
   EXPECT_FALSE(reason.empty());
   // Source units must strictly exceed the dice count.
   RiskState<2> thin = state;
-  thin.m_map[0].units = 3;
+  thin.map_[0].units = 3;
   EXPECT_FALSE(thin.is_valid_action(attack(0, 7, 3), reason));
   EXPECT_FALSE(reason.empty());
   EXPECT_TRUE(thin.is_valid_action(attack(0, 7, 2), reason));
@@ -385,6 +401,22 @@ TEST(RiskGameTest, IsValidActionReinforce) {
   EXPECT_FALSE(reason.empty());
 }
 
+// A PlayerAction that changes nothing keeps the same player to move, so
+// repeating it would stall the game until the referee's move cap.
+TEST(RiskGameTest, IsValidActionRejectsNoOpPlayerActions) {
+  std::string reason;
+  RiskState<2> state = MakeMidGameState();
+  EXPECT_FALSE(state.is_valid_action(RiskAction{PlayerAction{}}, reason));
+  EXPECT_NE(reason.find("FortifyAction"), std::string::npos) << reason;
+
+  reason.clear();
+  state.reserves_[0] = 0;
+  EXPECT_FALSE(state.is_valid_action(
+      RiskAction{PlayerAction{.reinforce_action_ = ReinforceAction{}}},
+      reason));
+  EXPECT_EQ(reason, "no reserves left to place");
+}
+
 TEST(RiskGameTest, IsValidActionDefense) {
   std::string reason;
   RiskState<2> state = MakeQueuedAttackState();
@@ -398,7 +430,7 @@ TEST(RiskGameTest, IsValidActionDefense) {
   EXPECT_FALSE(state.is_valid_action(QueueDefenseAction{3}, reason));
   EXPECT_FALSE(reason.empty());
   // Cannot defend with more dice than defending armies.
-  state.m_map[0].units = 1;
+  state.map_[0].units = 1;
   EXPECT_FALSE(state.is_valid_action(QueueDefenseAction{2}, reason));
   EXPECT_FALSE(reason.empty());
   // No defense without a queued attack.

@@ -30,16 +30,16 @@ struct InitialPlaceActionSet {
     if (state.num_initial_placements_ >= kNumTerritories) {
       // Initial placements after all territories are claimed: players can
       // only place on territories they already own.
-      for (size_t i = 0; i < state.m_map.size(); ++i) {
-        if (state.m_map[i].owner == state.current_player_) {
+      for (size_t i = 0; i < state.map_.size(); ++i) {
+        if (state.map_[i].owner == state.current_player_) {
           allowed_territories_.push_back(static_cast<int8_t>(i));
         }
       }
     } else {
       // Initial placement phase: players can only place on unoccupied
       // territories.
-      for (size_t i = 0; i < state.m_map.size(); ++i) {
-        if (state.m_map[i].owner == -1) {
+      for (size_t i = 0; i < state.map_.size(); ++i) {
+        if (state.map_[i].owner == -1) {
           allowed_territories_.push_back(static_cast<int8_t>(i));
         }
       }
@@ -69,8 +69,8 @@ template <size_t NUM_PLAYERS>
 struct ReinforceActionSet {
   explicit ReinforceActionSet(const RiskState<NUM_PLAYERS> &state)
       : state_(state) {
-    for (size_t i = 0; i < state.m_map.size(); ++i) {
-      if (state.m_map[i].owner == state.current_player_) {
+    for (size_t i = 0; i < state.map_.size(); ++i) {
+      if (state.map_[i].owner == state.current_player_) {
         allowed_territories_.push_back(static_cast<int8_t>(i));
       }
     }
@@ -107,11 +107,9 @@ struct QueueAttackActionSet {
     for (const auto &edge : kAllNeighborEdges) {
       Country src = edge.first;
       Country tgt = edge.second;
-      if (state.m_map[static_cast<size_t>(src)].owner ==
-              state.current_player_ &&
-          state.m_map[static_cast<size_t>(tgt)].owner !=
-              state.current_player_ &&
-          state.m_map[static_cast<size_t>(src)].units > 1) {
+      if (state.map_[static_cast<size_t>(src)].owner == state.current_player_ &&
+          state.map_[static_cast<size_t>(tgt)].owner != state.current_player_ &&
+          state.map_[static_cast<size_t>(src)].units > 1) {
         source_target_pairs_.set(index);
       }
       ++index;
@@ -135,8 +133,8 @@ struct QueueAttackActionSet {
       const size_t tgt = static_cast<size_t>(edge.second);
 
       const int attackers =
-          static_cast<int>(state_.m_map[src].units) - 1;  // keep one behind
-      const int defenders = static_cast<int>(state_.m_map[tgt].units);
+          static_cast<int>(state_.map_[src].units) - 1;  // keep one behind
+      const int defenders = static_cast<int>(state_.map_[tgt].units);
       BattleRemnants outcome = LookupExpectedRemnants(attackers, defenders);
 
       auto result = state_;
@@ -144,13 +142,13 @@ struct QueueAttackActionSet {
       // battles; the side with more expected survivors wins.
       if (outcome.attackers_ > outcome.defenders_) {
         // Target captured: surviving attackers move in, losses stay behind.
-        result.m_map[src].units -= (attackers - outcome.attackers_);
-        result.m_map[tgt].units = outcome.attackers_;
-        result.m_map[tgt].owner = result.current_player_;
+        result.map_[src].units -= (attackers - outcome.attackers_);
+        result.map_[tgt].units = outcome.attackers_;
+        result.map_[tgt].owner = result.current_player_;
       } else {
         // Attack repelled: source down to one unit, defenders remain.
-        result.m_map[src].units = 1;
-        result.m_map[tgt].units = outcome.defenders_;
+        result.map_[src].units = 1;
+        result.map_[tgt].units = outcome.defenders_;
       }
       result.first_attack_of_turn_ = false;
       return result;
@@ -175,9 +173,9 @@ struct QueueDefenseActionSet {
     }
     consumed_ = true;
     QueueDefenseAction action{
-        .num_defend_dice_ = std::min(
-            2, static_cast<int>(
-                   state_.m_map[state_.queued_attack_->target].units))};
+        .num_defend_dice_ =
+            std::min(2, static_cast<int>(
+                            state_.map_[state_.queued_attack_->target].units))};
     return state_.apply_action(action);
   }
 
@@ -199,9 +197,9 @@ struct FortifyActionSet {
     for (const auto &edge : kAllNeighborEdges) {
       const size_t src = static_cast<size_t>(edge.first);
       const size_t tgt = static_cast<size_t>(edge.second);
-      if (state.m_map[src].owner == state.current_player_ &&
-          state.m_map[tgt].owner == state.current_player_ &&
-          state.m_map[src].units > 1) {
+      if (state.map_[src].owner == state.current_player_ &&
+          state.map_[tgt].owner == state.current_player_ &&
+          state.map_[src].units > 1) {
         source_target_pairs_.set(index);
       }
       ++index;
@@ -221,7 +219,7 @@ struct FortifyActionSet {
       FortifyAction action{
           .source_ = static_cast<int>(src),
           .target = static_cast<int>(tgt),
-          .num_units = static_cast<int>(state_.m_map[src].units) - 1};
+          .num_units = static_cast<int>(state_.map_[src].units) - 1};
       return state_.apply_action(action);
     }
     if (!end_turn_drawn_) {

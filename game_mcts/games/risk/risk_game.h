@@ -278,7 +278,7 @@ template <size_t NUM_PLAYERS>
 struct RiskState {
   static constexpr size_t kNumPlayers = NUM_PLAYERS;
   constexpr RiskState() {
-    for (Territory &t : m_map) {
+    for (Territory &t : map_) {
       t = {.owner = -1, .units = 0};  // Unowned
     }
   }
@@ -309,7 +309,7 @@ struct RiskState {
     return res;
   }
   std::array<uint16_t, NUM_PLAYERS> reserves_ = InitialReserves();
-  std::array<Territory, kNumTerritories> m_map;
+  std::array<Territory, kNumTerritories> map_;
   bool initial_placement_{true};
   std::size_t num_initial_placements_{0};
   bool first_attack_of_turn_{true};
@@ -326,7 +326,7 @@ struct RiskState {
     // directly gives both the owned count and the continent checks.
     uint64_t mine;
     uint64_t strong;
-    internal::OwnershipMasks(m_map.data(), m_map.size(), current_player_, mine,
+    internal::OwnershipMasks(map_.data(), map_.size(), current_player_, mine,
                              strong);
     reserves_[current_player_] =
         std::max(3, static_cast<int>(std::popcount(mine)) / 3);
@@ -343,7 +343,7 @@ struct RiskState {
     // game is only ongoing while at least one player owns a territory.
     do {
       current_player_ = (current_player_ + 1) % NUM_PLAYERS;
-    } while (std::none_of(m_map.begin(), m_map.end(), [&](const Territory &t) {
+    } while (std::none_of(map_.begin(), map_.end(), [&](const Territory &t) {
       return t.owner == current_player_;
     }));
     if (current_player_ == 0) {
@@ -354,7 +354,7 @@ struct RiskState {
   }
 
   void InitialPlace(int territory) {
-    Territory &t = m_map[territory];
+    Territory &t = map_[territory];
     t.owner = current_player_;
     t.units = internal::SaturatingAddUnits(t.units, 1);
     reserves_[current_player_] -= 1;
@@ -364,6 +364,9 @@ struct RiskState {
       turn_count_++;
       if (reserves_[0] == 0) {
         initial_placement_ = false;
+        // Every turn starts with reinforcements, the first one included;
+        // later turns get theirs in NextPlayer().
+        AddTurnStartReinforcements();
       }
     }
     num_initial_placements_++;
@@ -371,9 +374,9 @@ struct RiskState {
 
   void ReinforceWithReserves(const ReinforceAction &reinforce_action) {
 #pragma GCC unroll 42
-    for (size_t i = 0; i < m_map.size(); ++i) {
+    for (size_t i = 0; i < map_.size(); ++i) {
       if (reinforce_action.units_to_place_[i] > 0) {
-        Territory &t = m_map[i];
+        Territory &t = map_[i];
         assert(t.owner == current_player_);
         assert(reserves_[current_player_] >=
                reinforce_action.units_to_place_[i]);
@@ -390,30 +393,30 @@ struct RiskState {
       return;
     }
     assert(fortify_action.source_ >= 0 &&
-           fortify_action.source_ < static_cast<int>(m_map.size()));
+           fortify_action.source_ < static_cast<int>(map_.size()));
     assert(fortify_action.target >= 0 &&
-           fortify_action.target < static_cast<int>(m_map.size()));
+           fortify_action.target < static_cast<int>(map_.size()));
     assert(fortify_action.num_units > 0);
-    assert(m_map[fortify_action.source_].units >= fortify_action.num_units);
-    m_map[fortify_action.source_].units -= fortify_action.num_units;
-    m_map[fortify_action.target].units = internal::SaturatingAddUnits(
-        m_map[fortify_action.target].units, fortify_action.num_units);
+    assert(map_[fortify_action.source_].units >= fortify_action.num_units);
+    map_[fortify_action.source_].units -= fortify_action.num_units;
+    map_[fortify_action.target].units = internal::SaturatingAddUnits(
+        map_[fortify_action.target].units, fortify_action.num_units);
     NextPlayer();
   }
 
   void Attack(QueueAttackAction attack_action) {
     assert(attack_action.source_ != attack_action.target);
     assert(attack_action.source_ >= 0 &&
-           attack_action.source_ < static_cast<int>(m_map.size()));
+           attack_action.source_ < static_cast<int>(map_.size()));
     assert(attack_action.target >= 0 &&
-           attack_action.target < static_cast<int>(m_map.size()));
+           attack_action.target < static_cast<int>(map_.size()));
     assert(attack_action.num_attack_dice_ >= 1 &&
            attack_action.num_attack_dice_ <= 3);
-    assert(m_map[attack_action.source_].units > attack_action.num_attack_dice_);
+    assert(map_[attack_action.source_].units > attack_action.num_attack_dice_);
     assert(!queued_attack_.has_value());
     assert(!queued_defense_.has_value());
     queued_attack_ = attack_action;
-    current_player_ = m_map[attack_action.target].owner;
+    current_player_ = map_[attack_action.target].owner;
     first_attack_of_turn_ = false;
   }
 
@@ -421,8 +424,8 @@ struct RiskState {
     assert(queued_attack_.has_value());
     assert(queued_defense_.has_value());
 
-    Territory &src = m_map[queued_attack_->source_];
-    Territory &tgt = m_map[queued_attack_->target];
+    Territory &src = map_[queued_attack_->source_];
+    Territory &tgt = map_[queued_attack_->target];
     std::array<int, 3> attacker_rolls = roll_action.attacker_rolls_;
     std::array<int, 2> defender_rolls = roll_action.defender_rolls_;
 
@@ -450,9 +453,9 @@ struct RiskState {
       // tgt was just reduced to 0, so this cannot saturate in practice; use
       // the saturating add anyway to keep "all unit growth is saturating".
       tgt.units = internal::SaturatingAddUnits(tgt.units, move_units);
-      tgt.owner = m_map[queued_attack_->source_].owner;
+      tgt.owner = map_[queued_attack_->source_].owner;
     }
-    current_player_ = m_map[queued_attack_->source_].owner;
+    current_player_ = map_[queued_attack_->source_].owner;
     queued_attack_ = std::nullopt;
     queued_defense_ = std::nullopt;
   }
@@ -507,7 +510,7 @@ struct RiskState {
 
   mcts::game_state_t current_state() const {
     int seen_owner = -1;
-    for (const Territory &t : m_map) {
+    for (const Territory &t : map_) {
       if (t.owner == -1) {
         return mcts::ongoing_t{};
       }
@@ -558,16 +561,16 @@ struct RiskState {
                 return false;
               }
               if (act.territory_ < 0 ||
-                  act.territory_ >= static_cast<int>(m_map.size())) {
+                  act.territory_ >= static_cast<int>(map_.size())) {
                 reason = "territory out of range";
                 return false;
               }
               if (num_initial_placements_ < kNumTerritories) {
-                if (m_map[act.territory_].owner != -1) {
+                if (map_[act.territory_].owner != -1) {
                   reason = "territory already owned during claiming phase";
                   return false;
                 }
-              } else if (m_map[act.territory_].owner != current_player_) {
+              } else if (map_[act.territory_].owner != current_player_) {
                 reason =
                     "can only reinforce own territories during initial "
                     "placement";
@@ -593,7 +596,21 @@ struct RiskState {
                 reason = "no player to move at this node";
                 return false;
               }
+              // Either would leave the state as it was with the same player
+              // to move, so a bot could repeat it until the referee's move
+              // cap: a turn ends with a FortifyAction.
+              if (!act.reinforce_action_.has_value() &&
+                  !act.attack_action_.has_value()) {
+                reason =
+                    "a PlayerAction must reinforce or attack; end the turn "
+                    "with a FortifyAction";
+                return false;
+              }
               if (act.reinforce_action_.has_value()) {
+                if (reserves_[current_player_] == 0) {
+                  reason = "no reserves left to place";
+                  return false;
+                }
                 if (!first_attack_of_turn_) {
                   reason =
                       "reinforcements must be placed before the first "
@@ -601,11 +618,11 @@ struct RiskState {
                   return false;
                 }
                 uint32_t sum = 0;
-                for (size_t i = 0; i < m_map.size(); ++i) {
+                for (size_t i = 0; i < map_.size(); ++i) {
                   if (act.reinforce_action_->units_to_place_[i] == 0) {
                     continue;
                   }
-                  if (m_map[i].owner != current_player_) {
+                  if (map_[i].owner != current_player_) {
                     reason =
                         "cannot reinforce a territory not owned by the "
                         "current player";
@@ -621,9 +638,9 @@ struct RiskState {
               if (act.attack_action_.has_value()) {
                 const QueueAttackAction &atk = *act.attack_action_;
                 if (atk.source_ < 0 ||
-                    atk.source_ >= static_cast<int>(m_map.size()) ||
+                    atk.source_ >= static_cast<int>(map_.size()) ||
                     atk.target < 0 ||
-                    atk.target >= static_cast<int>(m_map.size())) {
+                    atk.target >= static_cast<int>(map_.size())) {
                   reason = "attack source/target out of range";
                   return false;
                 }
@@ -631,7 +648,7 @@ struct RiskState {
                   reason = "attack source and target must differ";
                   return false;
                 }
-                if (m_map[atk.source_].owner != current_player_) {
+                if (map_[atk.source_].owner != current_player_) {
                   reason = "attack source not owned by the current player";
                   return false;
                 }
@@ -639,7 +656,7 @@ struct RiskState {
                   reason = "attack target not adjacent to source";
                   return false;
                 }
-                if (m_map[atk.target].owner == current_player_) {
+                if (map_[atk.target].owner == current_player_) {
                   reason = "cannot attack own territory";
                   return false;
                 }
@@ -647,7 +664,7 @@ struct RiskState {
                   reason = "num_attack_dice out of range [1, 3]";
                   return false;
                 }
-                if (m_map[atk.source_].units <=
+                if (map_[atk.source_].units <=
                     static_cast<uint32_t>(atk.num_attack_dice_)) {
                   reason =
                       "attack source must keep one army behind (units "
@@ -662,7 +679,7 @@ struct RiskState {
                 reason = "no attack awaiting a defense";
                 return false;
               }
-              if (current_player_ != m_map[queued_attack_->target].owner) {
+              if (current_player_ != map_[queued_attack_->target].owner) {
                 reason = "only the defender of the queued attack may defend";
                 return false;
               }
@@ -671,7 +688,7 @@ struct RiskState {
                 return false;
               }
               if (act.num_defend_dice_ >
-                  static_cast<int>(m_map[queued_attack_->target].units)) {
+                  static_cast<int>(map_[queued_attack_->target].units)) {
                 reason = "cannot defend with more dice than defending armies";
                 return false;
               }
@@ -730,14 +747,14 @@ struct RiskState {
                 return true;
               }
               if (act.source_ < 0 ||
-                  act.source_ >= static_cast<int>(m_map.size()) ||
+                  act.source_ >= static_cast<int>(map_.size()) ||
                   act.target < 0 ||
-                  act.target >= static_cast<int>(m_map.size())) {
+                  act.target >= static_cast<int>(map_.size())) {
                 reason = "fortify source/target out of range";
                 return false;
               }
-              if (m_map[act.source_].owner != current_player_ ||
-                  m_map[act.target].owner != current_player_) {
+              if (map_[act.source_].owner != current_player_ ||
+                  map_[act.target].owner != current_player_) {
                 reason = "can only fortify between own territories";
                 return false;
               }
@@ -746,14 +763,14 @@ struct RiskState {
                 // then re-adds); sample_action emits it when the player owns
                 // a single territory. The engine only requires the units to
                 // be present in this case.
-                if (m_map[act.source_].units <
+                if (map_[act.source_].units <
                     static_cast<uint32_t>(act.num_units)) {
                   reason = "fortify moves more units than the source has";
                   return false;
                 }
                 return true;
               }
-              if (m_map[act.source_].units <
+              if (map_[act.source_].units <
                   static_cast<uint32_t>(act.num_units) + 1) {
                 reason = "fortify must leave at least one army behind";
                 return false;
@@ -781,7 +798,7 @@ struct RiskState {
       for (size_t i = 0; i < country_data.neighbor_count_; ++i) {
         size_t neighbor = static_cast<size_t>(country_data.neighbors_[i]);
         if (!result.test(neighbor) &&
-            m_map[currnet_elem].owner == m_map[neighbor].owner) {
+            map_[currnet_elem].owner == map_[neighbor].owner) {
           result.set(neighbor);
           push(neighbor);
         }
@@ -806,7 +823,7 @@ std::string RenderRiskState(const RiskState<NUM_PLAYERS> &state,
   os << "\n";
   os << "Units: ";
   std::array<int, NUM_PLAYERS> total_units{};
-  for (const Territory &t : state.m_map) {
+  for (const Territory &t : state.map_) {
     if (t.owner >= 0) {
       total_units[static_cast<size_t>(t.owner)] += t.units;
     }
@@ -820,11 +837,11 @@ std::string RenderRiskState(const RiskState<NUM_PLAYERS> &state,
   static constexpr int text_width = 3;
   static const auto segments = GetAsciiBoardTemplate(board_width, text_width);
   if (segments.empty()) {
-    for (size_t i = 0; i < state.m_map.size(); ++i) {
-      if (const int owner = static_cast<int>(state.m_map[i].owner);
+    for (size_t i = 0; i < state.map_.size(); ++i) {
+      if (const int owner = static_cast<int>(state.map_[i].owner);
           owner != -1) {
         os << "  T" << i << ": " << PlayerColor(owner) << "P" << owner
-           << kColorReset << " (" << state.m_map[i].units << ")\n";
+           << kColorReset << " (" << state.map_[i].units << ")\n";
       }
     }
     return os.str();
@@ -834,12 +851,12 @@ std::string RenderRiskState(const RiskState<NUM_PLAYERS> &state,
   colors[0] = 4;  // background = blue
   std::array<int, 43> troop_counts{};
 
-  const bool highlight = highlighted.size() == state.m_map.size();
-  for (size_t i = 0; i < state.m_map.size(); ++i) {
+  const bool highlight = highlighted.size() == state.map_.size();
+  for (size_t i = 0; i < state.map_.size(); ++i) {
     uint8_t tid = kCountryToTerritoryId[i];
     uint8_t color =
-        state.m_map[i].owner >= 0
-            ? kPlayerColors[static_cast<size_t>(state.m_map[i].owner) %
+        state.map_[i].owner >= 0
+            ? kPlayerColors[static_cast<size_t>(state.map_[i].owner) %
                             kPlayerColors.size()]
             : 0;  // unowned = black
     // Bright variant highlights the territory regardless of owner.
@@ -847,7 +864,7 @@ std::string RenderRiskState(const RiskState<NUM_PLAYERS> &state,
       color += 8;
     }
     colors[tid] = color;
-    troop_counts[tid] = state.m_map[i].units;
+    troop_counts[tid] = state.map_[i].units;
   }
 
   os << RenderAsciiBoard(segments, colors, troop_counts) << "\n";

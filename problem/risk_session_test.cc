@@ -1,0 +1,199 @@
+#include "problem/risk_session.h"
+
+#include <algorithm>
+#include <cstddef>
+#include <random>
+#include <string>
+
+#include "game_mcts/core/mcts/serialization.h"
+#include "game_mcts/games/risk/risk_game.h"
+#include "game_mcts/games/risk/risk_serialization.h"
+#include "game_mcts/games/risk/strategies/risk_proposer.h"
+#include "gtest/gtest.h"
+
+namespace tournament_broker {
+namespace {
+
+using risk_game::RiskAction;
+using risk_game::RiskState;
+using traits = mcts::GameSerializationTraits<RiskState<2>>;
+
+// Enough for every view of a 100-round game: pacing is tested on its own.
+constexpr std::size_t kPlenty = std::size_t{1} << 26;
+constexpr int kAlaska = static_cast<int>(risk_game::Country::Alaska);
+constexpr int kAlberta = static_cast<int>(risk_game::Country::Alberta);
+constexpr int kKamchatka = static_cast<int>(risk_game::Country::Kamchatka);
+
+// Past initial placement, |rounds| full rounds in, player 0 about to place 3
+// armies. Territories 0..|p0_territories|-1 are player 0's, the rest player
+// 1's, with |p0_units| and |p1_units| armies each.
+RiskState<2> Board(int rounds, int p0_territories, int p0_units = 2,
+                   int p1_units = 2) {
+  RiskState<2> state;
+  state.initial_placement_ = false;
+  state.num_initial_placements_ = 80;
+  state.turn_count_ = 40 + rounds;
+  state.current_player_ = 0;
+  state.reserves_ = {3, 0};
+  for (int i = 0; i < risk_game::kNumTerritories; ++i) {
+    const bool mine = i < p0_territories;
+    state.map_[i] = {
+        .owner = static_cast<int8_t>(mine ? 0 : 1),
+        .units = static_cast<uint16_t>(mine ? p0_units : p1_units)};
+  }
+  return state;
+}
+
+TEST(RiskSessionTest, CountsRoundsFromTheEndOfPlacement) {
+  EXPECT_EQ(RiskSession::Rounds(RiskState<2>{}), 0);
+  EXPECT_EQ(RiskSession::Rounds(Board(7, 21)), 7);
+}
+
+TEST(RiskSessionTest, UncappedOrBeforeTheCapTheGameGoesOn) {
+  EXPECT_FALSE(RiskSession(0, kPlenty, Board(10000, 30)).Outcome().has_value());
+  EXPECT_FALSE(RiskSession(100, kPlenty, Board(99, 30)).Outcome().has_value());
+}
+
+TEST(RiskSessionTest, AtTheCapMoreTerritoriesWinsOverMoreArmies) {
+  // Player 1 holds 22 territories with 2 armies each against player 0's 20
+  // with 9: territory first.
+  const auto outcome =
+      RiskSession(100, kPlenty, Board(100, 20, 9, 2)).Outcome();
+  ASSERT_TRUE(outcome.has_value());
+  EXPECT_FALSE(outcome->is_draw);
+  EXPECT_EQ(outcome->winning_player, 1);
+}
+
+TEST(RiskSessionTest, AtTheCapEqualTerritoriesGoToMoreArmies) {
+  const auto outcome =
+      RiskSession(100, kPlenty, Board(100, 21, 3, 2)).Outcome();
+  ASSERT_TRUE(outcome.has_value());
+  EXPECT_FALSE(outcome->is_draw);
+  EXPECT_EQ(outcome->winning_player, 0);
+}
+
+TEST(RiskSessionTest, AtTheCapAnExactTieIsADraw) {
+  const auto outcome = RiskSession(100, kPlenty, Board(100, 21)).Outcome();
+  ASSERT_TRUE(outcome.has_value());
+  EXPECT_TRUE(outcome->is_draw);
+}
+
+TEST(RiskSessionTest, AWholeBoardStillWinsBeforeTheCap) {
+  const auto outcome = RiskSession(100, kPlenty, Board(5, 42)).Outcome();
+  ASSERT_TRUE(outcome.has_value());
+  EXPECT_EQ(outcome->winning_player, 0);
+}
+
+// Player 0 (Alaska 5, Alberta 1) against player 1 (everything else, Kamchatka
+// 3), four rounds in, player 0 about to place 3.
+RiskState<2> Skirmish() {
+  RiskState<2> state = Board(4, 0);
+  state.map_[kAlaska] = {.owner = 0, .units = 5};
+  state.map_[kAlberta] = {.owner = 0, .units = 1};
+  state.map_[kKamchatka] = {.owner = 1, .units = 3};
+  return state;
+}
+
+void Apply(RiskSession &session, const RiskAction &action) {
+  std::string error;
+  ASSERT_TRUE(session.ApplySerializedAction(
+      traits::ActionToProto(action).SerializeAsString(), &error))
+      << error;
+}
+
+RiskAction Roll(std::array<int, 3> attacker, std::array<int, 2> defender) {
+  return risk_game::RollDiceAction{attacker, defender};
+}
+
+RiskAction Attack(int source, int target) {
+  return risk_game::PlayerAction{
+      .attack_action_ = risk_game::QueueAttackAction{source, target, 3}};
+}
+
+bool IsBoard(const std::string &view) {
+  return view.find("\x1b[") != std::string::npos;
+}
+
+// Every step has a caption; the board comes with the turn, a conquest, a new
+// attack and a fortify, and any other step leaves the view as it was.
+TEST(RiskSessionTest, EachStepGetsACaptionAndTheViewItsKindCallsFor) {
+  RiskSession session(100, kPlenty, Skirmish());
+  const std::string start = session.RenderState();
+  EXPECT_NE(start.find("Round 4/100  territories 2:40  armies 6:81"),
+            std::string::npos)
+      << start;
+  EXPECT_TRUE(IsBoard(start));
+
+  risk_game::ReinforceAction reinforce{};
+  reinforce.units_to_place_[kAlaska] = 3;
+  Apply(session,
+        risk_game::PlayerAction{.reinforce_action_ = reinforce,
+                                .attack_action_ = risk_game::QueueAttackAction{
+                                    kAlaska, kKamchatka, 3}});
+  EXPECT_NE(session.RenderLastStep().find("attacks"), std::string::npos);
+  EXPECT_NE(session.RenderState().find("Round 4/100"), std::string::npos)
+      << "a turn opens with the full board";
+
+  Apply(session, risk_game::QueueDefenseAction{2});
+  EXPECT_NE(session.RenderLastStep().find("defends"), std::string::npos);
+  EXPECT_EQ(session.RenderState(), "");
+  Apply(session, Roll({4, 6, 5}, {5, 5}));
+  EXPECT_EQ(session.RenderState(), "") << "no conquest: the view stands";
+
+  Apply(session, Attack(kAlaska, kKamchatka));
+  EXPECT_EQ(session.RenderState(), "") << "the same attack again";
+  Apply(session, risk_game::QueueDefenseAction{2});
+  Apply(session, Roll({6, 1, 6}, {1, 1}));
+  EXPECT_NE(session.RenderLastStep().find("CONQUERED"), std::string::npos);
+  const std::string conquest = session.RenderState();
+  EXPECT_TRUE(IsBoard(conquest));
+  EXPECT_EQ(conquest.find("Round"), std::string::npos) << "a band, not a turn";
+  EXPECT_LT(conquest.size(), start.size() / 2);
+
+  Apply(session, risk_game::FortifyAction{kAlaska, kAlberta, 2});
+  EXPECT_NE(session.RenderLastStep().find(
+                "P0\x1b[0m's turn: 2 battles, took 1 (Kamchatka)"),
+            std::string::npos)
+      << session.RenderLastStep();
+  EXPECT_TRUE(IsBoard(session.RenderState()));
+}
+
+// Bands go when the budget no longer covers every turn left; turn boards stay.
+TEST(RiskSessionTest, APoorBudgetDropsBandsButNeverATurnsBoard) {
+  RiskState<2> state = Skirmish();
+  state.map_[kKamchatka].units = 2;
+  RiskSession session(100, /*view_bytes=*/0, state);
+  Apply(session, Attack(kAlaska, kKamchatka));
+  EXPECT_TRUE(IsBoard(session.RenderState())) << "the turn's board";
+  Apply(session, risk_game::QueueDefenseAction{2});
+  Apply(session, Roll({6, 1, 6}, {1, 1}));
+  EXPECT_TRUE(IsBoard(session.RenderState())) << "a conquest's band";
+  Apply(session, risk_game::FortifyAction{kKamchatka, kAlaska, 2});
+  EXPECT_EQ(session.RenderState(), "") << "a fortify's band is dropped";
+}
+
+// A whole game at the round cap: random play stalls the longest, so it is the
+// worst case for the referee's per-game budget.
+TEST(RiskSessionTest, AWholeCappedGameFitsTheBudget) {
+  constexpr std::size_t budget = 700 * 1024;
+  risk_game::RiskProposer<2> proposer;
+  for (const uint32_t seed : {1u, 2u, 3u}) {
+    RiskSession session(40, budget);
+    std::mt19937 gen(seed);
+    std::size_t largest = 0;
+    while (!session.Outcome().has_value()) {
+      if (session.IsChanceNode()) {
+        session.ApplyChanceAction(gen);
+      } else {
+        Apply(session, proposer.sample(session.State(), gen));
+      }
+      EXPECT_FALSE(session.RenderLastStep().empty());
+      largest = std::max(largest, session.RenderState().size());
+    }
+    EXPECT_LE(session.ViewBytes(), budget) << "seed " << seed;
+    EXPECT_LT(largest, 6000u) << "seed " << seed;
+  }
+}
+
+}  // namespace
+}  // namespace tournament_broker

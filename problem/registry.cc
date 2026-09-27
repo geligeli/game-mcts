@@ -1,22 +1,25 @@
 // The GameRegistry() the arena declares and the referee links: risk2 and its
-// builtins.
+// builtins, random, mcts and mcts_smart.
 
 #include "game_arena/referee/game_registry.h"
 
 #include <charconv>
+#include <cstddef>
 #include <map>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <tuple>
 
 #include "absl/log/log.h"
+#include "absl/strings/strip.h"
 #include "game_mcts/core/mcts/policies.h"
 #include "game_mcts/games/risk/risk_game.h"
 #include "game_mcts/games/risk/risk_serialization.h"
 #include "game_mcts/games/risk/strategies/risk_proposer.h"
 #include "game_mcts/games/risk/strategies/risk_rollout_shortcuts.h"
-#include "problem/session.h"
+#include "problem/risk_session.h"
 
 namespace tournament_broker {
 
@@ -24,50 +27,60 @@ namespace {
 
 using risk_game_t = risk_game::RiskState<2>;
 using risk_proposer_t = risk_game::RiskProposer<2>;
+// tuning_result.md's strongest: reinforce the borders, attack only at an
+// advantage -- in the tree only; rollouts keep the stock proposer, whose
+// indiscriminate attacks keep playouts short.
+using smart_proposer_t = risk_game::RiskProposer<2, true, true>;
 
 int g_default_mcts_iterations = 400;
+int g_max_rounds = 0;  // no cap unless the problem sets one
+// Per game, for captions and views; below the match's max_view_bytes.
+int g_view_kb = 700;
 
-// Parses "mcts" or "mcts:iterations=N"; returns false on a malformed spec.
-bool ParseMctsSpec(std::string_view spec, int *iterations, std::string *error) {
-  *iterations = g_default_mcts_iterations;
-  if (spec == "mcts") {
-    return true;
-  }
-  constexpr std::string_view prefix = "mcts:iterations=";
-  if (!spec.starts_with(prefix)) {
-    *error = "unknown builtin spec '" + std::string(spec) + "'";
-    return false;
-  }
-  const std::string_view value = spec.substr(prefix.size());
+bool ParseNonNegative(std::string_view text, int *value) {
   const auto parsed =
-      std::from_chars(value.data(), value.data() + value.size(), *iterations);
-  if (parsed.ec != std::errc{} || parsed.ptr != value.data() + value.size() ||
-      *iterations <= 0) {
-    *error = "want a positive iteration count in '" + std::string(spec) + "'";
-    return false;
-  }
-  return true;
+      std::from_chars(text.data(), text.data() + text.size(), *value);
+  return parsed.ec == std::errc{} && parsed.ptr == text.data() + text.size() &&
+         *value >= 0;
 }
 
+// "random", or "mcts" / "mcts_smart", each optionally ":iterations=N".
 std::optional<BuiltinFn> MakeRiskBuiltin(std::string_view spec,
                                          std::string *error) {
+  using mcts::tournament::MctsPolicy;
   using mcts::tournament::SerializedPolicy;
   if (spec == "random") {
     return SerializedPolicy<risk_game_t>(
         mcts::tournament::ProposerPolicy<risk_game_t, risk_proposer_t>{});
   }
-  int iterations = 0;
-  if (!ParseMctsSpec(spec, &iterations, error)) {
+  const std::string_view name = spec.substr(0, spec.find(':'));
+  if (name != "mcts" && name != "mcts_smart") {
+    *error = "unknown builtin spec '" + std::string(spec) +
+             "': random, mcts or mcts_smart";
     return std::nullopt;
+  }
+  int iterations = g_default_mcts_iterations;
+  if (name.size() < spec.size()) {
+    std::string_view rest = spec.substr(name.size() + 1);
+    if (!absl::ConsumePrefix(&rest, "iterations=") ||
+        !ParseNonNegative(rest, &iterations) || iterations == 0) {
+      *error = "want " + std::string(name) + ":iterations=N, N > 0, not '" +
+               std::string(spec) + "'";
+      return std::nullopt;
+    }
   }
   // Battles in rollouts resolve to their expected outcome, as the reference
   // bot's do.
   auto rollout = mcts::MakeShortcutRollout<risk_game_t, risk_proposer_t>(
       &risk_game::ResolveBattleWithExpectationInPlace<2>);
+  if (name == "mcts") {
+    return SerializedPolicy<risk_game_t>(
+        MctsPolicy<risk_game_t, risk_proposer_t, decltype(rollout)>{
+            .iterations_ = iterations, .rollout = rollout});
+  }
   return SerializedPolicy<risk_game_t>(
-      mcts::tournament::MctsPolicy<risk_game_t, risk_proposer_t,
-                                   decltype(rollout)>{.iterations_ = iterations,
-                                                      .rollout = rollout});
+      MctsPolicy<risk_game_t, smart_proposer_t, decltype(rollout)>{
+          .iterations_ = iterations, .rollout = rollout});
 }
 
 }  // namespace
@@ -75,19 +88,21 @@ std::optional<BuiltinFn> MakeRiskBuiltin(std::string_view spec,
 void SetRegistryOptions(const std::map<std::string, std::string> &options) {
   // Unknown keys are ignored, and a bad value keeps the default: neither is
   // worth failing an order that would otherwise run.
-  const auto it = options.find("mcts_iterations");
-  if (it == options.end()) {
-    return;
-  }
-  int iterations = 0;
-  const char *begin = it->second.data();
-  const char *end = begin + it->second.size();
-  const std::from_chars_result parsed = std::from_chars(begin, end, iterations);
-  if (parsed.ec == std::errc{} && parsed.ptr == end && iterations > 0) {
-    g_default_mcts_iterations = iterations;
-  } else {
-    LOG(WARNING) << "ignoring registry option mcts_iterations='" << it->second
-                 << "': want a positive integer";
+  for (const auto &[key, target, positive] :
+       {std::tuple{"mcts_iterations", &g_default_mcts_iterations, true},
+        std::tuple{"max_rounds", &g_max_rounds, false},
+        std::tuple{"view_kb", &g_view_kb, true}}) {
+    const auto it = options.find(key);
+    if (it == options.end()) {
+      continue;
+    }
+    int value = 0;
+    if (ParseNonNegative(it->second, &value) && (!positive || value > 0)) {
+      *target = value;
+    } else {
+      LOG(WARNING) << "ignoring registry option " << key << "='" << it->second
+                   << "'";
+    }
   }
 }
 
@@ -97,7 +112,10 @@ const std::map<std::string, GameDescriptor> &GameRegistry() {
        GameDescriptor{
            .name = "risk2",
            .new_session =
-               [] { return std::make_unique<GameSessionImpl<risk_game_t>>(); },
+               [] {
+                 return std::make_unique<RiskSession>(
+                     g_max_rounds, static_cast<std::size_t>(g_view_kb) * 1024);
+               },
            .make_builtin = MakeRiskBuiltin,
        }},
   };
