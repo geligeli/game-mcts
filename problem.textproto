@@ -62,7 +62,7 @@ build {
 sandbox {
   # What a worker asks its daemon for, as `bazel run //:sandbox_image_issue`
   # makes it. Bump the tag whenever the tree or the toolchain changes.
-  image: "registry.takumi.city/game-mcts-sandbox:3"
+  image: "registry.takumi.city/game-mcts-sandbox:4"
   # So a build needs no network, and a submitted genrule cannot exfiltrate.
   allow_build_network: false
   # Owns the image's primed cache, which fills a worker's empty cache volume.
@@ -99,7 +99,9 @@ kit {
   starter_dir: "bots/reference"
 }
 
-ranking { kind: ELO }
+# Rated game by game, rebuilt from games/index.jsonl at start; Risk cannot
+# draw (a capped game goes to territories, then armies, then time).
+ranking { kind: TRUESKILL draw_probability: 0 }
 
 clients {
   default_quota {

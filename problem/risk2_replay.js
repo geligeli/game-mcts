@@ -1,6 +1,7 @@
 // risk2's replay module (arena_problem's replay_module): draws each step's
 // view -- the JSON snapshot problem/risk_view.h writes -- on the map in
-// risk_map.svg. The arena's replay page calls init() once and render() per
+// risk_map.svg, and under it each seat's territories over the whole game. The
+// arena's replay page calls init() once, with every view, and render() per
 // frame. Names, captions and views are data: textContent, never innerHTML.
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -9,6 +10,8 @@ const OWNER_LIT = ['#f77', '#7d7'];
 const UNOWNED = '#999';
 const DIE = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 const WIDTH = 900;
+// The territory chart, in its own viewBox units (WIDTH wide).
+const CHART = {height: 120, left: 28, right: 8, top: 6, bottom: 18};
 
 const STYLE = `
 .risk{max-width:${WIDTH}px;font-family:sans-serif}
@@ -24,7 +27,14 @@ const STYLE = `
 .risk .seat{font-weight:bold}
 .risk .dice{font-size:1.6em;letter-spacing:.05em}
 .risk .dice .lost{opacity:.35}
-.risk .result{font-weight:bold;font-size:1.2em;color:#b00}`;
+.risk .result{font-weight:bold;font-size:1.2em;color:#b00}
+.risk .chart{background:none;margin-top:.2em}
+.risk .chart text{font:11px sans-serif;fill:#666}
+.risk .chart .grid{stroke:#ddd;stroke-width:1}
+.risk .chart .setup{fill:#f1f1f1}
+.risk .chart .held{fill:none;stroke-width:2;stroke-linejoin:round}
+.risk .chart .cursor{stroke:#333;stroke-width:1}
+.risk .chart circle{stroke:#fff;stroke-width:1.5}`;
 
 const state = {};
 
@@ -44,7 +54,7 @@ function span(text, className, color) {
   return node;
 }
 
-export async function init(stage, game) {
+export async function init(stage, game, views) {
   const response = await fetch(new URL('risk_map.svg', import.meta.url));
   const parsed = new DOMParser().parseFromString(
       await response.text(), 'image/svg+xml');
@@ -81,8 +91,10 @@ export async function init(stage, game) {
   state.bottom = document.createElement('div');
   state.bottom.className = 'bar';
   root.append(style, state.top, map, state.bottom);
-  stage.replaceChildren(root);
   state.players = game.players;
+  // An older arena hands init no views: no chart then.
+  if (views) root.append(chartTitle(), territoryChart(views));
+  stage.replaceChildren(root);
 }
 
 // Two ends of an arrow, or two stubs off the map's edges when the shortest
@@ -107,7 +119,12 @@ function drawArrow(from, to) {
   }
 }
 
-function seatLine(view) {
+function decode(bytes) {
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+// Territories and armies per seat.
+function counts(view) {
   const territories = [0, 0];
   const armies = [0, 0];
   for (let t = 0; t < 42; ++t) {
@@ -117,6 +134,79 @@ function seatLine(view) {
       armies[+owner] += view.u[t];
     }
   }
+  return {territories, armies};
+}
+
+function chartTitle() {
+  const node = document.createElement('div');
+  node.className = 'bar';
+  node.append(span('Territories held:'));
+  for (const seat of [0, 1]) {
+    node.append(span(`P${seat} ${state.players[seat] ?? ''}`, 'seat',
+                     OWNER[seat]));
+  }
+  return node;
+}
+
+// One line per seat over every view; the claim phase (round 0) is shaded and
+// render() moves a cursor to the view shown.
+function territoryChart(views) {
+  const decoded = views.map(decode);
+  const held = decoded.map(view => counts(view).territories);
+  const {height, left, right, top, bottom} = CHART;
+  const last = Math.max(held.length - 1, 1);
+  const x = i => left + i / last * (WIDTH - left - right);
+  const y = k => top + (42 - k) / 42 * (height - top - bottom);
+  const chart = svg('svg', {class: 'chart', viewBox: `0 0 ${WIDTH} ${height}`,
+                            role: 'img',
+                            'aria-label': 'Territories held by each seat'});
+  const setup = decoded.findIndex(view => view.r > 0);
+  if (setup > 0) {
+    chart.append(svg('rect', {class: 'setup', x: x(0), y: top,
+                              width: x(setup) - x(0),
+                              height: height - top - bottom}));
+  }
+  for (const k of [0, 21, 42]) {
+    chart.append(svg('line', {class: 'grid', x1: left, x2: WIDTH - right,
+                              y1: y(k), y2: y(k)}));
+    const label = svg('text', {x: left - 5, y: y(k) + 4, 'text-anchor': 'end'});
+    label.textContent = k;
+    chart.append(label);
+  }
+  // A tick where round 1 and every fifth round begin.
+  decoded.forEach((view, i) => {
+    if (i === 0 || view.r === decoded[i - 1].r) return;
+    if (view.r !== 1 && view.r % 5 !== 0) return;
+    chart.append(svg('line', {class: 'grid', x1: x(i), x2: x(i),
+                              y1: height - bottom, y2: height - bottom + 4}));
+    // Kept inside the chart at its right edge.
+    const anchor = x(i) > WIDTH - right - 20 ? 'end' : 'middle';
+    const label = svg('text', {x: x(i), y: height - 3, 'text-anchor': anchor});
+    label.textContent = `R${view.r}`;
+    chart.append(label);
+  });
+  for (const seat of [0, 1]) {
+    chart.append(svg('polyline', {
+      class: 'held', stroke: OWNER[seat],
+      points: held.map((h, i) => `${x(i).toFixed(1)},${y(h[seat])}`).join(' '),
+    }));
+  }
+  const cursor = svg('line', {class: 'cursor', y1: top, y2: height - bottom});
+  const dots = [0, 1].map(seat => svg('circle', {r: 4, fill: OWNER[seat]}));
+  chart.append(cursor, ...dots);
+  state.moveCursor = i => {
+    cursor.setAttribute('x1', x(i));
+    cursor.setAttribute('x2', x(i));
+    dots.forEach((dot, seat) => {
+      dot.setAttribute('cx', x(i));
+      dot.setAttribute('cy', y(held[i][seat]));
+    });
+  };
+  return chart;
+}
+
+function seatLine(view) {
+  const {territories, armies} = counts(view);
   const nodes = [span(`Round ${view.r}${view.m ? '/' + view.m : ''}`)];
   for (const seat of [0, 1]) {
     const name = state.players[seat] ?? `P${seat}`;
@@ -148,7 +238,7 @@ function diceLine(view) {
 }
 
 export function render(stage, view, step) {
-  const v = JSON.parse(new TextDecoder().decode(view));
+  const v = decode(view);
   const touched = new Set(v.h ?? []);
   for (let t = 0; t < 42; ++t) {
     const owner = v.o[t];
@@ -166,4 +256,5 @@ export function render(stage, view, step) {
   state.top.replaceChildren(...seatLine(v));
   state.bottom.replaceChildren(
       ...diceLine(v), ...(v.w ? [span(v.w, 'result')] : []));
+  if (state.moveCursor && step.view !== undefined) state.moveCursor(step.view);
 }
