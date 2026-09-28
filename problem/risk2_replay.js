@@ -1,8 +1,9 @@
 // risk2's replay module (arena_problem's replay_module): draws each step's
 // view -- the JSON snapshot problem/risk_view.h writes -- on the map in
-// risk_map.svg, and under it each seat's territories over the whole game. The
-// arena's replay page calls init() once, with every view, and render() per
-// frame. Names, captions and views are data: textContent, never innerHTML.
+// risk_map.svg, and under it each seat's territories, armies and reinforcements
+// over the whole game. The arena's replay page calls init() once, with every
+// view, and render() per frame. Names, captions and views are data:
+// textContent, never innerHTML.
 
 const SVG = 'http://www.w3.org/2000/svg';
 const OWNER = ['#c33', '#3a3'];
@@ -10,8 +11,8 @@ const OWNER_LIT = ['#f77', '#7d7'];
 const UNOWNED = '#999';
 const DIE = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 const WIDTH = 900;
-// The territory chart, in its own viewBox units (WIDTH wide).
-const CHART = {height: 120, left: 28, right: 8, top: 6, bottom: 18};
+// The charts' margins, in viewBox units (WIDTH wide).
+const CHART = {left: 34, right: 8, top: 6, bottom: 18};
 
 const STYLE = `
 .risk{max-width:${WIDTH}px;font-family:sans-serif}
@@ -32,7 +33,7 @@ const STYLE = `
 .risk .chart text{font:11px sans-serif;fill:#666}
 .risk .chart .grid{stroke:#ddd;stroke-width:1}
 .risk .chart .setup{fill:#f1f1f1}
-.risk .chart .held{fill:none;stroke-width:2;stroke-linejoin:round}
+.risk .chart .line{fill:none;stroke-width:2;stroke-linejoin:round}
 .risk .chart .cursor{stroke:#333;stroke-width:1}
 .risk .chart circle{stroke:#fff;stroke-width:1.5}`;
 
@@ -93,7 +94,10 @@ export async function init(stage, game, views) {
   root.append(style, state.top, map, state.bottom);
   state.players = game.players;
   // An older arena hands init no views: no chart then.
-  if (views) root.append(chartTitle(), territoryChart(views));
+  if (views) {
+    state.charts = charts(views.map(decode));
+    root.append(...state.charts.flatMap(chart => chart.nodes));
+  }
   stage.replaceChildren(root);
 }
 
@@ -137,36 +141,36 @@ function counts(view) {
   return {territories, armies};
 }
 
-function chartTitle() {
-  const node = document.createElement('div');
-  node.className = 'bar';
-  node.append(span('Territories held:'));
-  for (const seat of [0, 1]) {
-    node.append(span(`P${seat} ${state.players[seat] ?? ''}`, 'seat',
-                     OWNER[seat]));
-  }
-  return node;
+// 1, 2 or 5 times a power of ten, at least |value|.
+function niceMax(value) {
+  const power = 10 ** Math.floor(Math.log10(Math.max(value, 1)));
+  return [1, 2, 5, 10].map(k => k * power).find(k => k >= value);
 }
 
-// One line per seat over every view; the claim phase (round 0) is shaded and
-// render() moves a cursor to the view shown.
-function territoryChart(views) {
-  const decoded = views.map(decode);
-  const held = decoded.map(view => counts(view).territories);
-  const {height, left, right, top, bottom} = CHART;
-  const last = Math.max(held.length - 1, 1);
+// A chart over every view: a heading with each seat's value at the view shown,
+// the claim phase (round 0) shaded, gridlines, round ticks and a cursor that
+// show() moves. |marks| draws the data, |valueAt(i, seat)| is the readout and,
+// with |dots|, where the cursor marks each seat.
+function timeChart(decoded, {title, height, max, marks, valueAt, dots}) {
+  const {left, right, top, bottom} = CHART;
+  const last = Math.max(decoded.length - 1, 1);
   const x = i => left + i / last * (WIDTH - left - right);
-  const y = k => top + (42 - k) / 42 * (height - top - bottom);
+  const y = k => top + (max - k) / max * (height - top - bottom);
+
+  const heading = document.createElement('div');
+  heading.className = 'bar';
+  const readouts = [0, 1].map(seat => span('', 'seat', OWNER[seat]));
+  heading.append(span(`${title}:`), ...readouts);
+
   const chart = svg('svg', {class: 'chart', viewBox: `0 0 ${WIDTH} ${height}`,
-                            role: 'img',
-                            'aria-label': 'Territories held by each seat'});
+                            role: 'img', 'aria-label': title});
   const setup = decoded.findIndex(view => view.r > 0);
   if (setup > 0) {
     chart.append(svg('rect', {class: 'setup', x: x(0), y: top,
                               width: x(setup) - x(0),
                               height: height - top - bottom}));
   }
-  for (const k of [0, 21, 42]) {
+  for (const k of [0, max / 2, max]) {
     chart.append(svg('line', {class: 'grid', x1: left, x2: WIDTH - right,
                               y1: y(k), y2: y(k)}));
     const label = svg('text', {x: left - 5, y: y(k) + 4, 'text-anchor': 'end'});
@@ -185,24 +189,86 @@ function territoryChart(views) {
     label.textContent = `R${view.r}`;
     chart.append(label);
   });
-  for (const seat of [0, 1]) {
-    chart.append(svg('polyline', {
-      class: 'held', stroke: OWNER[seat],
-      points: held.map((h, i) => `${x(i).toFixed(1)},${y(h[seat])}`).join(' '),
-    }));
-  }
+  marks(chart, x, y);
+
   const cursor = svg('line', {class: 'cursor', y1: top, y2: height - bottom});
-  const dots = [0, 1].map(seat => svg('circle', {r: 4, fill: OWNER[seat]}));
-  chart.append(cursor, ...dots);
-  state.moveCursor = i => {
-    cursor.setAttribute('x1', x(i));
-    cursor.setAttribute('x2', x(i));
-    dots.forEach((dot, seat) => {
-      dot.setAttribute('cx', x(i));
-      dot.setAttribute('cy', y(held[i][seat]));
-    });
+  const markers = dots ? [0, 1].map(seat => svg('circle', {r: 4,
+                                                           fill: OWNER[seat]}))
+                       : [];
+  chart.append(cursor, ...markers);
+  return {
+    nodes: [heading, chart],
+    show(i) {
+      cursor.setAttribute('x1', x(i));
+      cursor.setAttribute('x2', x(i));
+      markers.forEach((marker, seat) => {
+        marker.setAttribute('cx', x(i));
+        marker.setAttribute('cy', y(valueAt(i, seat)));
+      });
+      readouts.forEach((readout, seat) => {
+        readout.textContent =
+            `P${seat} ${state.players[seat] ?? ''} ${valueAt(i, seat)}`;
+      });
+    },
   };
-  return chart;
+}
+
+// Territories, armies (on the board and still to place) and the reinforcements
+// each seat receives as its turn begins: its reserves jump from 0.
+function charts(decoded) {
+  const data = decoded.map((view, i) => {
+    const {territories, armies} = counts(view);
+    const before = decoded[i - 1];
+    return {
+      territories,
+      armies: armies.map((count, seat) => count + view.rv[seat]),
+      gained: [0, 1].map(seat => view.r > 0 && before &&
+                                         view.rv[seat] > before.rv[seat]
+                                     ? view.rv[seat] - before.rv[seat]
+                                     : 0),
+    };
+  });
+  // Each seat's latest reinforcement as of each view, for the readout.
+  let latest = [0, 0];
+  const lastGained = data.map(d => {
+    latest = latest.map((gain, seat) => d.gained[seat] || gain);
+    return latest;
+  });
+  const lines = pick => (chart, x, y) => {
+    for (const seat of [0, 1]) {
+      chart.append(svg('polyline', {
+        class: 'line', stroke: OWNER[seat],
+        points: data.map((d, i) => `${x(i).toFixed(1)},${y(pick(d)[seat])}`)
+                    .join(' '),
+      }));
+    }
+  };
+  const bars = (chart, x, y) => {
+    data.forEach((d, i) => d.gained.forEach((gain, seat) => {
+      if (!gain) return;
+      chart.append(svg('rect', {x: x(i) - 1.5, y: y(gain), width: 3,
+                                height: y(0) - y(gain), fill: OWNER[seat]}));
+    }));
+  };
+  return [
+    timeChart(decoded, {
+      title: 'Territories held', height: 110, max: 42,
+      marks: lines(d => d.territories), dots: true,
+      valueAt: (i, seat) => data[i].territories[seat],
+    }),
+    timeChart(decoded, {
+      title: 'Armies, on the board and to place', height: 110,
+      max: niceMax(Math.max(...data.flatMap(d => d.armies))),
+      marks: lines(d => d.armies), dots: true,
+      valueAt: (i, seat) => data[i].armies[seat],
+    }),
+    timeChart(decoded, {
+      title: 'Reinforcements as each turn begins', height: 90,
+      max: niceMax(Math.max(1, ...data.flatMap(d => d.gained))),
+      marks: bars, dots: false,
+      valueAt: (i, seat) => `+${lastGained[i][seat]}`,
+    }),
+  ];
 }
 
 function seatLine(view) {
@@ -256,5 +322,7 @@ export function render(stage, view, step) {
   state.top.replaceChildren(...seatLine(v));
   state.bottom.replaceChildren(
       ...diceLine(v), ...(v.w ? [span(v.w, 'result')] : []));
-  if (state.moveCursor && step.view !== undefined) state.moveCursor(step.view);
+  if (state.charts && step.view !== undefined) {
+    for (const chart of state.charts) chart.show(step.view);
+  }
 }
