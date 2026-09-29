@@ -81,6 +81,13 @@ cp "$CACHE/drums.wav" "$A/drums.wav"
 for f in "$A"/sword_clash.*.ogg "$A"/sword.*.ogg; do
   mv "$f" "${f%.*.ogg}_${f##*[a-z].}"
 done
+# An .mp3 beside each .ogg, for browsers without Vorbis (iOS Safari). ffmpeg
+# comes from imageio-ffmpeg's static build, so the host needs none.
+FFMPEG=$(uv run -q --with imageio-ffmpeg python -c \
+  'import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())')
+for f in "$A"/*.ogg; do
+  "$FFMPEG" -loglevel error -y -i "$f" -codec:a libmp3lame -q:a 5 "${f%.ogg}.mp3"
+done
 
 F=$STATIC/assets/fx
 unzip -qjo "$CACHE/particles.zip" 'PNG (Transparent)/spark_0[1-4].png' \

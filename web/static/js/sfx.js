@@ -5,6 +5,8 @@
 //   sfx.play('clash');  sfx.loop('drums', true);  sfx.setMuted(true);
 
 const AUDIO = new URL('../assets/audio/', import.meta.url);
+// iOS Safari may not decode Ogg Vorbis; every .ogg has an .mp3 beside it.
+const OGG = new Audio().canPlayType('audio/ogg; codecs="vorbis"') !== '';
 const n = (prefix, count, pad = 0, from = 1) =>
   Array.from({length: count}, (_, i) => `${prefix}${String(i + from).padStart(pad, '0')}.ogg`);
 
@@ -44,18 +46,23 @@ class Sfx {
       this.muted = false;
       this.music = true;
     }
-    // Browsers start audio only after a gesture.
-    const unlock = () => {
+    // Browsers start audio only in a gesture, and on a touch screen a
+    // pointerdown is none: pointerup and touchend are. Until it runs.
+    const events = ['pointerup', 'touchend', 'click', 'keydown'];
+    const unlock = async () => {
       this.ensure();
-      this.context.resume();
+      await this.context.resume();
+      if (this.context.state !== 'running') return;
+      events.forEach((e) => removeEventListener(e, unlock));
       if (this.music && this.wantDrums) this.loop('drums', true);
     };
-    addEventListener('pointerdown', unlock, {once: true});
-    addEventListener('keydown', unlock, {once: true});
+    events.forEach((e) => addEventListener(e, unlock));
   }
 
   ensure() {
     if (!this.context) {
+      // iOS mutes the default session with the ring/silent switch.
+      if (navigator.audioSession) navigator.audioSession.type = 'playback';
       this.context = new AudioContext();
       this.master = this.context.createGain();
       this.master.gain.value = this.muted ? 0 : 1;
@@ -65,7 +72,8 @@ class Sfx {
 
   buffer(file) {
     if (!this.buffers.has(file)) {
-      this.buffers.set(file, fetch(new URL(file, AUDIO))
+      const path = OGG ? file : file.replace(/\.ogg$/, '.mp3');
+      this.buffers.set(file, fetch(new URL(path, AUDIO))
           .then((r) => r.arrayBuffer())
           .then((data) => this.context.decodeAudioData(data))
           .catch(() => null));

@@ -77,6 +77,11 @@ sandbox {
   # Owns the image's primed cache, which fills a worker's empty cache volume.
   run_as_user: "1000:1000"
   memory_limit_mb: 4096
+  # One core per bot, as mission.md tells the agents. The build gets it too:
+  # bazel sizes --jobs from the cgroup, else one per host core on every slot.
+  cpus: 1
+  # Bazel's heap is a quarter of it: measured, a match's build needs < 2 GB.
+  build_memory_limit_mb: 3072
 }
 
 match {

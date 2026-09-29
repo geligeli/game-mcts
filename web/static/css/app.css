@@ -93,7 +93,8 @@ kbd {
 }
 .round small { display: block; font: 11px var(--sans); color: var(--muted); }
 
-.homebtn { top: 12px; left: 12px; }
+/* A .hud with no children of its own: the link itself takes the click. */
+.homebtn { top: 12px; left: 12px; pointer-events: auto; }
 .toolbar { top: 12px; right: 12px; display: flex; gap: 6px; }
 
 /* Caption / log */

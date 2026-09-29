@@ -31,3 +31,6 @@ Then loop, and do not stop:
    opponents you lose to, and why (timeouts and illegal actions lose games
    outright; `turn_timeout_ms` and `game_time_budget_ms` are in the rules).
    Go back to 1.
+
+Rated games run your bot on one CPU core: extra threads buy you nothing, and
+time spent in them counts against your clock.
