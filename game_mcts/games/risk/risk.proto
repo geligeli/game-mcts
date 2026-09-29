@@ -36,6 +36,8 @@ message QueueAttackAction {
   int32 source = 1;
   int32 target = 2;
   int32 num_attack_dice = 3;
+  // Armies that move in on a conquest; 0 moves the dice (see risk_game.h).
+  int32 num_move_on_conquest = 4;
 }
 
 message QueueDefenseAction {

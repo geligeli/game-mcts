@@ -111,8 +111,10 @@ TEST(RiskSerializationTest, SaturatedTerritoryRoundTrips) {
 
 TEST(RiskSerializationTest, QueuedAttackRoundTrips) {
   RiskState<2> state = MakeMidGameState();
-  state.queued_attack_ =
-      QueueAttackAction{.source_ = 7, .target = 0, .num_attack_dice_ = 3};
+  state.queued_attack_ = QueueAttackAction{.source_ = 7,
+                                           .target = 0,
+                                           .num_attack_dice_ = 3,
+                                           .num_move_on_conquest_ = 4};
   state.current_player_ = state.map_[0].owner;
   state.first_attack_of_turn_ = false;
   EXPECT_EQ(RoundTripState(state), state);
@@ -157,6 +159,13 @@ TEST(RiskSerializationTest, ActionVariantsRoundTrip) {
           .attack_action_ =
               QueueAttackAction{
                   .source_ = 7, .target = 0, .num_attack_dice_ = 1}}},
+      RiskAction{
+          PlayerAction{.attack_action_ =
+                           QueueAttackAction{.source_ = 7,
+                                             .target = 0,
+                                             .num_attack_dice_ = 2,
+                                             .num_move_on_conquest_ =
+                                                 QueueAttackAction::kMoveAll}}},
       RiskAction{QueueDefenseAction{.num_defend_dice_ = 2}},
       RiskAction{FortifyAction{.source_ = 0, .target = 7, .num_units = 100}},
       RiskAction{RollDiceAction{.attacker_rolls_ = {6, 5, 4},

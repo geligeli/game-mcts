@@ -32,7 +32,10 @@ bool ResolveBattleWithExpectationInPlace(RiskState<NUM_PLAYERS> &state,
   // Both expectations are marginals and can both be positive for close
   // battles; the side with more expected survivors wins.
   if (outcome.attackers_ > outcome.defenders_) {
-    // Target captured: surviving attackers move in, losses stay behind.
+    // Target captured: the survivors move in, and the source keeps them too.
+    // The overcount inflates armies, which ends rollouts sooner; counting
+    // correctly makes MCTS ~15x slower, past the builtins' time budget. A
+    // correct shortcut needs a rollout cap first.
     src.units -= (attackers - outcome.attackers_);
     tgt.units = outcome.attackers_;
     tgt.owner = src.owner;

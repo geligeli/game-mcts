@@ -126,9 +126,16 @@ struct ReinforceAction {
 };
 
 struct QueueAttackAction {
+  // Moves every army that may on a conquest: num_move_on_conquest_ is clamped.
+  static constexpr int kMoveAll = 1 << 16;
+
   int source_;
   int target;
   int num_attack_dice_;
+  // How many armies move in if this roll conquers the target, clamped to what
+  // the rules allow: at least the dice rolled, at most all but one left
+  // behind. 0 (the default) moves the dice, kMoveAll everything.
+  int num_move_on_conquest_ = 0;
   constexpr bool operator==(const QueueAttackAction &other) const = default;
   constexpr auto operator<=>(const QueueAttackAction &other) const = default;
 };
@@ -220,6 +227,9 @@ struct std::hash<risk_game::RiskAction> {
                     h, std::hash<int>{}(a.attack_action_->target));
                 h = risk_game::hash_combine(
                     h, std::hash<int>{}(a.attack_action_->num_attack_dice_));
+                h = risk_game::hash_combine(
+                    h,
+                    std::hash<int>{}(a.attack_action_->num_move_on_conquest_));
               }
             },
             [&h](const risk_game::QueueDefenseAction &a) {
@@ -447,8 +457,12 @@ struct RiskState {
     }
 
     if (tgt.units == 0) {
-      int move_units =
-          std::min(queued_attack_->num_attack_dice_, src.units - 1);
+      // At least the dice rolled, at most all but one left behind.
+      const int most = static_cast<int>(src.units) - 1;
+      const int least = std::min(queued_attack_->num_attack_dice_, most);
+      const int asked = queued_attack_->num_move_on_conquest_;
+      const int move_units =
+          std::clamp(asked == 0 ? least : asked, least, most);
       src.units -= move_units;
       // tgt was just reduced to 0, so this cannot saturate in practice; use
       // the saturating add anyway to keep "all unit growth is saturating".
@@ -662,6 +676,10 @@ struct RiskState {
                 }
                 if (atk.num_attack_dice_ < 1 || atk.num_attack_dice_ > 3) {
                   reason = "num_attack_dice out of range [1, 3]";
+                  return false;
+                }
+                if (atk.num_move_on_conquest_ < 0) {
+                  reason = "num_move_on_conquest must not be negative";
                   return false;
                 }
                 if (map_[atk.source_].units <=

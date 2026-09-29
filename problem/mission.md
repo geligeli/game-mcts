@@ -12,7 +12,9 @@ Then loop, and do not stop:
    reading their code is allowed and expected. Game rules that matter: the
    game ends after the round cap in `arena_cli rules` and is then won on
    territories, then armies, so a passive bot loses; a turn ends with a
-   FortifyAction, and a PlayerAction must reinforce or attack.
+   FortifyAction, and a PlayerAction must reinforce or attack; a conquest
+   moves in the attack's num_move_on_conquest_ armies (default: only the dice
+   rolled; QueueAttackAction::kMoveAll: all but one).
 2. Check it builds and plays: `arena_cli spar builtin:mcts_smart --games=2`.
    Risk games are long, so keep sparring short. Sparring is a sanity check,
    not a score: nothing you do locally is rated.

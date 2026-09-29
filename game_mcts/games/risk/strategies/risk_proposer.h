@@ -28,7 +28,8 @@ namespace risk_game {
 // Known biases, documented so they are chosen rather than inherited:
 //  - reserves are scattered i.i.d. uniformly over *all* owned territories, so
 //    no proposal ever concentrates them on the border;
-//  - attacks always commit the maximum dice;
+//  - attacks always commit the maximum dice, and a conquest moves in every
+//    army it may;
 //  - the fortify move is a single deterministic greedy choice.
 //
 // BORDER_REINFORCE changes the first bias: reserves land only on border
@@ -247,7 +248,8 @@ struct RiskProposer {
             const uint16_t candidate = favorable[pick];
             const int src = candidate >> 8;
             pa.attack_action_ = QueueAttackAction{
-                src, candidate & 0xFF, std::min(3, state.map_[src].units - 1)};
+                src, candidate & 0xFF, std::min(3, state.map_[src].units - 1),
+                QueueAttackAction::kMoveAll};
           }
           // Otherwise end turn: fall through to the fortify below.
         } else if (!may_end_turn) {
@@ -258,7 +260,8 @@ struct RiskProposer {
                   gen, static_cast<uint32_t>(num_candidates)))];
           const int src = candidate >> 8;
           pa.attack_action_ = QueueAttackAction{
-              src, candidate & 0xFF, std::min(3, state.map_[src].units - 1)};
+              src, candidate & 0xFF, std::min(3, state.map_[src].units - 1),
+              QueueAttackAction::kMoveAll};
         }
         // Otherwise no favorable attack: fall through to the fortify below.
       } else {
@@ -270,7 +273,8 @@ struct RiskProposer {
           const uint16_t candidate = candidates[pick];
           const int src = candidate >> 8;
           pa.attack_action_ = QueueAttackAction{
-              src, candidate & 0xFF, std::min(3, state.map_[src].units - 1)};
+              src, candidate & 0xFF, std::min(3, state.map_[src].units - 1),
+              QueueAttackAction::kMoveAll};
         }
       }
     }

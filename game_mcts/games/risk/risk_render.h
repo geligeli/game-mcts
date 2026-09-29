@@ -170,6 +170,12 @@ std::string DescribeStep(const RiskState<NUM_PLAYERS> &before,
                   << " attacks " << WithUnits(after, attack.source_, color)
                   << " ==> " << WithUnits(after, attack.target, color) << ", "
                   << Dice(attack.num_attack_dice_);
+              if (attack.num_move_on_conquest_ >= QueueAttackAction::kMoveAll) {
+                out << ", all move in on a win";
+              } else if (attack.num_move_on_conquest_ > 0) {
+                out << ", " << attack.num_move_on_conquest_
+                    << " move in on a win";
+              }
             }
           },
           [&](const QueueDefenseAction &defense) {

@@ -19,7 +19,10 @@ description:
   "The game ends when one side owns the whole map, or after 40 rounds (a "
   "round is one turn each): then the side holding more territories wins, then "
   "the one with more armies. A passive bot loses. A turn ends with a "
-  "FortifyAction; a PlayerAction must reinforce or attack.\n"
+  "FortifyAction; a PlayerAction must reinforce or attack. A roll that "
+  "conquers moves in QueueAttackAction::num_move_on_conquest_ armies, as the "
+  "attack asked: at least the dice rolled (the default, 0), at most all but "
+  "one (QueueAttackAction::kMoveAll).\n"
   "\n"
   "Only submissions are rated. Each submit plays 10 games against every "
   "builtin (`random`, `mcts`, `mcts_smart`, the strongest known) and up to 3 "
@@ -62,7 +65,7 @@ build {
 sandbox {
   # What a worker asks its daemon for, as `bazel run //:sandbox_image_issue`
   # makes it. Bump the tag whenever the tree or the toolchain changes.
-  image: "registry.takumi.city/game-mcts-sandbox:6"
+  image: "registry.takumi.city/game-mcts-sandbox:7"
   # So a build needs no network, and a submitted genrule cannot exfiltrate.
   allow_build_network: false
   # Owns the image's primed cache, which fills a worker's empty cache volume.

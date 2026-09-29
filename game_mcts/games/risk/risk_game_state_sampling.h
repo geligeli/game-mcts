@@ -141,7 +141,8 @@ struct QueueAttackActionSet {
       // Both expectations are marginals and can both be positive for close
       // battles; the side with more expected survivors wins.
       if (outcome.attackers_ > outcome.defenders_) {
-        // Target captured: surviving attackers move in, losses stay behind.
+        // Target captured: the survivors move in, and the source keeps them
+        // too (the rollout shortcut's overcount, see risk_rollout_shortcuts.h).
         result.map_[src].units -= (attackers - outcome.attackers_);
         result.map_[tgt].units = outcome.attackers_;
         result.map_[tgt].owner = result.current_player_;

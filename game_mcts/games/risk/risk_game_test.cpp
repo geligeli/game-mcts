@@ -370,6 +370,42 @@ TEST(RiskGameTest, IsValidActionAttack) {
   const RiskState<2> queued = MakeQueuedAttackState();
   EXPECT_FALSE(queued.is_valid_action(attack(2, 7, 1), reason));
   EXPECT_FALSE(reason.empty());
+  // A negative move-in count.
+  PlayerAction negative;
+  negative.attack_action_ = QueueAttackAction{0, 7, 3, -1};
+  EXPECT_FALSE(state.is_valid_action(RiskAction{negative}, reason));
+  EXPECT_FALSE(reason.empty());
+}
+
+// Afghanistan (9 armies) conquers China (1) with |dice| dice, asking for
+// |move| armies to move in; returns how many did.
+int MovedIn(int move, int dice = 3) {
+  RiskState<2> state = MakeMidGameState();
+  state.map_[0].units = 9;
+  state.map_[7].units = 1;
+  PlayerAction attack;
+  attack.attack_action_ = QueueAttackAction{.source_ = 0,
+                                            .target = 7,
+                                            .num_attack_dice_ = dice,
+                                            .num_move_on_conquest_ = move};
+  std::string reason;
+  EXPECT_TRUE(state.is_valid_action(RiskAction{attack}, reason)) << reason;
+  state.apply_action_in_place(attack);
+  state.apply_action_in_place(QueueDefenseAction{1});
+  state.apply_action_in_place(
+      RollDiceAction{{6, 6, dice == 3 ? 6 : 0}, {1, 0}});
+  EXPECT_EQ(state.map_[7].owner, 0);
+  EXPECT_EQ(state.map_[0].units + state.map_[7].units, 9);
+  return state.map_[7].units;
+}
+
+TEST(RiskGameTest, AConquestMovesInWhatTheAttackAsked) {
+  EXPECT_EQ(MovedIn(0), 3);  // the default: the dice rolled
+  EXPECT_EQ(MovedIn(0, 2), 2);
+  EXPECT_EQ(MovedIn(5), 5);
+  EXPECT_EQ(MovedIn(QueueAttackAction::kMoveAll), 8);  // all but one
+  EXPECT_EQ(MovedIn(1), 3);   // never fewer than the dice
+  EXPECT_EQ(MovedIn(20), 8);  // never the last army
 }
 
 TEST(RiskGameTest, IsValidActionReinforce) {

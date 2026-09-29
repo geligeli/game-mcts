@@ -36,6 +36,7 @@ rproto::QueueAttackAction QueueAttackToProto(
   proto.set_source(action.source_);
   proto.set_target(action.target);
   proto.set_num_attack_dice(action.num_attack_dice_);
+  proto.set_num_move_on_conquest(action.num_move_on_conquest_);
   return proto;
 }
 
@@ -44,7 +45,8 @@ risk_game::QueueAttackAction QueueAttackFromProto(
   return risk_game::QueueAttackAction{
       .source_ = proto.source(),
       .target = proto.target(),
-      .num_attack_dice_ = proto.num_attack_dice()};
+      .num_attack_dice_ = proto.num_attack_dice(),
+      .num_move_on_conquest_ = proto.num_move_on_conquest()};
 }
 
 rproto::QueueDefenseAction QueueDefenseToProto(
