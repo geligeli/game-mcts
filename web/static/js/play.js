@@ -31,6 +31,10 @@ let selected = -1;         // attack source, or fortify source
 let mode = 'attack';       // attack | fortify
 let lastAttack = null;     // {source, target} for Space
 let blitz = false;
+// On a conquest: everything but one army, or only the dice (the rules' least).
+let moveAll = true;
+try { moveAll = localStorage.getItem('risk2.moveAll') !== '0'; } catch {}
+const MOVE_ALL = 1 << 16;  // QueueAttackAction::kMoveAll
 let busy = false;          // an engine call is out
 const names = seat === 0 ? ['You', botId] : [botId, 'You'];
 
@@ -123,6 +127,7 @@ function refresh() {
   $('endattacks').disabled = !(phase === 'attack' || (reinforcing && remaining() === 0)) || mode === 'fortify';
   $('endturn').disabled = !(phase === 'attack' || (reinforcing && remaining() === 0));
   $('blitz').classList.toggle('on', blitz);
+  $('moveall').classList.toggle('on', moveAll);
   world.setPending(placement);
 
   const title = $('phase'), hint = $('hint');
@@ -202,7 +207,8 @@ async function attack(source, target, all) {
   if (busy) return;
   const sending = placementString(placement);
   lastAttack = {source, target};
-  const answer = await call('attack', source, target, sending, all ? 1 : 0);
+  const answer = await call('attack', source, target, sending, all ? 1 : 0,
+                            moveAll ? MOVE_ALL : 0);
   // Placed once the engine has no reserves left to place.
   if (state.phase !== 'reinforce') placement = {};
   // Conquered, and nothing left to attack with: carry on from the new land.
@@ -389,6 +395,8 @@ function onKey(e) {
   } else if (key === 'b') {
     blitz = !blitz;
     refresh();
+  } else if (key === 'a') {
+    $('moveall').click();
   } else if (key === 'e') {
     $('endattacks').click();
   } else if (key === 'enter') {
@@ -466,6 +474,11 @@ async function main() {
   canvas.addEventListener('pointerleave', () => $('tip').classList.add('hidden'));
   addEventListener('keydown', onKey);
   $('blitz').onclick = () => { blitz = !blitz; refresh(); };
+  $('moveall').onclick = () => {
+    moveAll = !moveAll;
+    try { localStorage.setItem('risk2.moveAll', moveAll ? '1' : '0'); } catch {}
+    refresh();
+  };
   $('undo').onclick = () => { placement = {}; sfx.play('click'); refresh(); };
   $('endattacks').onclick = () => {
     if ($('endattacks').disabled) return;

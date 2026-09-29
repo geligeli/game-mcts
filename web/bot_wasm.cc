@@ -65,9 +65,10 @@ EMSCRIPTEN_KEEPALIVE const char *rk_quick_setup() {
 }
 
 EMSCRIPTEN_KEEPALIVE const char *rk_attack(int source, int target,
-                                           const char *reinforce, int blitz) {
+                                           const char *reinforce, int blitz,
+                                           int move) {
   return Answer(
-      g_match->Attack(source, target, Placement(reinforce), blitz != 0));
+      g_match->Attack(source, target, Placement(reinforce), blitz != 0, move));
 }
 
 EMSCRIPTEN_KEEPALIVE const char *rk_fortify(int source, int target, int units,

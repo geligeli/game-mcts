@@ -200,7 +200,8 @@ std::string RiskMatch::QuickSetup() {
 }
 
 std::string RiskMatch::Attack(int source, int target,
-                              const placement_t &reinforce, bool blitz) {
+                              const placement_t &reinforce, bool blitz,
+                              int move) {
   if (state_.current_player_ != human_ || state_.initial_placement_) {
     return Answer("not your move");
   }
@@ -217,7 +218,8 @@ std::string RiskMatch::Attack(int source, int target,
             .source_ = source,
             .target = target,
             .num_attack_dice_ =
-                std::min(3, static_cast<int>(state_.map_[source].units) - 1)}};
+                std::min(3, static_cast<int>(state_.map_[source].units) - 1),
+            .num_move_on_conquest_ = move}};
     if (!Apply(attack, &error)) {
       break;
     }

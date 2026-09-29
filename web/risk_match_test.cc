@@ -98,6 +98,25 @@ TEST(RiskMatchTest, BlitzStopsAtAConquestOrTheLastArmy) {
               match.state().map_[source].units == 1);
 }
 
+TEST(RiskMatchTest, AConquestCanMoveEverythingIn) {
+  for (const uint32_t seed : {5U, 6U, 7U, 8U}) {
+    RiskMatch match(Bot(), 0, 40, seed);
+    match.QuickSetup();
+    BotUntilHuman(match);
+    const auto [source, target] = Front(match.state(), 0);
+    placement_t reinforce{};
+    reinforce[source] = match.state().reserves_[0];
+    match.Attack(source, target, reinforce, true,
+                 risk_game::QueueAttackAction::kMoveAll);
+    if (match.state().map_[target].owner == 0) {
+      EXPECT_EQ(match.state().map_[source].units, 1);
+      EXPECT_GT(match.state().map_[target].units, 3);
+      return;
+    }
+  }
+  FAIL() << "no seed conquered anything";
+}
+
 TEST(RiskMatchTest, AFortifyEndsTheTurn) {
   RiskMatch match(Bot(), 1, 40, 9);
   match.QuickSetup();

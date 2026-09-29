@@ -7,12 +7,16 @@
 #   ./quickstart.sh --local    images kept in the local docker daemon, and
 #                              copied to the workers' hosts
 #   PLAYERS="ann:claude ben:opencode" ./quickstart.sh
+#   PLAYERS="opus:claude:claude-opus-5-5:high fable:claude:claude-fable-5-1:high" \
+#     ./quickstart.sh
 #   WORKERS="local" ./quickstart.sh    one worker, on this host's docker
 #   GRPC_PORT=50061 HTTP_PORT=8091 ./quickstart.sh   beside another tournament
 #   MODEL=opencode/<model> ./quickstart.sh     the opencode players' model
 #
-# PLAYERS: name[:agent] each, the agent (claude, agy or opencode) defaulting
-# to the name. claude needs CLAUDE_CODE_OAUTH_TOKEN (`claude setup-token`),
+# PLAYERS: name[:agent[:model[:effort]]] each, the agent (claude, agy or
+# opencode) defaulting to the name. A model is claude's --model or opencode's
+# -m (default $MODEL); an effort is claude's --effort (low ... max).
+# claude needs CLAUDE_CODE_OAUTH_TOKEN (`claude setup-token`),
 # agy GEMINI_API_KEY; unset, that agent asks you to log in in its pane.
 # opencode runs a free OpenCode Zen model.
 #
@@ -47,24 +51,26 @@ for tool in tmux docker bazel; do
 done
 names=() runs=() secrets=()
 for player in $PLAYERS; do
-  agent=${player#*:}
+  IFS=: read -r name agent model effort <<<"$player"
+  agent=${agent:-$name}
   case $agent in
     claude)
-      run='claude --dangerously-skip-permissions "$(cat /mission.md)"'
+      run="claude${model:+ --model $model}${effort:+ --effort $effort}"
+      run+=' --dangerously-skip-permissions "$(cat /mission.md)"'
       secret=CLAUDE_CODE_OAUTH_TOKEN ;;
     agy)
       run='agy --dangerously-skip-permissions -i "$(cat /mission.md)"'
       secret=GEMINI_API_KEY ;;
     opencode)
       # --auto: approve whatever is not denied, e.g. reading /tmp/spar.* logs.
-      run="opencode --auto -m $MODEL --prompt \"\$(cat /mission.md)\""
+      run="opencode --auto -m ${model:-$MODEL} --prompt \"\$(cat /mission.md)\""
       secret= ;;
     *) echo "quickstart: $player: the agent is claude, agy or opencode" >&2; exit 1 ;;
   esac
   if [[ -n $secret && -z ${!secret:-} ]]; then
-    echo "quickstart: $secret is unset; ${player%%:*} will ask you to log in" >&2
+    echo "quickstart: $secret is unset; $name will ask you to log in" >&2
   fi
-  names+=("${player%%:*}") runs+=("$run") secrets+=("$secret")
+  names+=("$name") runs+=("$run") secrets+=("$secret")
 done
 for port in $GRPC_PORT $HTTP_PORT; do
   if ss -Hltn "sport = :$port" | grep -q .; then

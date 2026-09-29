@@ -13,7 +13,7 @@ const SIGNATURES = {
   state: [],
   place: ['number'],
   quick_setup: [],
-  attack: ['number', 'number', 'string', 'number'],
+  attack: ['number', 'number', 'string', 'number', 'number'],
   fortify: ['number', 'number', 'number', 'string'],
   bot_step: [],
   board: [],

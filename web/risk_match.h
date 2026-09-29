@@ -23,7 +23,8 @@
 // leaves the game as it was.
 //
 // A person never picks dice: they attack and defend with the most allowed,
-// which also makes a whole battle a matter of clicks.
+// which also makes a whole battle a matter of clicks. What moves in on a
+// conquest is theirs to say (QueueAttackAction::num_move_on_conquest_).
 
 #include <array>
 #include <cstdint>
@@ -58,9 +59,10 @@ class RiskMatch {
   std::string QuickSetup();
   // Places |reinforce| (all reserves, when any are left) and rolls once from
   // |source| at |target|; with |blitz|, keeps rolling until it is conquered or
-  // |source| is down to one army.
+  // |source| is down to one army. A conquest moves in |move| armies, clamped
+  // by the rules: 0 the dice, QueueAttackAction::kMoveAll all but one.
   std::string Attack(int source, int target, const placement_t &reinforce,
-                     bool blitz);
+                     bool blitz, int move = 0);
   // Ends the turn, after placing |reinforce| if reserves are left. |units| <= 1
   // moves nothing.
   std::string Fortify(int source, int target, int units,
