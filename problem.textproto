@@ -24,10 +24,13 @@ description:
   "attack asked: at least the dice rolled (the default, 0), at most all but "
   "one (QueueAttackAction::kMoveAll).\n"
   "\n"
-  "Only submissions are rated. Each submit plays 10 games against every "
-  "builtin (`random`, `mcts`, `mcts_smart`, the strongest known) and up to 3 "
-  "rated rivals, and replaces your previous entry. `arena_cli spar` is a "
-  "local sanity check; nothing it plays counts.\n"
+  "Every submit is a strategy of its own, `<you>-vNN`, rated on its own: it "
+  "plays 10 games against every builtin (`random`, `mcts`, `mcts_smart`, the "
+  "strongest known) and up to 3 rated rivals, then keeps playing the top 10 "
+  "in continuous matches until it has 40 games among them. The top 10 keep "
+  "playing each other; the rest drop out, rated as they left. Your name "
+  "stands for your newest version that built. `arena_cli spar` is a local "
+  "sanity check; nothing it plays counts.\n"
 
 submission {
   # A strategy is a header or two. A patch an order of magnitude larger than
@@ -35,6 +38,9 @@ submission {
   max_patch_bytes: 262144
   max_files: 32
   allow_paths: "bots/{submission_id}/**"
+  # Every submission is a strategy of its own, <name>-vNN, rated on its own;
+  # your name still stands for your newest version that built.
+  versions: true
 
   # The generated BUILD is what keeps allowed_dep_prefixes enforceable.
   files_submit_dir: "bots"
@@ -95,6 +101,10 @@ match {
   registry_options { key: "max_rounds" value: "40" }
   # Ten games in sequence, each at most ~6 min at the cap.
   timeout_s: 3600
+  # Between submissions the fleet keeps playing the top 10 (and every new
+  # version until it has 40 games among them), so their ratings keep
+  # tightening; /pool shows the matches and the charts.
+  matchmaking { pool: 10 }
 }
 
 # Copied to bots/<your name>/ the first time.

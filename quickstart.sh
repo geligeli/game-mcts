@@ -10,6 +10,7 @@
 #   PLAYERS="opus:claude:claude-opus-5-5:high fable:claude:claude-fable-5-1:high" \
 #     ./quickstart.sh
 #   WORKERS="local" ./quickstart.sh    one worker, on this host's docker
+#   WORKER_SLOTS=4 ./quickstart.sh     matches each worker runs at once
 #   GRPC_PORT=50061 HTTP_PORT=8091 ./quickstart.sh   beside another tournament
 #   MODEL=opencode/<model> ./quickstart.sh     the opencode players' model
 #
@@ -35,7 +36,9 @@ LOCAL=0
 TAG=${TAG:-latest}
 KIT=${KIT:-registry.takumi.city/game-mcts-kit}
 PLAYERS=${PLAYERS:-"claude agy opencode"}
-WORKERS=${WORKERS:-"geli-3950 geli-3950"}
+# geli-xeon: 72 cores, and a match keeps about one busy.
+WORKERS=${WORKERS:-"geli-xeon geli-xeon geli-xeon geli-xeon"}
+WORKER_SLOTS=${WORKER_SLOTS:-16}
 AGENT_CPUS=${AGENT_CPUS:-4}
 SESSION=${SESSION:-game-mcts-risk2}
 GRPC_PORT=${GRPC_PORT:-50051}
@@ -131,6 +134,7 @@ for host in $WORKERS; do
   [[ $host == local ]] || remote=(-e "DOCKER_HOST=ssh://$host")
   pane "${remote[@]}" -e "ARENA_VOLUME_PREFIX=$SESSION-w$worker" \
     -e "ARENA_WORK_DIR=/tmp/arena_sandbox/$SESSION-w$worker" \
+    -e "ARENA_SLOTS=$WORKER_SLOTS" \
     "bazel run -c opt @game_arena//game_arena/sandbox/worker:sandbox_worker -- --server=localhost:$GRPC_PORT; exec bash"
 done
 

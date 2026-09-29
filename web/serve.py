@@ -8,7 +8,10 @@ Read-only. Routes:
   /, /*.html, /static/...   the pages (web/static)
   /bots/<id>.{js,wasm}      a candidate compiled by web/build.sh (web/dist);
                             /bots/<id> is the .js, as its pthreads load it
-  /api/bots                 web/bots/manifest.json (stage.py), rated as the
+  /api/bots                 with --leaderboard, the coordinator's top --top,
+                            each compiled once it reaches it (stage.py and
+                            build.sh, in the background); else
+                            web/bots/manifest.json (stage.py), rated as the
                             data dirs' swiss.tsv last has them
   /api/games?player=&dir=&offset=&limit=
                             games, newest first, from each data dir's
@@ -28,7 +31,12 @@ import json
 import mimetypes
 import pathlib
 import re
+import subprocess
+import sys
+import threading
+import time
 import urllib.parse
+import urllib.request
 
 from stage import ratings
 
@@ -83,9 +91,64 @@ class Games:
         return path.read_bytes() if path.exists() else None
 
 
+class TopBots:
+    """The coordinator's top N by its leaderboard, kept compiled."""
+
+    def __init__(self, leaderboard, top, stage_from, bots_dir, period=120):
+        self.url = leaderboard.rstrip("/") + "/api/leaderboard"
+        self.top, self.stage_from = top, stage_from
+        self.bots_dir, self.period = bots_dir, period
+        self.rows = []
+        self.building = set()
+
+    def poll(self):
+        with urllib.request.urlopen(self.url, timeout=10) as response:
+            rows = json.load(response)["rows"][:self.top]
+        self.rows = rows
+        missing = [r["candidate_id"] for r in rows
+                   if not (self.bots_dir / (r["candidate_id"] + ".wasm")).exists()]
+        if not missing:
+            return
+        self.building = set(missing)
+        print(f"compiling {', '.join(missing)}", flush=True)
+        # A version never changes: staged and built once, kept after.
+        subprocess.run([sys.executable, str(WEB / "stage.py"),
+                        str(self.stage_from), "--only", ",".join(missing),
+                        "--keep"], check=True)
+        subprocess.run(["bash", str(WEB / "build.sh"), *missing], check=True)
+        self.building = set()
+
+    def run(self):
+        while True:
+            try:
+                self.poll()
+            except Exception as error:  # the board may be down for a while
+                print(f"top bots: {error}", flush=True)
+                self.building = set()
+            time.sleep(self.period)
+
+    def entries(self):
+        entries = []
+        for r in self.rows:
+            m = re.fullmatch(r"(.+)-v(\d+)", r["candidate_id"])
+            entries.append({
+                "id": r["candidate_id"],
+                "participant": r.get("author") or (m[1] if m else r["candidate_id"]),
+                "version": int(m[2]) if m else 0,
+                "rank": r["rank"], "score": r["score"],
+                "mu": r.get("mu"), "sigma": r.get("sigma"),
+                "built": (self.bots_dir / (r["candidate_id"] + ".wasm")).exists(),
+            })
+        if (self.bots_dir / "reference.wasm").exists():
+            entries.append({"id": "reference", "participant": "reference",
+                            "version": 0, "built": True})
+        return entries
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     games = None
     bots_dir = None
+    top_bots = None
     gzipped = {}  # path -> (mtime, bytes)
 
     def log_message(self, fmt, *args):
@@ -148,6 +211,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         m = re.fullmatch(r"/bots/([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*)", route)
         if m and (self.bots_dir / (m[1] + ".js")).exists():
             return self.send_file(self.bots_dir / (m[1] + ".js"), "no-cache")
+        if route == "/api/bots" and self.top_bots is not None:
+            return self.send(json.dumps(self.top_bots.entries()).encode(),
+                             TYPES[".json"])
         if route == "/api/bots":
             manifest = WEB / "bots" / "manifest.json"
             entries = json.loads(manifest.read_text()) if manifest.exists() else []
@@ -186,9 +252,20 @@ def main():
                         default=[], help="an arena data dir; repeatable")
     parser.add_argument("--bots_dir", type=pathlib.Path,
                         default=WEB / "dist" / "bots")
+    parser.add_argument("--leaderboard", default="",
+                        help="a coordinator's address, e.g. http://localhost:8090: "
+                             "serve its top --top, compiled as they get there")
+    parser.add_argument("--top", type=int, default=10)
+    parser.add_argument("--stage_from", type=pathlib.Path,
+                        default=pathlib.Path("~/.arena/risk2"),
+                        help="the coordinator's data dir, for the candidates' code")
     args = parser.parse_args()
     Handler.games = Games([d.expanduser().resolve() for d in args.data_dir])
     Handler.bots_dir = args.bots_dir
+    if args.leaderboard:
+        Handler.top_bots = TopBots(args.leaderboard, args.top,
+                                   args.stage_from.expanduser(), args.bots_dir)
+        threading.Thread(target=Handler.top_bots.run, daemon=True).start()
     server = http.server.ThreadingHTTPServer((args.bind, args.port), Handler)
     print(f"serving on http://{args.bind}:{args.port}/", flush=True)
     server.serve_forever()

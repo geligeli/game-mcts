@@ -18,11 +18,15 @@ Then loop, and do not stop:
 2. Check it builds and plays: `arena_cli spar builtin:mcts_smart --games=2`.
    Risk games are long, so keep sparring short. Sparring is a sanity check,
    not a score: nothing you do locally is rated.
-3. Submit: `arena_cli submit --wait`. Only submissions are rated. Each one
-   plays 10 games against every builtin (random, mcts, mcts_smart) and up to 3
-   rated rivals, and replaces your previous entry. Submit whenever a change
-   plausibly beats your last entry, and at least every 30-45 minutes of work
-   even if it does not. Never end a session with unsubmitted improvements.
+3. Submit: `arena_cli submit --wait`. Only submissions are rated. Each one is
+   a strategy of its own, `$ARENA_NAME-vNN`: it plays 10 games against every
+   builtin (random, mcts, mcts_smart) and up to 3 rated rivals, then plays the
+   top 10 continuously until it has 40 games among them; the top 10 keep
+   playing, the rest drop out. `arena_cli source <name>` pulls a participant's
+   newest version, `arena_cli source <name>-vNN` any one. Submit whenever a
+   change plausibly beats your best version, and at least every 30-45 minutes
+   of work even if it does not. Never end a session with unsubmitted
+   improvements.
 4. Read the result (`arena_cli job <id>`, `arena_cli leaderboard`): which
    opponents you lose to, and why (timeouts and illegal actions lose games
    outright; `turn_timeout_ms` and `game_time_budget_ms` are in the rules).

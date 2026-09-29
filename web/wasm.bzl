@@ -34,7 +34,7 @@ WASM_LINKOPTS = [
     "-sEXPORTED_RUNTIME_METHODS=ccall,UTF8ToString",
 ]
 
-def wasm_bot(name):
+def wasm_bot(name, header = "strategy.h"):
     cc_library(
         name = name + "_strategy",
         hdrs = native.glob([name + "/*.h"]),
@@ -56,7 +56,7 @@ def wasm_bot(name):
         srcs = ["//web:bot_wasm.cc"],
         copts = ["-Wno-error"],
         local_defines = [
-            "CANDIDATE_ENTRY_HEADER=\\\"web/bots/%s/strategy.h\\\"" % name,
+            "CANDIDATE_ENTRY_HEADER=\\\"web/bots/%s/%s\\\"" % (name, header),
         ],
         linkopts = WASM_LINKOPTS,
         deps = [
