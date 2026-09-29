@@ -133,3 +133,8 @@ use_repo(cpp_format, "cpp_format_bin")
 
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
 python.toolchain(python_version = "3.12")
+
+# Dev-only: web/ compiles a candidate's policy to WebAssembly for the play page
+# (wasm_cc_binary). Only web/'s manual targets reach it, so neither `//...`,
+# a kit nor the sandbox image fetches emscripten.
+bazel_dep(name = "emsdk", version = "6.0.9", dev_dependency = True)

@@ -1,0 +1,6 @@
+# Generated or downloaded: see stage.py and fetch_assets.sh.
+/bots/
+/.cache/
+/static/assets/
+/static/vendor/
+/dist/

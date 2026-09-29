@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 2 28 8v8c0 7-5 12-12 14C9 28 4 23 4 16V8z%27 fill=%27%23d6b46a%27/%3E%3Cpath d=%27M16 7 23 10v6c0 4-3 7-7 9-4-2-7-5-7-9v-6z%27 fill=%27%23b8453c%27/%3E%3C/svg%3E">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>risk2 replay</title>
+<link rel="stylesheet" href="static/css/app.css">
+<style>
+  .timeline {
+    left: 50%; bottom: 14px; transform: translateX(-50%); width: min(980px, calc(100vw - 24px));
+    padding: 10px 14px 12px; display: grid; gap: 8px;
+  }
+  .timeline .row { display: flex; align-items: center; gap: 8px; }
+  .timeline .grow { flex: 1; min-width: 0; position: relative; }
+  .timeline input[type=range] { width: 100%; accent-color: var(--gold); margin: 0; }
+  .timeline canvas { width: 100%; height: 34px; display: block; }
+  .timeline select {
+    background: rgba(0,0,0,0.3); border: 1px solid var(--line); border-radius: 6px; padding: 5px 6px;
+  }
+  .timeline .step { font-size: 12px; color: var(--ink-2); min-width: 92px; text-align: right; }
+  .result.hidden { opacity: 0; pointer-events: none; }
+  @media (max-width: 720px) { .timeline .hide-narrow { display: none; } }
+</style>
+<script type="importmap">
+{"imports": {"three": "./static/vendor/three/build/three.module.js",
+             "three/addons/": "./static/vendor/three/examples/jsm/"}}
+</script>
+</head>
+<body>
+<div class="stage" id="stage"></div>
+
+<a class="hud homebtn btn small" href="./">← Lobby</a>
+<div class="hud toolbar">
+  <button class="btn icon" id="sound" title="Sound (M)">🔊</button>
+  <button class="btn icon" id="music" title="Drums">🥁</button>
+  <button class="btn icon" id="camera" title="Reset camera (C)">⌖</button>
+</div>
+
+<div class="hud topbar panel">
+  <div class="seat" id="seat0"><div class="crest" style="background:var(--p0)">K</div>
+    <div><div class="name" id="name0">—</div><div class="stats num" id="stats0"></div></div></div>
+  <div class="round" id="round">—</div>
+  <div class="seat right" id="seat1"><div class="crest" style="background:var(--p1)">S</div>
+    <div><div class="name" id="name1">—</div><div class="stats num" id="stats1"></div></div></div>
+</div>
+
+<div class="hud dicebar panel hidden" id="dice"></div>
+<div class="hud caption panel" id="caption"></div>
+<div class="hud banner panel hidden" id="banner"></div>
+
+<div class="hud timeline panel">
+  <canvas id="spark" class="hide-narrow"></canvas>
+  <div class="row">
+    <button class="btn icon" id="first" title="Start (Home)">⏮</button>
+    <button class="btn icon" id="prev" title="Step back (←)">◀</button>
+    <button class="btn icon primary" id="play" title="Play / pause (Space)">▶</button>
+    <button class="btn icon" id="next" title="Step (→)">▶|</button>
+    <button class="btn icon" id="last" title="End (End)">⏭</button>
+    <div class="grow"><input type="range" id="scrub" min="0" max="0" value="0"></div>
+    <span class="step num" id="stepno">0 / 0</span>
+    <select id="speed" title="Speed (+/-)">
+      <option value="0.5">½×</option><option value="1">1×</option><option value="2" selected>2×</option>
+      <option value="4">4×</option><option value="8">8×</option><option value="16">16×</option>
+    </select>
+    <button class="btn small hide-narrow" id="skip">Skip setup</button>
+  </div>
+</div>
+
+<div class="overlay" id="loading"><div class="card panel">
+  <h2>Unrolling the map…</h2><p id="loadtext">Loading armies and the game record</p>
+  <div class="progress"><div id="loadbar"></div></div>
+</div></div>
+
+<script type="module" src="static/js/replay.js"></script>
+</body>
+</html>

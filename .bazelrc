@@ -40,6 +40,12 @@ build --host_cxxopt=-Wno-deprecated-attributes
 # cache above, an RBE cluster) serves one machine's instruction set to another.
 # If it comes back it has to run locally and stay out of the shared caches.
 
+# web/'s WebAssembly builds (see web/README.md): abseil's config.h reads
+# emscripten's version macros under names emscripten now marks deprecated.
+build:web --copt=-Wno-deprecated-pragma
+# The rules throw; emsdk's toolchain compiles without exceptions unless asked.
+build:web --features=wasm_exceptions
+
 # Sanitizers. The hermetic toolchain owns the instrumentation: each
 # --@llvm//config:<san> setting adds -fsanitize=<san> and -fno-omit-frame-pointer
 # to every compile and link in the target configuration and links the matching

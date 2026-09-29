@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 2 28 8v8c0 7-5 12-12 14C9 28 4 23 4 16V8z%27 fill=%27%23d6b46a%27/%3E%3Cpath d=%27M16 7 23 10v6c0 4-3 7-7 9-4-2-7-5-7-9v-6z%27 fill=%27%23b8453c%27/%3E%3C/svg%3E">
+<title>risk2 engine self-test</title>
+<style>body{font:13px/1.4 ui-monospace,monospace;background:#111;color:#ddd;padding:16px}</style>
+</head>
+<body>
+<p>A quick game against ?bot= (default reference): the human side places
+everything on its first territory and ends every turn. Result lands in
+#result and the title.</p>
+<pre id="log"></pre>
+<pre id="result">running</pre>
+<script type="module">
+import {Engine, placementString} from './static/js/engine.js';
+
+const params = new URLSearchParams(location.search);
+const botId = params.get('bot') || 'reference';
+const rounds = Number(params.get('rounds') || 4);
+const log = (line) => document.getElementById('log').textContent += line + '\n';
+const done = (text) => {
+  document.getElementById('result').textContent = text;
+  document.title = text;
+};
+try {
+  log(`crossOriginIsolated=${self.crossOriginIsolated} threads=${navigator.hardwareConcurrency}`);
+  const engine = await Engine.load(botId);
+  log(`loaded ${botId}: ${engine.board.names.length} territories`);
+  let answer = await engine.call('new', 0, rounds, 12345, '');
+  answer = await engine.call('quick_setup');
+  let botMs = 0, botSteps = 0;
+  for (let guard = 0; guard < 5000 && answer.state.phase !== 'over'; ++guard) {
+    const state = answer.state;
+    if (state.phase === 'bot') {
+      answer = await engine.call('bot_step');
+      botMs += answer.ms;
+      ++botSteps;
+    } else {
+      const mine = [...state.view.o].indexOf('0');
+      const placement = {};
+      if (state.phase === 'reinforce') placement[mine] = state.reserves;
+      answer = await engine.call('fortify', 0, 0, 0, placementString(placement));
+    }
+    if (answer.state.error) throw new Error(answer.state.error);
+  }
+  log(`bot steps: ${botSteps}, mean ${(botMs / Math.max(1, botSteps)).toFixed(0)} ms`);
+  done(`PASS ${botId}: ${answer.state.result}`);
+} catch (error) {
+  log(String(error.stack || error));
+  done(`FAIL ${botId}: ${error.message}`);
+}
+</script>
+</body>
+</html>
