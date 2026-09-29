@@ -62,7 +62,7 @@ build {
 sandbox {
   # What a worker asks its daemon for, as `bazel run //:sandbox_image_issue`
   # makes it. Bump the tag whenever the tree or the toolchain changes.
-  image: "registry.takumi.city/game-mcts-sandbox:5"
+  image: "registry.takumi.city/game-mcts-sandbox:6"
   # So a build needs no network, and a submitted genrule cannot exfiltrate.
   allow_build_network: false
   # Owns the image's primed cache, which fills a worker's empty cache volume.
