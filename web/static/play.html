@@ -15,11 +15,6 @@
   .orders .row .btn { flex: 1; }
   .reserve { display: flex; align-items: baseline; gap: 8px; }
   .reserve b { font: 600 28px var(--serif); color: var(--gold-hi); }
-  .log { left: 12px; bottom: 12px; width: 340px; max-height: 38vh; overflow: hidden; padding: 10px 12px; font-size: 12px; display: flex; flex-direction: column-reverse; gap: 3px; }
-  .log div { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .log div.s0 { border-left: 3px solid var(--p0); padding-left: 6px; }
-  .log div.s1 { border-left: 3px solid var(--p1); padding-left: 6px; }
-  .log div:first-child { color: var(--ink); }
   .toggle.on { border-color: var(--gold); background: rgba(214,180,106,0.18); }
   .popover { position: fixed; z-index: 8; padding: 12px; width: 230px; display: grid; gap: 8px; }
   .popover.hidden { display: none; }
@@ -31,7 +26,6 @@
   .caption { bottom: 20px; }
   @media (max-width: 720px) {
     .orders { top: auto; bottom: 12px; right: 8px; left: 8px; width: auto; padding: 10px; }
-    .log { display: none; }
     .caption { bottom: 190px; }
   }
 </style>
@@ -74,7 +68,6 @@
   </div>
 </div>
 
-<div class="hud log panel" id="log"></div>
 <div class="hud dicebar panel hidden" id="dice"></div>
 <div class="hud caption panel" id="caption"></div>
 <div class="hud banner panel hidden" id="banner"></div>

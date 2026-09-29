@@ -13,7 +13,7 @@ import {World, TEAMS} from './risk3d.js';
 import {Engine, placementString} from './engine.js';
 import {sfx} from './sfx.js';
 import {$, updateSeats, showDice, setCaption, banner, hideBanner, soundButtons,
-        progress, doneLoading, failLoading, holdings, plain} from './hud.js';
+        progress, doneLoading, failLoading, holdings} from './hud.js';
 
 const params = new URLSearchParams(location.search);
 const botId = params.get('bot') || 'reference';
@@ -53,13 +53,11 @@ function present(events) {
 async function drain() {
   while (queue.length) {
     const event = queue.shift();
-    const {v: view, c: caption, p: player} = event;
+    const {v: view, c: caption} = event;
     if (event.k === 'attack' || event.k === 'defend') {
       presented = view;  // no board change; the roll that follows shows it
       continue;
     }
-    // Dice are no one's move: the log gives them the attacker's colour.
-    log(caption, player >= 0 ? player : view.a ? Number(presented.o[view.a[0]]) : -1);
     setCaption(caption);
     updateSeats(view, names);
     // A backlog plays faster: the board catches up with the engine.
@@ -68,15 +66,6 @@ async function drain() {
     await world.play(presented, view, {speed});
     presented = view;
   }
-}
-
-function log(caption, player) {
-  const line = document.createElement('div');
-  line.textContent = plain(caption);
-  if (player === 0 || player === 1) line.className = `s${player}`;
-  const box = $('log');
-  box.prepend(line);
-  while (box.children.length > 40) box.lastChild.remove();
 }
 
 // ---- Engine calls ----
