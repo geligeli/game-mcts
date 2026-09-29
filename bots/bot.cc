@@ -20,6 +20,7 @@
 #include "game_arena/client/play_loop.h"
 #include "game_arena/proto/tournament_broker.grpc.pb.h"
 #include "game_mcts/core/mcts/policies.h"
+#include "game_mcts/games/risk/risk_serialization.h"
 
 #ifndef CANDIDATE_ENTRY_HEADER
 #error "compile with -DCANDIDATE_ENTRY_HEADER=\"path/to/strategy.h\""

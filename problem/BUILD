@@ -23,17 +23,26 @@ cc_library(
 # risk2's session: the round cap and the replay view on top of the adapter.
 cc_library(
     name = "risk_session",
-    hdrs = [
-        "risk_session.h",
-        "risk_view.h",
-    ],
+    hdrs = ["risk_session.h"],
     deps = [
+        ":risk_view",
         ":session",
         "//game_mcts/core/mcts:serialization",
         "//game_mcts/games/risk:risk_game",
-        "//game_mcts/games/risk:risk_render",
         "//game_mcts/games/risk:risk_serialization",
         "@game_arena//game_arena/referee:game_session",
+    ],
+)
+
+# The round cap, captions and views without protobuf or the arena: shared by
+# the session above and web/'s in-browser engine.
+cc_library(
+    name = "risk_view",
+    hdrs = ["risk_view.h"],
+    deps = [
+        "//game_mcts/core/mcts:game_traits",
+        "//game_mcts/games/risk:risk_game",
+        "//game_mcts/games/risk:risk_render",
     ],
 )
 

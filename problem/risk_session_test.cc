@@ -43,8 +43,8 @@ RiskState<2> Board(int rounds, int p0_territories, int p0_units = 2,
 }
 
 TEST(RiskSessionTest, CountsRoundsFromTheEndOfPlacement) {
-  EXPECT_EQ(RiskSession::Rounds(RiskState<2>{}), 0);
-  EXPECT_EQ(RiskSession::Rounds(Board(7, 21)), 7);
+  EXPECT_EQ(Rounds(RiskState<2>{}), 0);
+  EXPECT_EQ(Rounds(Board(7, 21)), 7);
 }
 
 TEST(RiskSessionTest, UncappedOrBeforeTheCapTheGameGoesOn) {

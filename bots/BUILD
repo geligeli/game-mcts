@@ -14,7 +14,6 @@ cc_library(
         "//game_mcts/core/mcts:policies",
         "//game_mcts/core/mcts:tournament",
         "//game_mcts/games/risk:risk_game",
-        "//game_mcts/games/risk:risk_serialization",
         "//game_mcts/games/risk/strategies:risk_proposer",
         "//game_mcts/games/risk/strategies:risk_rollout_shortcuts",
         "@game_arena//game_arena/common/kv_options",
@@ -31,6 +30,7 @@ cc_library(
     deps = [
         ":bot_api",
         "//game_mcts/core/mcts:policies",
+        "//game_mcts/games/risk:risk_serialization",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
         "@abseil-cpp//absl/log",

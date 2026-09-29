@@ -54,8 +54,7 @@ bool TurnStart(const state_t &before) {
 }
 
 std::string Board(const state_t &state, const risk_game::BoardMarks &marks) {
-  return "Round " +
-         std::to_string(tournament_broker::RiskSession::Rounds(state)) + "\n" +
+  return "Round " + std::to_string(tournament_broker::Rounds(state)) + "\n" +
          risk_game::RenderBoard(state, marks);
 }
 

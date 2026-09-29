@@ -25,7 +25,6 @@
 #include "game_mcts/core/mcts/policies.h"
 #include "game_mcts/core/mcts/tournament.h"
 #include "game_mcts/games/risk/risk_game.h"
-#include "game_mcts/games/risk/risk_serialization.h"
 #include "game_mcts/games/risk/strategies/risk_proposer.h"
 #include "game_mcts/games/risk/strategies/risk_rollout_shortcuts.h"
 
