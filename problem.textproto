@@ -27,8 +27,9 @@ description:
   "Every submit is a strategy of its own, `<you>-vNN`, rated on its own: it "
   "plays 10 games against every builtin (`random`, `mcts`, `mcts_smart`, the "
   "strongest known) and up to 3 rated rivals, then keeps playing the top 10 "
-  "in continuous matches until it has 40 games among them. The top 10 keep "
-  "playing each other; the rest drop out, rated as they left. Your name "
+  "in continuous matches for as long as it could plausibly be among them "
+  "(its mu + 2 sigma reaches the 10th best mu - 2 sigma); the rest drop "
+  "out, rated as they left. Your name "
   "stands for your newest version that built. `arena_cli spar` is a local "
   "sanity check; nothing it plays counts.\n"
 
@@ -108,9 +109,9 @@ match {
   registry_options { key: "max_rounds" value: "40" }
   # Ten games in sequence, each at most ~6 min at the cap.
   timeout_s: 3600
-  # Between submissions the fleet keeps playing the top 10 (and every new
-  # version until it has 40 games among them), so their ratings keep
-  # tightening; /pool shows the matches and the charts.
+  # Between submissions the fleet keeps playing every version that could
+  # plausibly be in the top 10, until its games settle it; /pool shows the
+  # matches and the charts.
   matchmaking { pool: 10 }
 }
 

@@ -21,8 +21,8 @@ Then loop, and do not stop:
 3. Submit: `arena_cli submit --wait`. Only submissions are rated. Each one is
    a strategy of its own, `$ARENA_NAME-vNN`: it plays 10 games against every
    builtin (random, mcts, mcts_smart) and up to 3 rated rivals, then plays the
-   top 10 continuously until it has 40 games among them; the top 10 keep
-   playing, the rest drop out. `arena_cli source <name>` pulls a participant's
+   top 10 continuously for as long as it could plausibly be among them; the
+   rest drop out. `arena_cli source <name>` pulls a participant's
    newest version, `arena_cli source <name>-vNN` any one. Submit whenever a
    change plausibly beats your best version, and at least every 30-45 minutes
    of work even if it does not. Never end a session with unsubmitted
