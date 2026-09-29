@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 2 28 8v8c0 7-5 12-12 14C9 28 4 23 4 16V8z%27 fill=%27%23d6b46a%27/%3E%3Cpath d=%27M16 7 23 10v6c0 4-3 7-7 9-4-2-7-5-7-9v-6z%27 fill=%27%23b8453c%27/%3E%3C/svg%3E">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>risk2 · war room</title>
+<link rel="stylesheet" href="static/css/app.css">
+<style>
+  body {
+    min-height: 100%;
+    background:
+      radial-gradient(ellipse at 20% -10%, rgba(214,180,106,0.12), transparent 55%),
+      radial-gradient(ellipse at 90% 110%, rgba(63,181,106,0.10), transparent 50%),
+      radial-gradient(ellipse at 0% 100%, rgba(224,81,63,0.10), transparent 50%),
+      var(--bg);
+  }
+  header { max-width: 1240px; margin: 0 auto; padding: 28px 20px 8px; display: flex; align-items: end; gap: 18px; flex-wrap: wrap; }
+  header h1 { font-size: 34px; color: var(--gold-hi); }
+  header p { margin: 0; color: var(--ink-2); max-width: 640px; }
+  main { max-width: 1240px; margin: 0 auto; padding: 12px 20px 40px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 20px; }
+  @media (max-width: 960px) { main { grid-template-columns: 1fr; } }
+  section.panel { padding: 18px; }
+  section h2 { font-size: 21px; margin-bottom: 4px; }
+  section .sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); cursor: pointer; font-size: 12px; color: var(--ink-2); background: none; }
+  .chip.on { border-color: var(--gold); color: var(--ink); background: rgba(214,180,106,0.12); }
+  .bots { display: grid; gap: 6px; max-height: 420px; overflow: auto; padding-right: 4px; }
+  .bot {
+    display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 8px; border: 1px solid transparent; cursor: pointer; background: rgba(255,255,255,0.025);
+  }
+  .bot:hover { background: rgba(255,255,255,0.05); }
+  .bot.on { border-color: var(--gold); background: rgba(214,180,106,0.1); }
+  .bot .swatch { width: 10px; height: 26px; border-radius: 3px; }
+  .bot .who { font-weight: 600; }
+  .bot .who small { font-weight: 400; color: var(--muted); margin-left: 6px; }
+  .bot .rating { text-align: right; font-size: 12px; color: var(--ink-2); }
+  .bot .rating b { font: 600 15px var(--serif); color: var(--ink); }
+  .bot .rank { font: 600 13px var(--serif); color: var(--gold-hi); margin-right: 8px; }
+  .bot.building { opacity: 0.5; cursor: default; }
+  .tag { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding: 1px 6px; border-radius: 4px; background: rgba(214,180,106,0.18); color: var(--gold-hi); margin-left: 6px; vertical-align: 1px; }
+  .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin: 16px 0; }
+  .options label { display: grid; gap: 4px; font-size: 12px; color: var(--ink-2); }
+  .options select { background: rgba(0,0,0,0.3); border: 1px solid var(--line); border-radius: 7px; padding: 7px 8px; }
+  .start { width: 100%; padding: 12px; font-size: 16px; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .filters select, .filters input { background: rgba(0,0,0,0.3); border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-weight: 500; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  td { padding: 7px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  tr.game { cursor: pointer; }
+  tr.game:hover td { background: rgba(214,180,106,0.07); }
+  td.won { font-weight: 600; }
+  td.won::after { content: " ♛"; color: var(--gold-hi); }
+  td.r { text-align: right; }
+  .more { margin-top: 10px; }
+  .empty { color: var(--muted); padding: 16px 0; }
+  footer { max-width: 1240px; margin: 0 auto; padding: 0 20px 30px; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>risk2 · War Room</h1>
+    <p>Every version the agents submitted, re-ranked by a Swiss tournament. Watch
+      their battles in 3D, or take the field against any of them — their own
+      code, compiled to WebAssembly, thinking in your browser.</p>
+  </div>
+</header>
+<main>
+  <section class="panel">
+    <h2>Challenge a commander</h2>
+    <div class="sub">The live leaderboard's top 10 (TrueSkill μ ± σ), each compiled into your browser as it gets there, and the starter bot.</div>
+    <div class="chips" id="participants"></div>
+    <div class="bots" id="bots"><div class="empty">Loading the roster…</div></div>
+    <div class="options">
+      <label>Your army
+        <select id="seat">
+          <option value="0">Crimson Knights — you move first</option>
+          <option value="1">Bone Legion — you move second</option>
+          <option value="r">Draw lots</option>
+        </select></label>
+      <label>Setup
+        <select id="setup">
+          <option value="quick">Quick deal (random board)</option>
+          <option value="draft">Draft (claim territories in turns)</option>
+        </select></label>
+      <label>Opponent's defence
+        <select id="fast">
+          <option value="1">Fast (always the most dice)</option>
+          <option value="0">Its own policy decides (slower)</option>
+        </select></label>
+      <label>Round cap
+        <select id="rounds">
+          <option value="40">40 rounds, as in the tournament</option>
+          <option value="20">20 rounds (a quick game)</option>
+          <option value="0">None: to the last territory</option>
+        </select></label>
+    </div>
+    <button class="btn primary start" id="start" disabled>Choose an opponent</button>
+  </section>
+
+  <section class="panel">
+    <h2>Watch a battle</h2>
+    <div class="sub">Every game the arena stored, newest first. Click one to replay it in 3D.</div>
+    <div class="filters">
+      <select id="player"><option value="">Anyone</option></select>
+      <select id="dir"><option value="">All runs</option></select>
+    </div>
+    <table>
+      <thead><tr><th>Knights (first)</th><th>Legion (second)</th><th>Ended</th><th class="r">Moves</th><th class="r">When</th></tr></thead>
+      <tbody id="games"></tbody>
+    </table>
+    <div class="empty" id="nogames" hidden>No games here.</div>
+    <button class="btn small more" id="more" hidden>Load more</button>
+  </section>
+</main>
+<footer>Models, sounds and effects: KayKit, Kenney and OpenGameArt contributors, CC0 — see CREDITS. Rendering: three.js.</footer>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+// A fixed colour per participant (a categorical palette, in order).
+const PALETTE = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#9085e9', '#e66767', '#008300'];
+const colorOf = new Map();
+const color = (p) => {
+  if (!colorOf.has(p)) colorOf.set(p, PALETTE[colorOf.size % PALETTE.length]);
+  return colorOf.get(p);
+};
+
+let bots = [], chosen = null, participant = '';
+
+function renderBots() {
+  const list = $('bots');
+  list.textContent = '';
+  for (const bot of bots.filter((b) => !participant || b.participant === participant)) {
+    const row = document.createElement('div');
+    row.className = 'bot' + (chosen === bot.id ? ' on' : '');
+    const swatch = document.createElement('div');
+    swatch.className = 'swatch';
+    swatch.style.background = color(bot.participant);
+    const who = document.createElement('div');
+    who.className = 'who';
+    who.textContent = bot.participant;
+    const small = document.createElement('small');
+    small.textContent = bot.version ? `v${bot.version}` : 'the starter bot';
+    who.append(small);
+    if (bot.rank) {
+      const rank = document.createElement('span');
+      rank.className = 'rank';
+      rank.textContent = `#${bot.rank}`;
+      who.prepend(rank);
+    }
+    const rating = document.createElement('div');
+    rating.className = 'rating num';
+    if (bot.built === false) {
+      row.classList.add('building');
+      rating.textContent = 'compiling…';
+    } else if (bot.mu != null) {
+      const b = document.createElement('b');
+      b.textContent = bot.mu.toFixed(1);
+      rating.append(b, ` ± ${bot.sigma.toFixed(1)}`);
+    } else {
+      rating.textContent = 'unrated';
+    }
+    row.append(swatch, who, rating);
+    row.onclick = () => {
+      if (bot.built === false) return;
+      chosen = bot.id;
+      $('start').disabled = false;
+      $('start').textContent = `Fight ${bot.id}`;
+      renderBots();
+    };
+    row.ondblclick = () => $('start').click();
+    list.append(row);
+  }
+}
+
+function renderParticipants() {
+  const chips = $('participants');
+  chips.textContent = '';
+  for (const p of ['', ...new Set(bots.map((b) => b.participant))]) {
+    const chip = document.createElement('button');
+    chip.className = 'chip' + (participant === p ? ' on' : '');
+    chip.textContent = p || 'All';
+    if (p) chip.style.borderLeft = `4px solid ${color(p)}`;
+    chip.onclick = () => { participant = p; renderParticipants(); renderBots(); };
+    chips.append(chip);
+  }
+}
+
+$('start').onclick = () => {
+  if (!chosen) return;
+  let seat = $('seat').value;
+  if (seat === 'r') seat = Math.random() < 0.5 ? '0' : '1';
+  const q = new URLSearchParams({bot: chosen, seat, setup: $('setup').value,
+                                 fast: $('fast').value, rounds: $('rounds').value});
+  location.href = `play.html?${q}`;
+};
+
+let offset = 0;
+const ago = (ms) => {
+  const s = (Date.now() - ms) / 1000;
+  if (s < 90) return 'just now';
+  if (s < 5400) return `${Math.round(s / 60)} min ago`;
+  if (s < 129600) return `${Math.round(s / 3600)} h ago`;
+  return `${Math.round(s / 86400)} d ago`;
+};
+
+async function loadGames(reset) {
+  if (reset) {
+    offset = 0;
+    $('games').textContent = '';
+  }
+  const q = new URLSearchParams({player: $('player').value, dir: $('dir').value, offset, limit: 40});
+  const data = await fetch(`api/games?${q}`).then((r) => r.json());
+  if (reset && !$('player').options[1]) {
+    for (const p of data.players) $('player').add(new Option(p, p));
+    for (const d of data.dirs) $('dir').add(new Option(d, d));
+  }
+  for (const g of data.games) {
+    const tr = document.createElement('tr');
+    tr.className = 'game';
+    const cell = (text, cls) => {
+      const td = document.createElement('td');
+      td.textContent = text;
+      if (cls) td.className = cls;
+      tr.append(td);
+      return td;
+    };
+    const won = g.result === 2 ? g.winning_player : -1;
+    cell(g.player0, won === 0 ? 'won' : '').style.color = 'var(--p0)';
+    cell(g.player1, won === 1 ? 'won' : '').style.color = 'var(--p1)';
+    cell(g.result === 1 ? 'draw' : (g.reason || '').replace(/_/g, ' '), 'muted');
+    cell(g.moves, 'r num');
+    cell(ago(g.finished_unix_ms), 'r muted');
+    tr.onclick = () => { location.href = `replay.html?dir=${encodeURIComponent(g.dir)}&id=${encodeURIComponent(g.game_id)}`; };
+    $('games').append(tr);
+  }
+  offset += data.games.length;
+  $('more').hidden = offset >= data.total;
+  $('nogames').hidden = data.total > 0;
+}
+
+$('player').onchange = () => loadGames(true);
+$('dir').onchange = () => loadGames(true);
+$('more').onclick = () => loadGames(false);
+
+bots = await fetch('api/bots').then((r) => r.json());
+renderParticipants();
+renderBots();
+loadGames(true);
+</script>
+</body>
+</html>

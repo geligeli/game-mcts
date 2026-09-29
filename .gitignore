@@ -10,7 +10,7 @@
 __pycache__
 compile_commands.json
 # tools/cpp_format.sh index|browse output.
-index.*
+/index.*
 
 # Machine-local bazel overrides (see the try-import at the end of .bazelrc).
 .bazelrc.local
