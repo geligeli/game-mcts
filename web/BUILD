@@ -3,7 +3,7 @@ load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 package(default_visibility = ["//visibility:public"])
 
-# risk2 in the browser: a 3D viewer for stored games and a page to play any
+# Risk in the browser: a 3D viewer for stored games and a page to play any
 # candidate version, its policy compiled to WebAssembly (see README.md).
 # Nothing in the problem, the kits or the sandbox depends on this package.
 
@@ -13,13 +13,14 @@ cc_library(
     srcs = ["risk_match.cc"],
     hdrs = ["risk_match.h"],
     deps = [
+        "//bots:bot_api",
         "//game_mcts/core/mcts:policies",
-        "//game_mcts/core/mcts:tournament",
         "//game_mcts/core/util:overloaded",
         "//game_mcts/games/risk:risk_board",
         "//game_mcts/games/risk:risk_game",
         "//game_mcts/games/risk/strategies:risk_proposer",
         "//problem:risk_view",
+        "@abseil-cpp//absl/strings",
     ],
 )
 

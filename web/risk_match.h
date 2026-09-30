@@ -1,9 +1,10 @@
 #ifndef GAME_MCTS_WEB_RISK_MATCH_H
 #define GAME_MCTS_WEB_RISK_MATCH_H
 
-// One game of risk2 between a person and a policy, for the play page: the
-// engine web/bot_wasm.cc exports to the browser, where it runs as WebAssembly
-// beside a candidate's own policy.
+// One game of the season's Risk (bots/bot_api.h's candidate::game_t) between a
+// person and a policy in every other seat, for the play page: the engine
+// web/bot_wasm.cc exports to the browser, where it runs as WebAssembly beside
+// a candidate's own policy.
 //
 // Every call answers JSON:
 //
@@ -15,12 +16,13 @@
 // state: where the game now stands, for the page to offer the next move:
 //
 //   {"view":{...},"phase":"attack","seat":0,"reserves":5,"result":"",
-//    "winner":-1,"error":"..."}
+//    "places":[],"error":"..."}
 //
 // phase is the person's: place (initial placement), reinforce (reserves to
 // place before the first attack), attack (which a fortify ends), bot (the
-// policy's move: call BotStep) or over. error explains a refused move, which
-// leaves the game as it was.
+// policy's move: call BotStep) or over. places, once it is over, is each
+// seat's, 0 first (problem/risk_view.h's ResultOf). error explains a refused
+// move, which leaves the game as it was.
 //
 // A person never picks dice: they attack and defend with the most allowed,
 // which also makes a whole battle a matter of clicks. What moves in on a
@@ -32,21 +34,26 @@
 #include <string>
 #include <vector>
 
-#include "game_mcts/core/mcts/tournament.h"
+#include "bots/bot_api.h"
 #include "game_mcts/games/risk/risk_game.h"
 #include "problem/risk_view.h"
 
 namespace risk_web {
 
-using state_t = risk_game::RiskState<2>;
-using policy_t = mcts::tournament::AnyPolicy<state_t>;
+// The season's: a candidate compiled for the page plays the game it was
+// written for.
+using state_t = candidate::game_t;
+using policy_t = candidate::policy_t;
+inline constexpr size_t kPlayers = candidate::kNumPlayers;
 // Armies per territory, placed before the turn's first attack or fortify.
 using placement_t = std::array<uint16_t, risk_game::kNumTerritories>;
 
 class RiskMatch {
  public:
-  // |seed| drives the dice and the policy; |max_rounds| <= 0: no cap.
-  RiskMatch(policy_t bot, int human_seat, int max_rounds, uint32_t seed);
+  // |bots| play the other seats, in seat order; |seed| drives the dice and
+  // the policies; |max_rounds| <= 0: no cap.
+  RiskMatch(std::vector<policy_t> bots, int human_seat, int max_rounds,
+            uint32_t seed);
 
   // Nothing played: just where the game stands.
   std::string State() const;
@@ -54,7 +61,7 @@ class RiskMatch {
   // Claims (or, once all are owned, reinforces) |territory| in initial
   // placement.
   std::string Place(int territory);
-  // Deals the rest of initial placement at random, for both sides, so a game
+  // Deals the rest of initial placement at random, for every side, so a game
   // can start at once.
   std::string QuickSetup();
   // Places |reinforce| (all reserves, when any are left) and rolls once from
@@ -67,12 +74,12 @@ class RiskMatch {
   // moves nothing.
   std::string Fortify(int source, int target, int units,
                       const placement_t &reinforce);
-  // The policy's next decision, and whatever follows it that needs no one
+  // The next policy's decision, and whatever follows it that needs no one
   // (dice, the person's defence), up to the next decision.
   std::string BotStep();
 
-  // The policy decides its own defence dice by default; with |fast| it rolls
-  // the most allowed, which is almost always right and costs no thinking.
+  // The policies decide their own defence dice by default; with |fast| they
+  // roll the most allowed, which is almost always right and costs no thinking.
   void set_fast_defense(bool fast) { fast_defense_ = fast; }
 
   const state_t &state() const { return state_; }
@@ -89,21 +96,21 @@ class RiskMatch {
   bool Apply(const risk_game::RiskAction &action, std::string *error);
   // Plays every node that needs no one: dice, and the person's defence.
   void Settle();
-  // The policy's action for the node, or a random legal one if it offers an
-  // illegal move.
+  // The mover's policy's action for the node, or a random legal one if it
+  // offers an illegal move.
   risk_game::RiskAction BotAction();
   // Places |reinforce| (all the reserves) on its own, unless there is nothing
   // left to place this turn.
   bool PlaceReserves(const placement_t &reinforce, std::string *error);
   std::string Answer(std::string error = "");
 
-  policy_t bot_;
+  std::vector<policy_t> bots_;  // the other seats', in seat order
   const int human_;
   const int max_rounds_;
   std::mt19937 gen_;
   bool fast_defense_ = false;
   state_t state_;
-  tournament_broker::StepRenderer<2> renderer_;
+  tournament_broker::StepRenderer<kPlayers> renderer_;
   std::string view_;
   std::vector<Event> events_;  // since the last answer
 };

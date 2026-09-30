@@ -5,11 +5,11 @@ exports_files([
     "protobuf_bzlmod_fixes.patch",
 ])
 
-# risk2 as an arena problem: the macro defines :match_referee, :config_test,
+# risk3, Risk for three, as an arena problem: the macro defines :match_referee, :config_test,
 # :tournament, :kit, :play, and the sandbox and kit images (see
 # @game_arena//game_arena/rules:problem.bzl for the full list).
 arena_problem(
-    name = "risk2",
+    name = "risk3",
     config = "problem.textproto",
     registry = "//problem:registry",
     # Replays drawn in the browser, on the map, from risk_session's views.

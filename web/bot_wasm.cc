@@ -1,4 +1,4 @@
-// A candidate's policy and the risk2 engine as a WebAssembly module, for the
+// A candidate's policy and the Risk engine as a WebAssembly module, for the
 // play page's worker (web/static/js/engine_worker.js). Compiled once per
 // candidate by web/wasm.bzl, with the submission's header as
 // CANDIDATE_ENTRY_HEADER, the way bots/bot.cc is for the referee.
@@ -12,6 +12,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "bots/bot_api.h"
 #include "web/risk_match.h"
@@ -45,12 +46,16 @@ risk_web::placement_t Placement(std::string_view text) {
 
 extern "C" {
 
-// |params|: the candidate's knobs as the arena passes them, "k=v,k=v".
+// |params|: the candidate's knobs as the arena passes them, "k=v,k=v". The
+// candidate plays every seat but the person's, a policy of its own in each.
 EMSCRIPTEN_KEEPALIVE const char *rk_new(int human_seat, int max_rounds,
                                         uint32_t seed, const char *params) {
-  g_match = std::make_unique<risk_web::RiskMatch>(
-      MakePolicy(candidate::Params::Parse(params)), human_seat, max_rounds,
-      seed);
+  std::vector<risk_web::policy_t> bots;
+  for (size_t seat = 1; seat < risk_web::kPlayers; ++seat) {
+    bots.push_back(MakePolicy(candidate::Params::Parse(params)));
+  }
+  g_match = std::make_unique<risk_web::RiskMatch>(std::move(bots), human_seat,
+                                                  max_rounds, seed);
   return Answer(g_match->State());
 }
 

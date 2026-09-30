@@ -2,8 +2,9 @@
 // naming the submitted header (submission.harness in problem.textproto).
 //
 //   bazel run //bots/reference:bot --
-//       --name=reference --server=localhost:50051 --opponent=builtin:mcts
-//       --games=5 --params=iterations=800
+//       --name=reference --server=localhost:50051
+//       --opponent=builtin:mcts,builtin:random --games=6
+//       --params=iterations=800
 
 #include <grpcpp/grpcpp.h>
 
@@ -29,8 +30,9 @@
 
 ABSL_FLAG(std::string, server, "localhost:50051", "host:port of the referee");
 ABSL_FLAG(std::string, name, "", "Player name (required)");
-ABSL_FLAG(std::string, opponent, "builtin:random",
-          "builtin:random | builtin:mcts[:iterations=N] | player:<name>");
+ABSL_FLAG(std::string, opponent, "builtin:random,builtin:random",
+          "Every other seat, comma-separated, each builtin:random | "
+          "builtin:mcts[:iterations=N] | player:<name>");
 ABSL_FLAG(int, games, 1, "Number of games to play");
 ABSL_FLAG(std::string, params, "",
           "Tuning knobs for MakePolicy, as key=value,key=value");

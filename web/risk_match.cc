@@ -6,6 +6,7 @@
 #include <utility>
 #include <variant>
 
+#include "absl/strings/str_join.h"
 #include "game_mcts/core/mcts/policies.h"
 #include "game_mcts/core/util/overloaded.h"
 #include "game_mcts/games/risk/risk_board.h"
@@ -24,7 +25,8 @@ using risk_game::ReinforceAction;
 using risk_game::RiskAction;
 using risk_game::RollDiceAction;
 
-const mcts::tournament::ProposerPolicy<state_t, risk_game::RiskProposer<2>>
+const mcts::tournament::ProposerPolicy<state_t,
+                                       risk_game::RiskProposer<kPlayers>>
     kRandom;
 
 std::string Quoted(const std::string &text) {
@@ -64,9 +66,9 @@ std::string KindOf(const RiskAction &action) {
 
 }  // namespace
 
-RiskMatch::RiskMatch(policy_t bot, int human_seat, int max_rounds,
+RiskMatch::RiskMatch(std::vector<policy_t> bots, int human_seat, int max_rounds,
                      uint32_t seed)
-    : bot_(std::move(bot)),
+    : bots_(std::move(bots)),
       human_(human_seat),
       max_rounds_(max_rounds),
       gen_(seed),
@@ -118,7 +120,9 @@ RiskAction RiskMatch::BotAction() {
     return QueueDefenseAction{.num_defend_dice_ =
                                   std::min<int>(2, state_.map_[target].units)};
   }
-  const RiskAction action = bot_(state_, gen_).action;
+  const int seat = state_.current_player_;
+  const RiskAction action =
+      bots_[seat < human_ ? seat : seat - 1](state_, gen_).action;
   std::string reason;
   return state_.is_valid_action(action, reason) ? action
                                                 : kRandom(state_, gen_).action;
@@ -153,12 +157,8 @@ std::string RiskMatch::State() const {
   return "{\"view\":" + view_ + ",\"phase\":\"" + phase +
          "\",\"seat\":" + std::to_string(human_) +
          ",\"reserves\":" + std::to_string(state_.reserves_[human_]) +
-         ",\"result\":" + Quoted(result.text_) + ",\"winner\":" +
-         std::to_string(
-             result.over_ && std::ranges::count(result.places_, 0) == 1
-                 ? std::ranges::find(result.places_, 0) - result.places_.begin()
-                 : -1) +
-         "}";
+         ",\"result\":" + Quoted(result.text_) + ",\"places\":[" +
+         absl::StrJoin(result.places_, ",") + "]}";
 }
 
 std::string RiskMatch::Answer(std::string error) {

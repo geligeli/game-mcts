@@ -1,5 +1,5 @@
 // Pins the submission contract: parameter parsing, and that a submission
-// written against bot_api.h compiles and plays legal risk2 moves.
+// written against bot_api.h compiles and plays legal Risk moves.
 
 #include "bots/bot_api.h"
 
@@ -54,7 +54,7 @@ TEST(ParamsTest, LastValueWinsForARepeatedKey) {
 
 // The contract's real promise: a type-erased policy_t built from an arbitrary
 // policy type drives legal moves, with chance nodes resolved by the rules.
-TEST(BotApiTest, PolicyPlaysLegalRisk2Moves) {
+TEST(BotApiTest, PolicyPlaysLegalMoves) {
   const candidate::policy_t policy = MakeTestPolicy(Params::Parse(""));
 
   std::mt19937 gen(1234);

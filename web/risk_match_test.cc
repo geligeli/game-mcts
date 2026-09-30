@@ -1,6 +1,7 @@
 #include "web/risk_match.h"
 
 #include <string>
+#include <vector>
 
 #include "game_mcts/core/mcts/policies.h"
 #include "game_mcts/games/risk/risk_board.h"
@@ -11,14 +12,16 @@
 namespace risk_web {
 namespace {
 
-using proposer_t = risk_game::RiskProposer<2>;
+using proposer_t = risk_game::RiskProposer<kPlayers>;
 
-// The reference bot, thinking less.
-policy_t Bot() {
+// The reference bot, thinking less, in every other seat.
+std::vector<policy_t> Bots() {
   auto rollout = mcts::MakeShortcutRollout<state_t, proposer_t>(
-      &risk_game::ResolveBattleWithExpectationInPlace<2>);
-  return mcts::tournament::MctsPolicy<state_t, proposer_t, decltype(rollout)>{
-      .iterations_ = 30, .rollout = rollout};
+      &risk_game::ResolveBattleWithExpectationInPlace<kPlayers>);
+  return std::vector<policy_t>(
+      kPlayers - 1,
+      mcts::tournament::MctsPolicy<state_t, proposer_t, decltype(rollout)>{
+          .iterations_ = 30, .rollout = rollout});
 }
 
 bool Has(const std::string &json, const std::string &part) {
@@ -54,7 +57,7 @@ void BotUntilHuman(RiskMatch &match) {
 }
 
 TEST(RiskMatchTest, QuickSetupDealsTheWholeBoard) {
-  RiskMatch match(Bot(), /*human_seat=*/0, /*max_rounds=*/40, 7);
+  RiskMatch match(Bots(), /*human_seat=*/0, /*max_rounds=*/40, 7);
   EXPECT_TRUE(Has(match.State(), "\"phase\":\"place\""));
   const std::string answer = match.QuickSetup();
   EXPECT_TRUE(Has(answer, "\"k\":\"setup\"")) << answer;
@@ -65,7 +68,7 @@ TEST(RiskMatchTest, QuickSetupDealsTheWholeBoard) {
 }
 
 TEST(RiskMatchTest, PlacingATakenTerritoryIsRefusedAndChangesNothing) {
-  RiskMatch match(Bot(), 0, 40, 1);
+  RiskMatch match(Bots(), 0, 40, 1);
   EXPECT_FALSE(Has(match.Place(3), "\"error\""));
   BotUntilHuman(match);
   const state_t before = match.state();
@@ -75,7 +78,7 @@ TEST(RiskMatchTest, PlacingATakenTerritoryIsRefusedAndChangesNothing) {
 }
 
 TEST(RiskMatchTest, AnAttackMustPlaceTheReservesFirst) {
-  RiskMatch match(Bot(), 0, 40, 3);
+  RiskMatch match(Bots(), 0, 40, 3);
   match.QuickSetup();
   BotUntilHuman(match);
   ASSERT_TRUE(Has(match.State(), "\"phase\":\"reinforce\""));
@@ -85,7 +88,7 @@ TEST(RiskMatchTest, AnAttackMustPlaceTheReservesFirst) {
 }
 
 TEST(RiskMatchTest, BlitzStopsAtAConquestOrTheLastArmy) {
-  RiskMatch match(Bot(), 0, 40, 5);
+  RiskMatch match(Bots(), 0, 40, 5);
   match.QuickSetup();
   BotUntilHuman(match);
   const auto [source, target] = Front(match.state(), 0);
@@ -100,7 +103,7 @@ TEST(RiskMatchTest, BlitzStopsAtAConquestOrTheLastArmy) {
 
 TEST(RiskMatchTest, AConquestCanMoveEverythingIn) {
   for (const uint32_t seed : {5U, 6U, 7U, 8U}) {
-    RiskMatch match(Bot(), 0, 40, seed);
+    RiskMatch match(Bots(), 0, 40, seed);
     match.QuickSetup();
     BotUntilHuman(match);
     const auto [source, target] = Front(match.state(), 0);
@@ -118,7 +121,7 @@ TEST(RiskMatchTest, AConquestCanMoveEverythingIn) {
 }
 
 TEST(RiskMatchTest, AFortifyEndsTheTurn) {
-  RiskMatch match(Bot(), 1, 40, 9);
+  RiskMatch match(Bots(), 1, 40, 9);
   match.QuickSetup();
   BotUntilHuman(match);
   placement_t reinforce{};
@@ -130,8 +133,8 @@ TEST(RiskMatchTest, AFortifyEndsTheTurn) {
 }
 
 TEST(RiskMatchTest, AWholeGameEndsWithAResult) {
-  for (const int seat : {0, 1}) {
-    RiskMatch match(Bot(), seat, /*max_rounds=*/8, 11 + seat);
+  for (int seat = 0; seat < static_cast<int>(kPlayers); ++seat) {
+    RiskMatch match(Bots(), seat, /*max_rounds=*/8, 11 + seat);
     match.set_fast_defense(seat == 1);
     match.QuickSetup();
     for (int turn = 0; turn < 200 && !Has(match.State(), "\"phase\":\"over\"");
@@ -154,6 +157,7 @@ TEST(RiskMatchTest, AWholeGameEndsWithAResult) {
     const std::string state = match.State();
     EXPECT_TRUE(Has(state, "\"phase\":\"over\"")) << state;
     EXPECT_FALSE(Has(state, "\"result\":\"\"")) << state;
+    EXPECT_FALSE(Has(state, "\"places\":[]")) << state;
   }
 }
 

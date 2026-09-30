@@ -2,11 +2,11 @@
 # relative to the repo root, where a worker runs bazel; the targets that run a
 # tournament from it come from arena_problem in //:BUILD.
 
-problem_id: "risk2"
-display_name: "Risk (2 player)"
+problem_id: "risk3"
+display_name: "Risk (3 player)"
 description:
-  "Write an action policy for two-player Risk and have it rated against every "
-  "other submission.\n"
+  "Write an action policy for three-player Risk and have it rated against "
+  "every other submission.\n"
   "\n"
   "Submit one header defining:\n"
   "\n"
@@ -16,22 +16,28 @@ description:
   "through `arena_cli source <name>` -- reading the leader and improving on "
   "it is the intended loop, not cheating.\n"
   "\n"
-  "The game ends when one side owns the whole map, or after 40 rounds (a "
-  "round is one turn each): then the side holding more territories wins, then "
-  "the one with more armies. A passive bot loses. A turn ends with a "
-  "FortifyAction; a PlayerAction must reinforce or attack. A roll that "
-  "conquers moves in QueueAttackAction::num_move_on_conquest_ armies, as the "
-  "attack asked: at least the dice rolled (the default, 0), at most all but "
-  "one (QueueAttackAction::kMoveAll).\n"
+  "Every game has three seats, and every place counts, rated by TrueSkill: "
+  "the game ends when one side owns the whole map, or after 40 rounds (a round "
+  "is one turn each), when the survivors place by territories, then armies. A "
+  "side knocked out places below every survivor, the last to go best, so "
+  "outlasting a rival is worth something. A passive bot loses. A timeout, a "
+  "crash or an illegal action places you last at once, and builtin:mcts_smart "
+  "plays on in your seat. A turn ends with a FortifyAction; a PlayerAction must "
+  "reinforce or attack; an attack is defended by whichever seat owns the "
+  "target. A roll that conquers moves in "
+  "QueueAttackAction::num_move_on_conquest_ armies, as the attack asked: at "
+  "least the dice rolled (the default, 0), at most all but one "
+  "(QueueAttackAction::kMoveAll).\n"
   "\n"
   "Every submit is a strategy of its own, `<you>-vNN`, rated on its own: it "
-  "plays 10 games against every builtin (`random`, `mcts`, `mcts_smart`, the "
-  "strongest known) and up to 3 rated rivals, then keeps playing the top 10 "
-  "in continuous matches for as long as it could plausibly be among them "
-  "(its mu + 2 sigma reaches the 10th best mu - 2 sigma); the rest drop "
-  "out, rated as they left. Your name "
-  "stands for your newest version that built. `arena_cli spar` is a local "
-  "sanity check; nothing it plays counts.\n"
+  "plays 6 games against every pair of builtins (`random`, `mcts`, "
+  "`mcts_smart`, the strongest known) and up to 3 pairs of rated rivals, then "
+  "keeps playing the top 10 in continuous matches, two rivals a game, for as "
+  "long as it could plausibly be among them (its mu + 2 sigma reaches the 10th "
+  "best mu - 2 sigma); the rest drop out, rated as they left. Six games give "
+  "each seat every order of the others. Your name stands for your newest "
+  "version that built. `arena_cli spar <rival> <rival>` is a local sanity "
+  "check; nothing it plays counts.\n"
 
 submission {
   # A strategy is a header or two. A patch an order of magnitude larger than
@@ -72,7 +78,7 @@ build {
 sandbox {
   # What a worker asks its daemon for, as `bazel run //:sandbox_image_issue`
   # makes it. Bump the tag whenever the tree or the toolchain changes.
-  image: "registry.takumi.city/game-mcts-sandbox:7"
+  image: "registry.takumi.city/game-mcts-sandbox:8"
   # So a build needs no network, and a submitted genrule cannot exfiltrate.
   allow_build_network: false
   # Owns the image's primed cache, which fills a worker's empty cache volume.
@@ -88,31 +94,38 @@ sandbox {
 }
 
 match {
-  game: "risk2"
+  game: "risk3"
   referee_target: "//:match_referee"
-  games_per_order: 10
+  players: 3
+  # Every order of the seats once.
+  games_per_order: 6
   placement_opponents: "builtin:random"
   placement_opponents: "builtin:mcts"
   placement_opponents: "builtin:mcts_smart"
   turn_timeout_ms: 10000
   # Without a whole-game budget the per-turn clock bounds nothing. 400 MCTS
-  # iterations think ~2.3 s a round, so 40 rounds take ~90 s of it.
+  # iterations think ~3 s a round with three seats, defences included, so 40
+  # rounds take ~120 s of it.
   game_time_budget_ms: 180000
   # A safety net only: max_rounds ends games long before it (~20-50 steps a
   # round).
   max_moves_per_game: 50000
   # Handed to the referee's registry verbatim; problem/registry.cc reads them.
-  # Measured uncapped (400 iterations, 40 games of random/mcts/mcts_smart):
-  # every decided game ended within 21 rounds, the rest were stalemates still
-  # going at 300.
+  # Measured with three seats, capped at 100 (400 iterations, 16 games of
+  # mcts against random and mcts_smart, or mcts and mcts_smart): 14 ended by
+  # conquest within 24 rounds, one at 51, and one was a stalemate at 100 with
+  # the leader on 38 territories.
   registry_options { key: "mcts_iterations" value: "400" }
   registry_options { key: "max_rounds" value: "40" }
-  # Ten games in sequence, each at most ~6 min at the cap.
-  timeout_s: 3600
+  # Six games in sequence, each at most three seats' budgets, ~9 min.
+  timeout_s: 4800
   # Between submissions the fleet keeps playing every version that could
   # plausibly be in the top 10, until its games settle it; /pool shows the
   # matches and the charts.
-  matchmaking { pool: 10 }
+  matchmaking {
+    pool: 10
+    games: 6
+  }
 }
 
 # Copied to bots/<your name>/ the first time.

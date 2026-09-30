@@ -20,7 +20,8 @@ cc_library(
     ],
 )
 
-# risk2's session: the round cap and the replay view on top of the adapter.
+# The Risk sessions: places, the round cap and the replay view on top of the
+# adapter.
 cc_library(
     name = "risk_session",
     hdrs = ["risk_session.h"],

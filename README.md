@@ -34,9 +34,10 @@ on the hot path.
 See [game_mcts/README.md](game_mcts/README.md).
 
 The repo is also a problem repo for
-[game-arena](https://github.com/geligeli/game-arena), which hosts **risk2**:
-participants submit a Risk strategy that is built in a sandbox and rated
-against the field. `problem.textproto` and `arena_problem` in `//:BUILD`
+[game-arena](https://github.com/geligeli/game-arena), which hosts **risk3**,
+Risk for three: participants submit a Risk strategy that is built in a
+sandbox and rated against the field by its placings. (risk2, for two, was the
+seasons before; it stays registered, for its records.) `problem.textproto` and `arena_problem` in `//:BUILD`
 define it; `problem/` holds the game registry, `bots/` the submission harness
 and the reference bot. Nothing under `game_mcts/` depends on the arena.
 
@@ -61,7 +62,7 @@ common --repository_cache=/large_nfs/bazel-cache/repo
 common --experimental_disk_cache_gc_max_size=50G
 ```
 
-## Quickstart: a risk2 tournament with coding agents
+## Quickstart: a risk3 tournament with coding agents
 
 ```sh
 export CLAUDE_CODE_OAUTH_TOKEN=...   # `claude setup-token`
@@ -87,7 +88,7 @@ fortify, the dice and who they cost. That is `problem/risk_replay.js`, served
 by the coordinator with the map (`problem/risk_map.svg`), from a ~200-byte JSON
 view the session records per step. Replay a recorded game in the terminal
 instead, with the same captions and ANSI boards (games land in
-`~/.arena/risk2/games/`, or a referee's `--scratch_dir`):
+`~/.arena/risk3/games/`, or a referee's `--scratch_dir`):
 
 ```sh
 bazel run //problem:risk_replay -- --play --delay_ms=300 GAME.pb
@@ -96,8 +97,10 @@ bazel run //problem:risk_replay -- --play --delay_ms=300 GAME.pb
 Smaller loops: one local match, or a tournament with a kit shell for you:
 
 ```sh
-bazel run //:match_referee -- --game=risk2 --player_a=reference --games=2 &
-bazel run //bots/reference:bot -- --name=reference --opponent=builtin:mcts --games=2
+bazel run //:match_referee -- --game=risk3 --player_a=reference \
+    --player_b=builtin:mcts,builtin:random --games=3 &
+bazel run //bots/reference:bot -- --name=reference \
+    --opponent=builtin:mcts,builtin:random --games=3
 bazel run //:play
 ```
 

@@ -3,11 +3,13 @@
 
 // The reference bot: the starter every participant's directory is copied
 // from (kit.starter_dir), and the stock Risk MCTS strategy. In a kit,
-// `arena_cli spar builtin:mcts` plays yours locally; in this repo:
+// `arena_cli spar builtin:mcts builtin:random` plays yours locally; in this
+// repo:
 //
-//   bazel run //:match_referee -- --game=risk2 --player_a=reference --games=5 &
+//   bazel run //:match_referee -- --game=risk3 --player_a=reference
+//       --player_b=builtin:mcts,builtin:random --games=6 &
 //   bazel run //bots/reference:bot --
-//       --name=reference --opponent=builtin:mcts --games=5
+//       --name=reference --opponent=builtin:mcts,builtin:random --games=6
 //
 // The whole contract is: include bots/bot_api.h, define MakePolicy. What you
 // return is up to you -- the stock MCTS with a proposer of your own (below), a

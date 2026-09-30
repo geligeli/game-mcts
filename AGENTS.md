@@ -16,7 +16,7 @@ Strict separation, enforced by concepts in
 
 Dependency direction: `common` <- `core` <- `games`, `tools` at the top
 (nothing may depend on `tools`). The repo-root `problem/` and `bots/` packages
-sit above `game_mcts/` and host risk2 in `@game_arena` (the problem-running
+sit above `game_mcts/` and host risk3 in `@game_arena` (the problem-running
 framework, its own repo); nothing under `game_mcts/` depends on them or on the
 arena.
 
@@ -162,7 +162,7 @@ and bumping the pin here; to iterate on both at once, swap in the commented
 
 This repo is a problem repo in the arena's `examples/connect4` layout:
 
-- `//:BUILD` calls `arena_problem(name = "risk2", ...)` with
+- `//:BUILD` calls `arena_problem(name = "risk3", ...)` with
   `problem.textproto`. It defines `:match_referee`, `:config_test`,
   `:tournament`, `:kit`, `:play` and the `sandbox_image*` / `kit_image*`
   targets (see `@game_arena//game_arena/rules:problem.bzl`).
@@ -173,9 +173,12 @@ This repo is a problem repo in the arena's `examples/connect4` layout:
   `mcts_smart[:iterations=N]`, tuning_result.md's strongest) are stock
   policies through `SerializedPolicy`. Adding a game or builtin is an entry
   there; if you think game-arena has to change for it, the seam is wrong.
-- `problem/risk_session.h`: risk2 on top of the rules. After `max_rounds`
-  (a registry option) the game is won on territories, then armies; an exact
-  tie is left to the referee's time tiebreak. The replay: `RenderLastStep()`
+- `problem/risk_session.h`: `RiskSession<N>`, risk2 and risk3 on top of the
+  rules (the registry offers both; the season is risk3, `players: 3`). A seat
+  knocked out places below every survivor, the last to go best; after
+  `max_rounds` (a registry option) the survivors place on territories, then
+  armies; an exact tie is left to the referee's time tiebreak. A forfeiter's
+  seat is played on by `mcts_smart` (`GameDescriptor.forfeit_builtin`). The replay: `RenderLastStep()`
   is every step's caption, `RenderState()` a JSON snapshot of the board it
   left, with what it touched and its dice (`problem/risk_view.h`, ~200 B).
   `problem/risk_replay.js` draws it on `problem/risk_map.svg` in the
@@ -203,10 +206,12 @@ This repo is a problem repo in the arena's `examples/connect4` layout:
   whenever the tree or toolchain changes; `.bazelversion` must stay the bazel
   the arena's base image installs, and `MODULE.bazel.lock` committed and
   current (vendoring runs with `--lockfile_mode=error`).
-- Local match: `bazel run //:match_referee -- --game=risk2
-  --player_a=reference --games=2` and, against its port, `bazel run
-  //bots/reference:bot -- --name=reference --opponent=builtin:mcts`. Opponents
-  are `builtin:<spec>` or `player:<name>` (both sides name each other).
+- Local match: `bazel run //:match_referee -- --game=risk3
+  --player_a=reference --player_b=builtin:mcts,player:ref2 --games=3` and,
+  against its port, `//bots/reference:bot` twice: `--name=reference
+  --opponent=builtin:mcts,player:ref2` and `--name=ref2
+  --opponent=builtin:mcts,player:reference`. Opponents, one per other seat,
+  are `builtin:<spec>` or `player:<name>` (every player names the others).
   Whole tournament with a kit shell: `bazel run //:play`; with coding agents
   as the players: `./quickstart.sh [--local]`, which starts each on
   `problem/mission.md` (claude, agy and opencode; workers on geli-3950's

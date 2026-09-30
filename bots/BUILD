@@ -3,7 +3,7 @@ load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 package(default_visibility = ["//visibility:public"])
 
-# The risk2 submission contract (submission.harness in problem.textproto).
+# The risk3 submission contract (submission.harness in problem.textproto).
 # Each participant is a directory here, with the BUILD the arena generates;
 # reference/ is the one everybody starts from.
 

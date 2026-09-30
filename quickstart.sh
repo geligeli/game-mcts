@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# A risk2 tournament with coding agents playing it, in one tmux session: the
+# A risk3 tournament with coding agents playing it, in one tmux session: the
 # coordinator, sandbox workers, and one kit container per player, each running
 # a coding agent on the standing mission in problem/mission.md.
 #
@@ -40,11 +40,11 @@ PLAYERS=${PLAYERS:-"claude agy opencode"}
 WORKERS=${WORKERS:-"geli-xeon geli-xeon geli-xeon geli-xeon"}
 WORKER_SLOTS=${WORKER_SLOTS:-16}
 AGENT_CPUS=${AGENT_CPUS:-4}
-SESSION=${SESSION:-game-mcts-risk2}
+SESSION=${SESSION:-game-mcts-risk3}
 GRPC_PORT=${GRPC_PORT:-50051}
 HTTP_PORT=${HTTP_PORT:-8090}
 MODEL=${MODEL:-opencode/big-pickle}
-CLIENTS=$HOME/.arena/risk2/clients.textproto
+CLIENTS=$HOME/.arena/risk3/clients.textproto
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 cd "$DIR"
@@ -154,7 +154,7 @@ done
 
 # The coordinator listens on every interface; this is the address others use.
 ADDRESS=$(ip -4 route get 1.1.1.1 | sed -n 's/.* src \([0-9.]*\).*/\1/p')
-echo "risk2: dashboard http://${ADDRESS:-localhost}:$HTTP_PORT, tmux session $SESSION"
+echo "risk3: dashboard http://${ADDRESS:-localhost}:$HTTP_PORT, tmux session $SESSION"
 if [[ -t 1 ]]; then
   tmux attach-session -t "$SESSION"
 fi

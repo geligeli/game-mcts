@@ -1,7 +1,8 @@
 #ifndef GAME_MCTS_BOTS_BOT_API_H
 #define GAME_MCTS_BOTS_BOT_API_H
 
-// The contract between a risk2 submission and the harness that runs it.
+// The contract between a risk3 submission (Risk for three) and the harness
+// that runs it.
 //
 // A submission is one header that includes this file and defines exactly one
 // function:
@@ -30,9 +31,9 @@
 
 namespace candidate {
 
-inline constexpr int kNumPlayers = 2;
+inline constexpr int kNumPlayers = 3;
 using game_t = risk_game::RiskState<kNumPlayers>;
-inline constexpr std::string_view kGameName = "risk2";
+inline constexpr std::string_view kGameName = "risk3";
 
 // Any callable of (game, gen) -> PolicyDecision<game_t> converts implicitly.
 using policy_t = mcts::tournament::AnyPolicy<game_t>;
