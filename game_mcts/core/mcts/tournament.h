@@ -121,6 +121,8 @@ template <mcts::Game G, StepObserver<G> OBSERVER = NullStepObserver>
 mcts::game_state_t PlayGame(G game, const AnyPolicy<G> *player0,
                             const AnyPolicy<G> *player1, std::mt19937 &gen,
                             int max_moves, OBSERVER observer = {}) {
+  // Pairwise, like the round robin and Elo below: a third seat has no policy.
+  static_assert(mcts::num_players_v<G> == 2);
   for (int move = 0;
        !mcts::is_terminal(game.current_state()) && move < max_moves; ++move) {
     if constexpr (mcts::ChanceGame<G>) {

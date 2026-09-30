@@ -19,11 +19,12 @@ namespace risk_game {
 namespace {
 // The stock proposal policy, used wherever these tests need "some legal move".
 constexpr RiskProposer<2> kProposer{};
-// One playout step: dice at chance nodes, kProposer at decision nodes.
-RiskState<2>::action_t SampleAction(const RiskState<2> &state,
-                                    std::mt19937 &gen) {
+// One playout step: dice at chance nodes, the stock proposer at decision nodes.
+template <size_t N>
+typename RiskState<N>::action_t SampleAction(const RiskState<N> &state,
+                                             std::mt19937 &gen) {
   return state.is_chance_node() ? state.sample_chance_action(gen)
-                                : kProposer.sample(state, gen);
+                                : RiskProposer<N>{}.sample(state, gen);
 }
 }  // namespace
 
@@ -169,26 +170,65 @@ TEST(RiskGameTest, NextPlayerSkipsEliminatedPlayers) {
   EXPECT_EQ(state.current_player(), 2);
 }
 
+// A round is every player's turn, so it still ends when the seats wrap past an
+// eliminated player 0.
+TEST(RiskGameTest, RoundsCountWithPlayerZeroEliminated) {
+  RiskState<3> state;
+  state.initial_placement_ = false;
+  state.map_[0].owner = 1;
+  state.map_[0].units = 2;
+  state.map_[1].owner = 2;
+  state.map_[1].units = 2;
+  state.current_player_ = 2;
+  state.turn_count_ = 5;
+  const FortifyAction pass{.source_ = 1, .target = 1, .num_units = 1};
+
+  state.FortifyToMoveUnits(pass);
+  EXPECT_EQ(state.current_player(), 1);
+  EXPECT_EQ(state.turn_count_, 6u);
+  state.FortifyToMoveUnits(
+      FortifyAction{.source_ = 0, .target = 0, .num_units = 1});
+  EXPECT_EQ(state.current_player(), 2);
+  EXPECT_EQ(state.turn_count_, 6u);
+}
+
+TEST(RiskGameTest, ThreePlayerRolloutPlaysFullGame) {
+  std::mt19937 gen(7);
+  const auto policy = mcts::MakeShortcutRollout<RiskState<3>, RiskProposer<3>>(
+      &ResolveBattleWithExpectationInPlace<3>);
+  for (int game = 0; game < 5; ++game) {
+    EXPECT_TRUE(
+        std::holds_alternative<mcts::win_t>(policy(RiskState<3>{}, gen)))
+        << "game " << game;
+  }
+}
+
 // Every action the proposer (and the game's own chance sampler) produces must
 // validate as legal at the moment it is sampled, over many seeded random games
 // covering all phases (initial placement, reinforce, attack, defense, dice
 // rolls, fortify).
-TEST(RiskGameTest, SampledActionsAreAlwaysLegal) {
+template <size_t N>
+void ExpectSampledActionsLegal(int games) {
   std::mt19937 gen(123);
   std::string reason;
-  for (int game_idx = 0; game_idx < 200; ++game_idx) {
-    RiskState<2> state;
+  for (int game_idx = 0; game_idx < games; ++game_idx) {
+    RiskState<N> state;
     for (int step = 0; step < 20000; ++step) {
       const auto action = SampleAction(state, gen);
       ASSERT_TRUE(state.is_valid_action(action, reason))
-          << "game " << game_idx << " step " << step << ": " << reason
-          << ", action: " << action;
+          << N << " players, game " << game_idx << " step " << step << ": "
+          << reason << ", action: " << action;
       state = state.apply_action(action);
       if (mcts::is_terminal(state.current_state())) {
         break;
       }
     }
   }
+}
+
+TEST(RiskGameTest, SampledActionsAreAlwaysLegal) {
+  ExpectSampledActionsLegal<2>(200);
+  ExpectSampledActionsLegal<3>(100);
 }
 
 // RiskProposer::support_size() is a contract: DedupSampler stops drawing the

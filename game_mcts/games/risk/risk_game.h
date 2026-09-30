@@ -351,12 +351,14 @@ struct RiskState {
   void NextPlayer() {
     // Skip eliminated players (no territories owned). Terminates because the
     // game is only ongoing while at least one player owns a territory.
+    const int8_t previous = current_player_;
     do {
       current_player_ = (current_player_ + 1) % NUM_PLAYERS;
     } while (std::none_of(map_.begin(), map_.end(), [&](const Territory &t) {
       return t.owner == current_player_;
     }));
-    if (current_player_ == 0) {
+    // A round ends where the seats wrap, whether or not player 0 is left.
+    if (current_player_ <= previous) {
       turn_count_++;
     }
     AddTurnStartReinforcements();
