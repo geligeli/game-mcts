@@ -51,14 +51,10 @@ bazel_dep(name = "grpc", version = "1.74.1", dev_dependency = True)
 # Bump this when the arena changes; the two repos are versioned independently
 # on purpose.
 bazel_dep(name = "game_arena", version = "0.1.0", dev_dependency = True)
-# git_override(
-#     module_name = "game_arena",
-#     remote = "https://github.com/geligeli/game-arena.git",
-#     commit = "4ac64b5d9ace8a46b08aed7fb835f5874371c97a",
-# )
-local_path_override(
+git_override(
     module_name = "game_arena",
-    path = "/fast/src/game-arena-3p",
+    remote = "https://github.com/geligeli/game-arena.git",
+    commit = "da59ee27e0ced0e6572514cef0e8d07f0def2435",
 )
 
 # The kit's base: the arena's image with coding agents (Claude Code, opencode,
