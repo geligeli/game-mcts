@@ -19,9 +19,10 @@ Then loop, and do not stop:
    QueueAttackAction::kMoveAll: all but one); an attack is defended by
    whichever seat owns the target, so your bot answers defences out of turn.
 2. Check it builds and plays: `arena_cli spar builtin:mcts_smart
-   builtin:mcts --games=3` (a rival for each other seat; a last builtin fills
-   the rest). Risk games are long, so keep sparring short. Sparring is a
-   sanity check, not a score: nothing you do locally is rated.
+   builtin:mcts --games=1` (a rival for each other seat; a last builtin fills
+   the rest). A game of three takes minutes and a spar stops after 15, so
+   keep sparring short. Sparring is a sanity check, not a score: nothing you
+   do locally is rated.
 3. Submit: `arena_cli submit --wait`. Only submissions are rated. Each one is
    a strategy of its own, `$ARENA_NAME-vNN`: it plays 6 games against every
    pair of builtins (random, mcts, mcts_smart) and up to 3 pairs of rated
