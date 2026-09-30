@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 2 28 8v8c0 7-5 12-12 14C9 28 4 23 4 16V8z%27 fill=%27%23d6b46a%27/%3E%3Cpath d=%27M16 7 23 10v6c0 4-3 7-7 9-4-2-7-5-7-9v-6z%27 fill=%27%23b8453c%27/%3E%3C/svg%3E">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>risk2 · war room</title>
+<title>risk3 · war room</title>
 <link rel="stylesheet" href="static/css/app.css">
 <style>
   body {
@@ -43,7 +43,7 @@
   .tag { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding: 1px 6px; border-radius: 4px; background: rgba(214,180,106,0.18); color: var(--gold-hi); margin-left: 6px; vertical-align: 1px; }
   .options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin: 16px 0; }
   .options label { display: grid; gap: 4px; font-size: 12px; color: var(--ink-2); }
-  .options select { background: rgba(0,0,0,0.3); border: 1px solid var(--line); border-radius: 7px; padding: 7px 8px; }
+  .options select { background: rgba(0,0,0,0.3); border: 1px solid var(--line); border-radius: 7px; padding: 7px 8px; min-width: 0; }
   .start { width: 100%; padding: 12px; font-size: 16px; }
   .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
   .filters select, .filters input { background: rgba(0,0,0,0.3); border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; }
@@ -52,8 +52,8 @@
   td { padding: 7px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); }
   tr.game { cursor: pointer; }
   tr.game:hover td { background: rgba(214,180,106,0.07); }
-  td.won { font-weight: 600; }
-  td.won::after { content: " ♛"; color: var(--gold-hi); }
+  .won { font-weight: 600; }
+  .won::after { content: " ♛"; color: var(--gold-hi); }
   td.r { text-align: right; }
   .more { margin-top: 10px; }
   .empty { color: var(--muted); padding: 16px 0; }
@@ -63,7 +63,7 @@
 <body>
 <header>
   <div>
-    <h1>risk2 · War Room</h1>
+    <h1>risk3 · War Room</h1>
     <p>Every version the agents submitted, re-ranked by a Swiss tournament. Watch
       their battles in 3D, or take the field against any of them — their own
       code, compiled to WebAssembly, thinking in your browser.</p>
@@ -80,6 +80,7 @@
         <select id="seat">
           <option value="0">Crimson Knights — you move first</option>
           <option value="1">Bone Legion — you move second</option>
+          <option value="2">Golden Horde — you move third</option>
           <option value="r">Draw lots</option>
         </select></label>
       <label>Setup
@@ -110,7 +111,7 @@
       <select id="dir"><option value="">All runs</option></select>
     </div>
     <table>
-      <thead><tr><th>Knights (first)</th><th>Legion (second)</th><th>Ended</th><th class="r">Moves</th><th class="r">When</th></tr></thead>
+      <thead><tr><th>Players</th><th>Ended</th><th class="r">Moves</th><th class="r">When</th></tr></thead>
       <tbody id="games"></tbody>
     </table>
     <div class="empty" id="nogames" hidden>No games here.</div>
@@ -120,6 +121,8 @@
 <footer>Models, sounds and effects: KayKit, Kenney and OpenGameArt contributors, CC0 — see CREDITS. Rendering: three.js.</footer>
 
 <script type="module">
+import {ordinal} from './static/js/record.js';
+
 const $ = (id) => document.getElementById(id);
 // A fixed colour per participant (a categorical palette, in order).
 const PALETTE = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#9085e9', '#e66767', '#008300'];
@@ -193,7 +196,7 @@ function renderParticipants() {
 $('start').onclick = () => {
   if (!chosen) return;
   let seat = $('seat').value;
-  if (seat === 'r') seat = Math.random() < 0.5 ? '0' : '1';
+  if (seat === 'r') seat = String(Math.floor(Math.random() * ($('seat').options.length - 1)));
   const q = new URLSearchParams({bot: chosen, seat, setup: $('setup').value,
                                  fast: $('fast').value, rounds: $('rounds').value});
   location.href = `play.html?${q}`;
@@ -229,9 +232,22 @@ async function loadGames(reset) {
       tr.append(td);
       return td;
     };
-    const won = g.result === 2 ? g.winning_player : -1;
-    cell(g.player0, won === 0 ? 'won' : '').style.color = 'var(--p0)';
-    cell(g.player1, won === 1 ? 'won' : '').style.color = 'var(--p1)';
+    // A line per seat: the winner crowned, the rest by place when the index has them.
+    const players = cell('');
+    for (let seat = 0; `player${seat}` in g; ++seat) {
+      const line = document.createElement('div');
+      line.textContent = g[`player${seat}`];
+      line.style.color = `var(--p${seat})`;
+      if (g.result === 2 && (g.places ? g.places[seat] === 0 : g.winning_player === seat)) {
+        line.className = 'won';
+      } else if (g.places) {
+        const place = document.createElement('small');
+        place.className = 'muted';
+        place.textContent = ` ${ordinal(g.places[seat])}`;
+        line.append(place);
+      }
+      players.append(line);
+    }
     cell(g.result === 1 ? 'draw' : (g.reason || '').replace(/_/g, ' '), 'muted');
     cell(g.moves, 'r num');
     cell(ago(g.finished_unix_ms), 'r muted');

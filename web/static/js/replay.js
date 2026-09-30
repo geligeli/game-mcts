@@ -2,7 +2,7 @@
 // step on the board, with its dice and captions.
 
 import {World, TEAMS} from './risk3d.js';
-import {decodeRecord} from './record.js';
+import {decodeRecord, standings} from './record.js';
 import {sfx} from './sfx.js';
 import {$, updateSeats, showDice, setCaption, banner, hideBanner, soundButtons,
         progress, doneLoading, failLoading, holdings} from './hud.js';
@@ -34,7 +34,10 @@ function hud() {
   if (index === views.length - 1) {
     const text = view.w || game.reason || 'The record ends here';
     const winner = game.result === 2 ? game.players[game.winner] : '';
-    banner(winner ? `${winner} wins` : 'Game over', text);
+    const forfeits = game.forfeits.map(
+        (f) => `${game.players[f.seat]} forfeited (${f.reason}) at move ${f.move}`);
+    banner(winner ? `${winner} wins` : 'Game over',
+           [text, standings(game.players, game.places), ...forfeits].filter(Boolean).join('\n'));
   } else {
     hideBanner();
   }
@@ -91,7 +94,7 @@ function drawSpark() {
   // Round boundaries, faint.
   g.fillStyle = 'rgba(214,180,106,0.18)';
   for (const i of roundStarts) g.fillRect(x(i), 0, 1, h);
-  for (const seat of [0, 1]) {
+  for (const seat of spark[0].keys()) {
     g.beginPath();
     spark.forEach((v, i) => (i ? g.lineTo(x(i), y(v[seat])) : g.moveTo(x(i), y(v[seat]))));
     g.strokeStyle = TEAMS[seat].css;
@@ -120,8 +123,9 @@ async function main() {
   views.forEach((v, i) => {
     if (i && v.r !== views[i - 1].r) roundStarts.push(i);
   });
-  document.title = `${game.players[0]} vs ${game.players[1]} · risk2`;
-  world.onDice = (dice, lostA, lostD, attacker) => showDice(dice, attacker, {rolling: speed <= 4});
+  document.title = `${game.players.join(' vs ')} · ${game.game}`;
+  world.onDice = (dice, lostA, lostD, attacker, defender) =>
+    showDice(dice, attacker, defender, {rolling: speed <= 4});
   $('scrub').max = views.length - 1;
   soundButtons(world);
   sfx.preload();

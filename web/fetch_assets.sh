@@ -16,7 +16,7 @@ fetch() {  # <url> <cache name>
 }
 
 fetch https://registry.npmjs.org/three/-/three-0.170.0.tgz three.tgz
-fetch https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/main/addons/kaykit_character_pack_adventures/Characters/gltf/Knight.glb Knight.glb
+fetch https://codeload.github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0/zip/refs/heads/main adventurers.zip
 fetch https://raw.githubusercontent.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0/main/addons/kaykit_character_pack_skeletons/Characters/gltf/Skeleton_Warrior.glb Skeleton_Warrior.glb
 fetch https://codeload.github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0/zip/refs/heads/main skeletons.zip
 fetch https://codeload.github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0/zip/refs/heads/main hexagon.zip
@@ -49,7 +49,8 @@ tar -xzf "$CACHE/three.tgz" -C "$STATIC/vendor" \
 mv "$STATIC/vendor/package" "$STATIC/vendor/three"
 
 M=$STATIC/assets/models
-cp "$CACHE/Knight.glb" "$M/knight.glb"
+unzip -p "$CACHE/adventurers.zip" '*/Characters/gltf/Knight.glb' > "$M/knight.glb"
+unzip -p "$CACHE/adventurers.zip" '*/Characters/gltf/Barbarian.glb' > "$M/barbarian.glb"
 cp "$CACHE/Skeleton_Warrior.glb" "$M/skeleton.glb"
 unzip -qjo "$CACHE/skeletons.zip" \
   '*/Assets/gltf/Skeleton_Blade.*' '*/Assets/gltf/Skeleton_Shield_Large_A.*' \
@@ -57,9 +58,10 @@ unzip -qjo "$CACHE/skeletons.zip" \
 # The hexagon pack's pieces share one texture, hexagons_medieval.png.
 HEX='KayKit-Medieval-Hexagon-Pack-1.0-main/addons/kaykit_medieval_hexagon_pack/Assets/gltf'
 for piece in buildings/red/building_castle_red buildings/green/building_castle_green \
+  buildings/yellow/building_castle_yellow \
   buildings/red/building_tower_A_red buildings/green/building_tower_A_green \
-  buildings/neutral/projectile_catapult \
-  decoration/props/flag_red decoration/props/flag_green \
+  buildings/yellow/building_tower_A_yellow buildings/neutral/projectile_catapult \
+  decoration/props/flag_red decoration/props/flag_green decoration/props/flag_yellow \
   decoration/nature/trees_A_medium decoration/nature/trees_B_small; do
   unzip -qjo "$CACHE/hexagon.zip" "$HEX/$piece.gltf" "$HEX/$piece.bin" -d "$M"
 done

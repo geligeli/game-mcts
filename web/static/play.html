@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 2 28 8v8c0 7-5 12-12 14C9 28 4 23 4 16V8z%27 fill=%27%23d6b46a%27/%3E%3Cpath d=%27M16 7 23 10v6c0 4-3 7-7 9-4-2-7-5-7-9v-6z%27 fill=%27%23b8453c%27/%3E%3C/svg%3E">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>risk2 · play</title>
+<title>risk3 · play</title>
 <link rel="stylesheet" href="static/css/app.css">
 <style>
   .orders { right: 12px; top: 64px; width: 280px; padding: 14px; display: grid; gap: 10px; }
@@ -21,9 +21,11 @@
   .popover input { width: 100%; accent-color: var(--gold); }
   .popover .count { font: 600 22px var(--serif); text-align: center; color: var(--gold-hi); }
   .result h2 { font-size: 34px; }
-  .result .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 18px; }
+  .result .stats { display: grid; grid-template-columns: repeat(3, auto); gap: 8px; margin: 12px 0 18px; }
   .result .stats div { padding: 8px; border-radius: 8px; background: rgba(255,255,255,0.04); }
   .caption { bottom: 20px; }
+  /* Under the topbar, which app.css stacks from 1100px down. */
+  @media (max-width: 1100px) { .orders { top: 150px; } }
   @media (max-width: 720px) {
     .orders { top: auto; bottom: 12px; right: 8px; left: 8px; width: auto; padding: 10px; }
     .caption { bottom: 190px; }
@@ -46,11 +48,13 @@
 </div>
 
 <div class="hud topbar panel">
+  <div class="round" id="round">—</div>
   <div class="seat" id="seat0"><div class="crest" style="background:var(--p0)">K</div>
     <div><div class="name" id="name0">—</div><div class="stats num" id="stats0"></div></div></div>
-  <div class="round" id="round">—</div>
-  <div class="seat right" id="seat1"><div class="crest" style="background:var(--p1)">S</div>
+  <div class="seat" id="seat1"><div class="crest" style="background:var(--p1)">S</div>
     <div><div class="name" id="name1">—</div><div class="stats num" id="stats1"></div></div></div>
+  <div class="seat" id="seat2"><div class="crest" style="background:var(--p2)">B</div>
+    <div><div class="name" id="name2">—</div><div class="stats num" id="stats2"></div></div></div>
 </div>
 
 <div class="hud orders panel" id="orders">

@@ -6,11 +6,12 @@ import {sfx} from './sfx.js';
 
 export const $ = (id) => document.getElementById(id);
 
+// Territories and armies by seat; a view has reserves for every seat.
 export function holdings(view) {
-  const territories = [0, 0], armies = [0, 0];
+  const territories = view.rv.map(() => 0), armies = view.rv.map(() => 0);
   for (let t = 0; t < 42; ++t) {
     const owner = view.o[t];
-    if (owner === '0' || owner === '1') {
+    if (owner !== '-') {
       ++territories[owner];
       armies[owner] += view.u[t];
     }
@@ -20,20 +21,24 @@ export function holdings(view) {
 
 export function updateSeats(view, names) {
   const {territories, armies} = holdings(view);
-  for (const seat of [0, 1]) {
+  // The page has a panel for every seat of the season; an older game may use
+  // fewer.
+  for (let seat = 0, panel; (panel = $(`seat${seat}`)); ++seat) {
+    panel.hidden = seat >= view.rv.length;
+    if (panel.hidden) continue;
     $(`name${seat}`).textContent = names[seat];
     $(`name${seat}`).title = `${names[seat]} (${TEAMS[seat].name})`;
     // Reserves are the mover's, to place before its first attack.
-    const reserves = view.p === seat && view.rv && view.rv[seat] ? ` · +${view.rv[seat]} to place` : '';
+    const reserves = view.p === seat && view.rv[seat] ? ` · +${view.rv[seat]} to place` : '';
     $(`stats${seat}`).textContent =
         `${territories[seat]} territories · ${armies[seat]} armies${reserves}`;
-    $(`seat${seat}`).classList.toggle('active', view.p === seat);
+    panel.classList.toggle('active', view.p === seat);
   }
   const round = $('round');
   round.textContent = '';
   // r counts finished rounds. Setup is before the first: land unclaimed, or
-  // both sides still holding their setup armies.
-  const setup = view.r === 0 && (view.o.includes('-') || (view.rv[0] > 0 && view.rv[1] > 0));
+  // every side still holding its setup armies.
+  const setup = view.r === 0 && (view.o.includes('-') || view.rv.every((n) => n > 0));
   if (setup) {
     round.append('Setup');
   } else {
@@ -61,7 +66,7 @@ function die(face, seat, lost) {
 
 // Shows a roll: the attacker's dice on the left, which dice lost dimmed.
 let diceTimer = 0;
-export function showDice([attack, defend], attacker, {rolling = true} = {}) {
+export function showDice([attack, defend], attacker, defender, {rolling = true} = {}) {
   const bar = $('dice');
   bar.textContent = '';
   const lostA = new Set(), lostD = new Set();
@@ -77,7 +82,7 @@ export function showDice([attack, defend], attacker, {rolling = true} = {}) {
   const vs = document.createElement('span');
   vs.className = 'vs';
   vs.textContent = 'vs';
-  bar.append(side(attack, attacker, lostA), vs, side(defend, 1 - attacker, lostD));
+  bar.append(side(attack, attacker, lostA), vs, side(defend, defender, lostD));
   if (rolling) {
     bar.querySelectorAll('.die').forEach((d) => d.classList.add('rolling'));
     setTimeout(() => bar.querySelectorAll('.die').forEach((d) => d.classList.remove('rolling')), 180);

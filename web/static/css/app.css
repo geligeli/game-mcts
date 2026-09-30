@@ -1,4 +1,4 @@
-/* risk2 web: the lobby, the 3D viewer and the play page share this. */
+/* risk3 web: the lobby, the 3D viewer and the play page share this. */
 :root {
   --bg: #0c0f14;
   --panel: rgba(16, 20, 28, 0.86);
@@ -13,6 +13,8 @@
   --p0-soft: rgba(224, 81, 63, 0.18);
   --p1: #3fb56a;
   --p1-soft: rgba(63, 181, 106, 0.18);
+  --p2: #e0b43f;
+  --p2-soft: rgba(224, 180, 63, 0.18);
   --good: #6fcf6a;
   --bad: #ef6b5b;
   --serif: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
@@ -36,6 +38,7 @@ button, select, input { font: inherit; color: inherit; }
 
 .p0 { color: var(--p0); }
 .p1 { color: var(--p1); }
+.p2 { color: var(--p2); }
 .muted { color: var(--muted); }
 .num { font-variant-numeric: tabular-nums; }
 
@@ -75,14 +78,15 @@ kbd {
 .hud { position: fixed; pointer-events: none; z-index: 5; }
 .hud > * { pointer-events: auto; }
 
+/* As wide as three seats need, clear of the buttons in both top corners. */
 .topbar {
-  top: 12px; left: 50%; transform: translateX(-50%);
+  top: 12px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 340px);
   display: flex; align-items: center; gap: 14px; padding: 8px 14px;
 }
-.seat { display: flex; align-items: center; gap: 8px; min-width: 150px; }
-.seat.right { flex-direction: row-reverse; text-align: right; }
+.seat { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.seat > div { min-width: 0; }
 .seat .crest {
-  width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex: none;
   font: 700 13px var(--serif); color: #fff; border: 2px solid rgba(255, 255, 255, 0.5);
 }
 .seat .name { font-weight: 600; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -121,6 +125,7 @@ kbd {
 }
 .die.p0 { background: linear-gradient(180deg, #f07563, #b8392a); }
 .die.p1 { background: linear-gradient(180deg, #6fd695, #23874a); }
+.die.p2 { background: linear-gradient(180deg, #ecc05a, #a87a1c); }
 .die i { width: 6px; height: 6px; border-radius: 50%; background: #fff; place-self: center; visibility: hidden; }
 .die.lost { opacity: 0.32; transform: scale(0.86); }
 .die.rolling { animation: tumble 0.26s linear infinite; }
@@ -142,7 +147,7 @@ kbd {
   transition: opacity 0.3s, transform 0.3s;
 }
 .banner.hidden { opacity: 0; transform: translate(-50%, -40%); pointer-events: none; }
-.banner small { display: block; font: 13px var(--sans); color: var(--ink-2); margin-top: 4px; }
+.banner small { display: block; font: 13px var(--sans); color: var(--ink-2); margin-top: 4px; white-space: pre-line; }
 .spinner {
   display: inline-block; width: 14px; height: 14px; margin-right: 8px; vertical-align: -2px;
   border: 2px solid rgba(243, 217, 149, 0.3); border-top-color: var(--gold-hi); border-radius: 50%;
@@ -170,9 +175,21 @@ kbd {
 .tip.hidden { opacity: 0; }
 .tip b { font-family: var(--serif); font-size: 13px; }
 
+/* Too narrow for one line: under the corner buttons, the round on a line of
+   its own, then the seats side by side. */
+@media (max-width: 1100px) {
+  .topbar {
+    gap: 4px 8px; padding: 6px 8px; top: 56px; left: 8px; right: 8px; width: auto; max-width: none;
+    transform: none; flex-wrap: wrap;
+  }
+  .round { flex-basis: 100%; min-width: 0; }
+  .round small { display: inline; margin-left: 4px; }
+  .seat { flex: 1; gap: 6px; }
+  .dicebar, .toast { top: 168px; }
+}
+
 @media (max-width: 720px) {
-  .topbar { gap: 8px; padding: 6px 8px; top: 56px; }
-  .seat { min-width: 0; }
-  .seat .name { max-width: 90px; }
+  .seat .crest { width: 24px; height: 24px; font-size: 11px; }
+  .seat .stats { font-size: 11px; }
   .caption { bottom: 150px; font-size: 12px; }
 }

@@ -1,10 +1,11 @@
-// The risk2 board in 3D, shared by the viewer (replay.js) and the play page
+// The Risk board in 3D, shared by the viewer (replay.js) and the play page
 // (play.js).
 //
 // The 42 territories are extruded from problem/risk_map.svg, the same map the
 // 2D replay draws, on a low-poly sea. Each holds a garrison: 1-4 animated
-// figures by size (Knights for seat 0, Skeletons for seat 1), a count badge,
-// the owner's flag, and a tower or a castle once it grows big.
+// figures by size (Knights for seat 0, Skeletons for seat 1, Barbarians for
+// seat 2), a count badge, the owner's flag, and a tower or a castle once it
+// grows big.
 //
 //   const world = new World(container);
 //   await world.load(progress);
@@ -39,6 +40,8 @@ export const TEAMS = [
    flag: 'flag_red', tower: 'building_tower_A_red', castle: 'building_castle_red', model: 'knight'},
   {name: 'Bone Legion', color: 0x3fb56a, css: '#3fb56a', land: 0x3d8f59,
    flag: 'flag_green', tower: 'building_tower_A_green', castle: 'building_castle_green', model: 'skeleton'},
+  {name: 'Golden Horde', color: 0xe0b43f, css: '#e0b43f', land: 0xb08a34,
+   flag: 'flag_yellow', tower: 'building_tower_A_yellow', castle: 'building_castle_yellow', model: 'barbarian'},
 ];
 const NEUTRAL = 0x9c9580;
 
@@ -295,7 +298,7 @@ class Garrison {
       world.fx.smoke(this.group.localToWorld(target.clone()), 2, 0.6, 0x6d6255);
       tweens.add(0.45, (k) => { figure.root.position.y = -1.3 * (1 - k); }, ease.out);
     } else {
-      // Knights drop in.
+      // Knights and barbarians drop in.
       figure.root.position.y = 5;
       tweens.add(0.3, (k) => { figure.root.position.y = 5 * (1 - k); }, ease.in).then(() => {
         if (figure.dead) return;
@@ -485,17 +488,16 @@ export class World {
   async load(progress = () => {}) {
     const gltf = new GLTFLoader();
     const load = (name) => gltf.loadAsync(new URL(`models/${name}`, ASSETS).href);
+    const names = [...TEAMS.flatMap((team) => [team.flag, team.tower, team.castle]),
+                   'trees_A_medium', 'trees_B_small', 'projectile_catapult'];
     let done = 0;
-    const tick = (p) => p.then((v) => { progress(++done / 14); return v; });
+    const tick = (p) => p.then((v) => { progress(++done / (6 + names.length)); return v; });
 
-    const [svgText, knight, skeleton, blade, shield, ...props] = await Promise.all([
+    const [svgText, knight, skeleton, barbarian, blade, shield, ...props] = await Promise.all([
       tick(fetch(new URL('risk_map.svg', ASSETS)).then((r) => r.text())),
-      tick(load('knight.glb')), tick(load('skeleton.glb')),
+      tick(load('knight.glb')), tick(load('skeleton.glb')), tick(load('barbarian.glb')),
       tick(load('Skeleton_Blade.gltf')), tick(load('Skeleton_Shield_Large_A.gltf')),
-      ...['flag_red', 'flag_green', 'building_tower_A_red', 'building_tower_A_green',
-          'building_castle_red', 'building_castle_green', 'trees_A_medium', 'trees_B_small',
-          'projectile_catapult']
-          .map((n) => tick(load(`${n}.gltf`).then((g) => [n, g]))),
+      ...names.map((n) => tick(load(`${n}.gltf`).then((g) => [n, g]))),
     ]);
     this.props = {};
     for (const [name, g] of props) {
@@ -507,12 +509,16 @@ export class World {
       });
       this.props[name] = g.scene;
     }
-    this.templates = {knight: this.template(knight), skeleton: this.template(skeleton)};
-    // Knights carry one sword and a round shield out of the pack's armoury.
-    const keep = new Set(['1H_Sword', 'Round_Shield']);
-    knight.scene.traverse((node) => {
-      if (/(Sword|Shield)/.test(node.name) && !keep.has(node.name)) node.visible = false;
-    });
+    this.templates = {knight: this.template(knight), skeleton: this.template(skeleton),
+                      barbarian: this.template(barbarian)};
+    // Knights and barbarians carry one weapon and a round shield out of the
+    // pack's armoury.
+    const keep = new Set(['1H_Sword', 'Round_Shield', '1H_Axe', 'Barbarian_Round_Shield']);
+    for (const armed of [knight, barbarian]) {
+      armed.scene.traverse((node) => {
+        if (/(Sword|Shield|Axe|Mug)/.test(node.name) && !keep.has(node.name)) node.visible = false;
+      });
+    }
     // Skeletons come unarmed: a blade and a shield in their hand slots.
     this.templates.skeleton.attach = (root) => {
       const right = root.getObjectByName('handslot.r');
@@ -871,7 +877,7 @@ export class World {
     const bySea = this.isSeaLane(from, to);
     A.act(bySea ? 'shoot' : 'attack', {speed: 1.4});
     sfx.play(bySea ? 'cannon' : 'swing');
-    this.onDice?.(view.d, lostA, lostD, attacker);
+    this.onDice?.(view.d, lostA, lostD, attacker, defender);
 
     // A volley: one shot per attacking die.
     const shots = attack.map((_, i) => this.tweens.wait(i * 0.06).then(() => this.shot(from, to, i)));

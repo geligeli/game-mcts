@@ -1,9 +1,9 @@
-// The play page: a person against a candidate, whose own policy runs as
-// WebAssembly in engine_worker.js. The engine (web/risk_match.h) is the
-// referee; this page only turns clicks into its calls and its answers into
-// animation.
+// The play page: a person against a candidate in every other seat, whose own
+// policy runs as WebAssembly in engine_worker.js. The engine
+// (web/risk_match.h) is the referee; this page only turns clicks into its
+// calls and its answers into animation.
 //
-// ?bot=<id>&seat=0|1&setup=quick|draft&fast=1|0&rounds=40[&autoplay=1]
+// ?bot=<id>&seat=0|1|2&setup=quick|draft&fast=1|0&rounds=40[&autoplay=1]
 //
 // The engine answers at once and never waits for the board: a presenter plays
 // its steps back, faster the more are waiting, so clicking through a battle
@@ -11,6 +11,7 @@
 
 import {World, TEAMS} from './risk3d.js';
 import {Engine, placementString} from './engine.js';
+import {ordinal} from './record.js';
 import {sfx} from './sfx.js';
 import {$, updateSeats, showDice, setCaption, banner, hideBanner, soundButtons,
         progress, doneLoading, failLoading, holdings} from './hud.js';
@@ -18,7 +19,6 @@ import {$, updateSeats, showDice, setCaption, banner, hideBanner, soundButtons,
 const params = new URLSearchParams(location.search);
 const botId = params.get('bot') || 'reference';
 const seat = Number(params.get('seat') || 0);
-const foe = 1 - seat;
 const rounds = Number(params.get('rounds') ?? 40);
 const autoplay = params.get('autoplay') === '1';
 
@@ -36,7 +36,7 @@ let moveAll = true;
 try { moveAll = localStorage.getItem('risk2.moveAll') !== '0'; } catch {}
 const MOVE_ALL = 1 << 16;  // QueueAttackAction::kMoveAll
 let busy = false;          // an engine call is out
-const names = seat === 0 ? ['You', botId] : [botId, 'You'];
+const names = TEAMS.map((_, s) => (s === seat ? 'You' : botId));
 
 // ---- The presenter: plays engine steps on the board, in order. ----
 
@@ -226,23 +226,28 @@ async function fortify(source, target, count) {
 function finish() {
   refresh();
   const {territories, armies} = holdings(state.view);
-  const won = state.winner === seat;
-  const draw = state.winner < 0;
-  $('resultTitle').textContent = draw ? 'A draw' : won ? 'Victory' : 'Defeat';
-  $('resultTitle').style.color = draw ? 'var(--gold-hi)' : won ? 'var(--good)' : 'var(--bad)';
-  $('resultText').textContent = state.result;
+  const {places} = state;
+  const first = places[seat] === 0;
+  const draw = first && places.filter((p) => p === 0).length > 1;
+  const won = first && !draw;
+  // Only the last place is a defeat: outlasting a rival counts.
+  const last = places[seat] === Math.max(...places);
+  $('resultTitle').textContent = draw ? 'A draw' : won ? 'Victory'
+      : last ? 'Defeat' : `${ordinal(places[seat])} place`;
+  $('resultTitle').style.color = draw || !last && !won ? 'var(--gold-hi)' : won ? 'var(--good)' : 'var(--bad)';
+  $('resultText').textContent = `You placed ${ordinal(places[seat])}. ${state.result}`;
   const stats = $('resultStats');
   stats.textContent = '';
-  for (const [label, value] of [['Your territories', territories[seat]], [`${botId}'s`, territories[foe]],
-                                ['Your armies', armies[seat]], [`${botId}'s`, armies[foe]]]) {
-    const cell = document.createElement('div');
-    cell.textContent = `${label}: ${value}`;
-    stats.append(cell);
+  for (const s of [...places.keys()].sort((a, b) => places[a] - places[b])) {
+    const row = [`${ordinal(places[s])} ${names[s]}`, `${territories[s]} territories`, `${armies[s]} armies`]
+        .map((textContent) => Object.assign(document.createElement('div'), {textContent}));
+    row[0].style.color = TEAMS[s].css;
+    stats.append(...row);
   }
   sfx.play(won ? 'win' : 'lose');
   sfx.loop('drums', false);
   setTimeout(() => $('result').classList.remove('hidden'), 900);
-  document.title = `${won ? 'PASS won' : draw ? 'PASS draw' : 'PASS lost'}: ${state.result}`;
+  document.title = `PASS ${ordinal(places[seat])}: ${state.result}`;
 }
 
 // ---- Input ----
@@ -451,7 +456,7 @@ async function main() {
   presented = state.view;
   world.setView(state.view);
   updateSeats(state.view, names);
-  document.title = `You vs ${botId} · risk2`;
+  document.title = `You vs ${botId} · risk3`;
   doneLoading();
   sfx.loop('drums', true);
 

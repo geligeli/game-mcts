@@ -5,7 +5,7 @@ of it is committed. Every asset is CC0 (public domain) unless noted.
 
 | What | Used for | Source | Licence |
 |---|---|---|---|
-| KayKit Character Pack: Adventures (`Knight.glb`) | seat 0's army | https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0 | CC0 |
+| KayKit Character Pack: Adventures (`Knight.glb`, `Barbarian.glb`) | seat 0's and seat 2's armies | https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0 | CC0 |
 | KayKit Character Pack: Skeletons (`Skeleton_Warrior.glb`, blade, shield) | seat 1's army | https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0 | CC0 |
 | KayKit Medieval Hexagon Pack (flags, towers, castles, trees, catapult stone) | territory props | https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0 | CC0 |
 | Kenney Smoke Particles (explosion flipbook) | impacts | https://kenney.nl/assets/smoke-particles | CC0 |

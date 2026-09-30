@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Serves web/'s 3D viewer and play page, and the games they show.
 
-  python3 web/serve.py --data_dir ~/.arena/risk2-swiss-<time> \\
-      --data_dir ~/.arena/risk2 [--port 8095] [--bind 0.0.0.0]
+  python3 web/serve.py --data_dir ~/.arena/risk3-swiss-<time> \\
+      --data_dir ~/.arena/risk3 [--port 8095] [--bind 0.0.0.0]
 
 Read-only. Routes:
   /, /*.html, /static/...   the pages (web/static)
@@ -50,6 +50,11 @@ TYPES = {".js": "text/javascript", ".mjs": "text/javascript",
          ".css": "text/css", ".png": "image/png"}
 
 
+def players(row):
+    """An index line's player0, player1, ..."""
+    return [v for k, v in row.items() if re.fullmatch(r"player\d+", k)]
+
+
 class Games:
     """The merged game indexes, reread when a data dir's index changes."""
 
@@ -77,12 +82,12 @@ class Games:
     def query(self, player, dir_name, offset, limit):
         rows = [r for name in self.dirs if not dir_name or name == dir_name
                 for r in self.entries(name)
-                if not player or player in (r.get("player0"), r.get("player1"))]
+                if not player or player in players(r)]
         rows.sort(key=lambda r: -r.get("finished_unix_ms", 0))
-        players = sorted({p for name in self.dirs for r in self.entries(name)
-                          for p in (r.get("player0"), r.get("player1")) if p})
+        names = sorted({p for name in self.dirs for r in self.entries(name)
+                        for p in players(r)})
         return {"total": len(rows), "games": rows[offset:offset + limit],
-                "dirs": list(self.dirs), "players": players}
+                "dirs": list(self.dirs), "players": names}
 
     def record(self, dir_name, game_id):
         if dir_name not in self.dirs or not SAFE_ID.match(game_id):
@@ -257,7 +262,7 @@ def main():
                              "serve its top --top, compiled as they get there")
     parser.add_argument("--top", type=int, default=10)
     parser.add_argument("--stage_from", type=pathlib.Path,
-                        default=pathlib.Path("~/.arena/risk2"),
+                        default=pathlib.Path("~/.arena/risk3"),
                         help="the coordinator's data dir, for the candidates' code")
     args = parser.parse_args()
     Handler.games = Games([d.expanduser().resolve() for d in args.data_dir])

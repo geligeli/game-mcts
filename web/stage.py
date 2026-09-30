@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Stages the candidates a play page can face, and what it knows of them.
 
-  python3 web/stage.py ~/.arena/risk2-swiss-<time> [--only claude-v21,agy-v08]
+  python3 web/stage.py ~/.arena/risk3-swiss-<time> [--only claude-v21,agy-v08]
 
 Copies each version's files from a Swiss re-rank's data dir
 (candidates/<id>/src/bots/<id>/) and bots/reference into web/bots/<id>/, and

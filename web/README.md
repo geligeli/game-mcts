@@ -1,15 +1,16 @@
-# web/: risk2 in the browser
+# web/: risk3 in the browser
 
 A 3D viewer for every game the arena stored, and a page to play any candidate
-version. The candidate's own `strategy.h` is compiled to WebAssembly, and its
-threads come along as pthreads. Nothing in the problem, the kits or the sandbox
-depends on this package.
+version, which takes both other seats of the three. The candidate's own
+`strategy.h` is compiled to WebAssembly, and its threads come along as
+pthreads. Nothing in the problem, the kits or the sandbox depends on this
+package.
 
 ```sh
 bash web/fetch_assets.sh                                # three.js + CC0 assets
-python3 web/stage.py ~/.arena/risk2-swiss-<time>         # the candidates
+python3 web/stage.py ~/.arena/risk3-swiss-<time>         # the candidates
 bash web/build.sh                                        # ... to WebAssembly, in web/dist
-python3 web/serve.py --data_dir ~/.arena/risk2-swiss-<time> --data_dir ~/.arena/risk2
+python3 web/serve.py --data_dir ~/.arena/risk3-swiss-<time> --data_dir ~/.arena/risk3
 ```
 
 Then open http://localhost:8095/. It is https://takumi.games/sessions/ from
@@ -17,7 +18,8 @@ outside, where nginx on geli-nfs proxies that path to this host's :8095.
 
 ## The pieces
 
-- **`risk_match.{h,cc}`**: one game between a person and a policy.
+- **`risk_match.{h,cc}`**: one game between a person and a policy in every
+  other seat.
   - It covers the rules, dice, the round cap, and captions and views from
     `problem/risk_view.h` (the referee's own).
   - It answers JSON: the steps a call played, then where the game stands.
