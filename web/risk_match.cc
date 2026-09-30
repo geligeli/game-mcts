@@ -93,7 +93,9 @@ bool RiskMatch::Apply(const RiskAction &action, std::string *error) {
 
 void RiskMatch::Settle() {
   std::string ignored;
-  while (!tournament_broker::ResultOf(state_, max_rounds_).over_) {
+  while (
+      !tournament_broker::ResultOf(state_, max_rounds_, renderer_.eliminated())
+           .over_) {
     if (state_.is_chance_node()) {
       Apply(state_.sample_chance_action(gen_), &ignored);
     } else if (state_.queued_attack_.has_value() &&
@@ -136,7 +138,7 @@ bool RiskMatch::PlaceReserves(const placement_t &reinforce,
 std::string RiskMatch::State() const {
   std::string phase;
   const tournament_broker::RiskResult result =
-      tournament_broker::ResultOf(state_, max_rounds_);
+      tournament_broker::ResultOf(state_, max_rounds_, renderer_.eliminated());
   if (result.over_) {
     phase = "over";
   } else if (state_.current_player_ != human_) {
@@ -152,7 +154,10 @@ std::string RiskMatch::State() const {
          "\",\"seat\":" + std::to_string(human_) +
          ",\"reserves\":" + std::to_string(state_.reserves_[human_]) +
          ",\"result\":" + Quoted(result.text_) + ",\"winner\":" +
-         std::to_string(result.over_ && !result.draw_ ? result.winner_ : -1) +
+         std::to_string(
+             result.over_ && std::ranges::count(result.places_, 0) == 1
+                 ? std::ranges::find(result.places_, 0) - result.places_.begin()
+                 : -1) +
          "}";
 }
 
@@ -224,7 +229,9 @@ std::string RiskMatch::Attack(int source, int target,
       break;
     }
     while (state_.current_player_ != human_ && !state_.is_chance_node() &&
-           !tournament_broker::ResultOf(state_, max_rounds_).over_ &&
+           !tournament_broker::ResultOf(state_, max_rounds_,
+                                        renderer_.eliminated())
+                .over_ &&
            Apply(BotAction(), &error)) {
       // the policy's defence
     }
@@ -255,7 +262,8 @@ std::string RiskMatch::Fortify(int source, int target, int units,
 
 std::string RiskMatch::BotStep() {
   if (state_.current_player_ == human_ || state_.is_chance_node() ||
-      tournament_broker::ResultOf(state_, max_rounds_).over_) {
+      tournament_broker::ResultOf(state_, max_rounds_, renderer_.eliminated())
+          .over_) {
     Settle();
     return Answer();
   }

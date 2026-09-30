@@ -125,7 +125,7 @@ cc_binary(
 filegroup(
     name = "replay_assets",
     srcs = [
-        "risk2_replay.js",
+        "risk_replay.js",
         "risk_map.svg",
     ],
 )

@@ -83,7 +83,7 @@ agents' base image is game-arena's; its `quickstart.sh` builds it and
 
 The dashboard's replays (`/games/<id>`, `#<move>` for one move) draw each step
 on the Risk map in the browser: owners, armies, an arrow for an attack or a
-fortify, the dice and who they cost. That is `problem/risk2_replay.js`, served
+fortify, the dice and who they cost. That is `problem/risk_replay.js`, served
 by the coordinator with the map (`problem/risk_map.svg`), from a ~200-byte JSON
 view the session records per step. Replay a recorded game in the terminal
 instead, with the same captions and ANSI boards (games land in

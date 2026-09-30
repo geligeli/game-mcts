@@ -178,7 +178,7 @@ This repo is a problem repo in the arena's `examples/connect4` layout:
   tie is left to the referee's time tiebreak. The replay: `RenderLastStep()`
   is every step's caption, `RenderState()` a JSON snapshot of the board it
   left, with what it touched and its dice (`problem/risk_view.h`, ~200 B).
-  `problem/risk2_replay.js` draws it on `problem/risk_map.svg` in the
+  `problem/risk_replay.js` draws it on `problem/risk_map.svg` in the
   dashboard's browser (`arena_problem`'s `replay_assets`/`replay_module`);
   it is plain JavaScript with no build step, and the host has no JS runtime,
   so check it in a browser (headless Chrome can screenshot `/games/<id>#<n>`).

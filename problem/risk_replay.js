@@ -1,13 +1,14 @@
-// risk2's replay module (arena_problem's replay_module): draws each step's
-// view -- the JSON snapshot problem/risk_view.h writes -- on the map in
-// risk_map.svg, and under it each seat's territories, armies and reinforcements
-// over the whole game. The arena's replay page calls init() once, with every
+// Risk's replay module (arena_problem's replay_module), for two seats or
+// three: draws each step's view -- the JSON snapshot problem/risk_view.h
+// writes -- on the map in risk_map.svg, and under it each seat's territories,
+// armies and reinforcements over the whole game. The arena's replay page calls init() once, with every
 // view, and render() per frame. Names, captions and views are data:
 // textContent, never innerHTML.
 
 const SVG = 'http://www.w3.org/2000/svg';
-const OWNER = ['#c33', '#3a3'];
-const OWNER_LIT = ['#f77', '#7d7'];
+// Red, green and gold, as web/'s 3D board has the three seats.
+const OWNER = ['#c33', '#3a3', '#c90'];
+const OWNER_LIT = ['#f77', '#7d7', '#fc4'];
 const UNOWNED = '#999';
 const DIE = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 const WIDTH = 900;
@@ -19,11 +20,11 @@ const STYLE = `
 .risk svg{width:100%;height:auto;background:#36c;display:block}
 .risk .territory{stroke:#222;stroke-width:.6;stroke-linejoin:round}
 .risk .territory.hit{stroke:#fff;stroke-width:2}
-.risk .territory.won{stroke:#fd5;stroke-width:3}
+.risk .territory.won{stroke:#fff;stroke-width:3.5}
 .risk .sea{stroke:#fff;stroke-width:1;stroke-dasharray:3 2;opacity:.7}
 .risk .army{font:bold 11px sans-serif;text-anchor:middle;dominant-baseline:central;
   fill:#fff;stroke:#000;stroke-width:2.5px;paint-order:stroke;pointer-events:none}
-.risk .arrow{stroke:#fd5;stroke-width:3;marker-end:url(#risk-head)}
+.risk .arrow{stroke:#fff;stroke-width:3;marker-end:url(#risk-head)}
 .risk .bar{display:flex;gap:1.5em;align-items:center;margin:.3em 0;min-height:1.6em}
 .risk .seat{font-weight:bold}
 .risk .dice{font-size:1.6em;letter-spacing:.05em}
@@ -65,7 +66,7 @@ export async function init(stage, game, views) {
   const head = svg('marker', {id: 'risk-head', viewBox: '0 0 10 10', refX: 8,
                               refY: 5, markerWidth: 4, markerHeight: 4,
                               orient: 'auto-start-reverse'});
-  head.append(svg('path', {d: 'M0 0L10 5L0 10z', fill: '#fd5'}));
+  head.append(svg('path', {d: 'M0 0L10 5L0 10z', fill: '#fff'}));
   defs.append(head);
   map.prepend(defs);
 
@@ -93,6 +94,7 @@ export async function init(stage, game, views) {
   state.bottom.className = 'bar';
   root.append(style, state.top, map, state.bottom);
   state.players = game.players;
+  state.seats = game.players.map((_, seat) => seat);
   // An older arena hands init no views: no chart then.
   if (views) {
     state.charts = charts(views.map(decode));
@@ -129,8 +131,8 @@ function decode(bytes) {
 
 // Territories and armies per seat.
 function counts(view) {
-  const territories = [0, 0];
-  const armies = [0, 0];
+  const territories = state.seats.map(() => 0);
+  const armies = state.seats.map(() => 0);
   for (let t = 0; t < 42; ++t) {
     const owner = view.o[t];
     if (owner !== '-') {
@@ -159,7 +161,7 @@ function timeChart(decoded, {title, height, max, marks, valueAt, dots}) {
 
   const heading = document.createElement('div');
   heading.className = 'bar';
-  const readouts = [0, 1].map(seat => span('', 'seat', OWNER[seat]));
+  const readouts = state.seats.map(seat => span('', 'seat', OWNER[seat]));
   heading.append(span(`${title}:`), ...readouts);
 
   const chart = svg('svg', {class: 'chart', viewBox: `0 0 ${WIDTH} ${height}`,
@@ -192,8 +194,8 @@ function timeChart(decoded, {title, height, max, marks, valueAt, dots}) {
   marks(chart, x, y);
 
   const cursor = svg('line', {class: 'cursor', y1: top, y2: height - bottom});
-  const markers = dots ? [0, 1].map(seat => svg('circle', {r: 4,
-                                                           fill: OWNER[seat]}))
+  const markers = dots ? state.seats.map(seat => svg('circle', {
+                           r: 4, fill: OWNER[seat]}))
                        : [];
   chart.append(cursor, ...markers);
   return {
@@ -222,20 +224,20 @@ function charts(decoded) {
     return {
       territories,
       armies: armies.map((count, seat) => count + view.rv[seat]),
-      gained: [0, 1].map(seat => view.r > 0 && before &&
-                                         view.rv[seat] > before.rv[seat]
-                                     ? view.rv[seat] - before.rv[seat]
-                                     : 0),
+      gained: state.seats.map(seat => view.r > 0 && before &&
+                                          view.rv[seat] > before.rv[seat]
+                                      ? view.rv[seat] - before.rv[seat]
+                                      : 0),
     };
   });
   // Each seat's latest reinforcement as of each view, for the readout.
-  let latest = [0, 0];
+  let latest = state.seats.map(() => 0);
   const lastGained = data.map(d => {
     latest = latest.map((gain, seat) => d.gained[seat] || gain);
     return latest;
   });
   const lines = pick => (chart, x, y) => {
-    for (const seat of [0, 1]) {
+    for (const seat of state.seats) {
       chart.append(svg('polyline', {
         class: 'line', stroke: OWNER[seat],
         points: data.map((d, i) => `${x(i).toFixed(1)},${y(pick(d)[seat])}`)
@@ -274,7 +276,7 @@ function charts(decoded) {
 function seatLine(view) {
   const {territories, armies} = counts(view);
   const nodes = [span(`Round ${view.r}${view.m ? '/' + view.m : ''}`)];
-  for (const seat of [0, 1]) {
+  for (const seat of state.seats) {
     const name = state.players[seat] ?? `P${seat}`;
     const mover = view.p === seat ? '▶ ' : '';
     nodes.push(span(`${mover}P${seat} ${name}`, 'seat', OWNER[seat]),
@@ -288,8 +290,10 @@ function seatLine(view) {
 function diceLine(view) {
   if (!view.d) return [];
   const [attacker, defender] = view.d;
-  // The source is still the attacker's; the target may be theirs by now.
+  // The source is still the attacker's; the target may be theirs by now, so
+  // the defender is the view's own (a view from before df had two seats).
   const seat = view.a ? +view.o[view.a[0]] : 0;
+  const defending = view.df ?? 1 - seat;
   const node = span('', 'dice');
   const pairs = Math.min(attacker.length, defender.length);
   attacker.forEach((face, i) => node.append(span(
@@ -297,7 +301,7 @@ function diceLine(view) {
   node.append(span(' vs '));
   defender.forEach((face, i) => node.append(span(
       DIE[face], i < pairs && attacker[i] > face ? 'lost' : '',
-      OWNER[1 - seat])));
+      OWNER[defending])));
   const nodes = [node];
   if (view.c !== undefined) nodes.push(span('Conquered!', 'result'));
   return nodes;

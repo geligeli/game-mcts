@@ -72,12 +72,12 @@ class GameSessionImpl : public GameSession {
 
   std::optional<GameOutcome> Outcome() const override {
     const mcts::game_state_t state = state_.current_state();
+    constexpr int kPlayers = static_cast<int>(mcts::num_players_v<G>);
     if (const auto *win = std::get_if<mcts::win_t>(&state)) {
-      return GameOutcome{.is_draw = false,
-                         .winning_player = win->winning_player};
+      return GameOutcome::Win(kPlayers, win->winning_player);
     }
     if (std::get_if<mcts::draw_t>(&state) != nullptr) {
-      return GameOutcome{.is_draw = true};
+      return GameOutcome::Draw(kPlayers);
     }
     return std::nullopt;
   }

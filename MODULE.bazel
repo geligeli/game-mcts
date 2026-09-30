@@ -58,7 +58,7 @@ bazel_dep(name = "game_arena", version = "0.1.0", dev_dependency = True)
 # )
 local_path_override(
     module_name = "game_arena",
-    path = "/fast/src/game-arena",
+    path = "/fast/src/game-arena-3p",
 )
 
 # The kit's base: the arena's image with coding agents (Claude Code, opencode,

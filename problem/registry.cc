@@ -1,5 +1,6 @@
-// The GameRegistry() the arena declares and the referee links: risk2 and its
-// builtins, random, mcts and mcts_smart.
+// The GameRegistry() the arena declares and the referee links: risk2 and
+// risk3, Risk for two and for three, and their builtins, random, mcts and
+// mcts_smart.
 
 #include "game_arena/referee/game_registry.h"
 
@@ -25,13 +26,6 @@ namespace tournament_broker {
 
 namespace {
 
-using risk_game_t = risk_game::RiskState<2>;
-using risk_proposer_t = risk_game::RiskProposer<2>;
-// tuning_result.md's strongest: reinforce the borders, attack only at an
-// advantage -- in the tree only; rollouts keep the stock proposer, whose
-// indiscriminate attacks keep playouts short.
-using smart_proposer_t = risk_game::RiskProposer<2, true, true>;
-
 int g_default_mcts_iterations = 400;
 int g_max_rounds = 0;  // no cap unless the problem sets one
 
@@ -43,10 +37,17 @@ bool ParseNonNegative(std::string_view text, int *value) {
 }
 
 // "random", or "mcts" / "mcts_smart", each optionally ":iterations=N".
+template <size_t N>
 std::optional<BuiltinFn> MakeRiskBuiltin(std::string_view spec,
                                          std::string *error) {
   using mcts::tournament::MctsPolicy;
   using mcts::tournament::SerializedPolicy;
+  using risk_game_t = risk_game::RiskState<N>;
+  using risk_proposer_t = risk_game::RiskProposer<N>;
+  // tuning_result.md's strongest: reinforce the borders, attack only at an
+  // advantage -- in the tree only; rollouts keep the stock proposer, whose
+  // indiscriminate attacks keep playouts short.
+  using smart_proposer_t = risk_game::RiskProposer<N, true, true>;
   if (spec == "random") {
     return SerializedPolicy<risk_game_t>(
         mcts::tournament::ProposerPolicy<risk_game_t, risk_proposer_t>{});
@@ -70,7 +71,7 @@ std::optional<BuiltinFn> MakeRiskBuiltin(std::string_view spec,
   // Battles in rollouts resolve to their expected outcome, as the reference
   // bot's do.
   auto rollout = mcts::MakeShortcutRollout<risk_game_t, risk_proposer_t>(
-      &risk_game::ResolveBattleWithExpectationInPlace<2>);
+      &risk_game::ResolveBattleWithExpectationInPlace<N>);
   if (name == "mcts") {
     return SerializedPolicy<risk_game_t>(
         MctsPolicy<risk_game_t, risk_proposer_t, decltype(rollout)>{
@@ -79,6 +80,20 @@ std::optional<BuiltinFn> MakeRiskBuiltin(std::string_view spec,
   return SerializedPolicy<risk_game_t>(
       MctsPolicy<risk_game_t, smart_proposer_t, decltype(rollout)>{
           .iterations_ = iterations, .rollout = rollout});
+}
+
+// A forfeiter's seat is played on by the strongest builtin, so its armies stay
+// an obstacle rather than a gift to whoever sits next to them.
+template <size_t N>
+GameDescriptor RiskDescriptor() {
+  return GameDescriptor{
+      .name = "risk" + std::to_string(N),
+      .new_session =
+          [] { return std::make_unique<RiskSession<N>>(g_max_rounds); },
+      .make_builtin = MakeRiskBuiltin<N>,
+      .num_players = static_cast<int>(N),
+      .forfeit_builtin = "mcts_smart",
+  };
 }
 
 }  // namespace
@@ -105,13 +120,8 @@ void SetRegistryOptions(const std::map<std::string, std::string> &options) {
 
 const std::map<std::string, GameDescriptor> &GameRegistry() {
   static const auto *registry = new std::map<std::string, GameDescriptor>{
-      {"risk2",
-       GameDescriptor{
-           .name = "risk2",
-           .new_session =
-               [] { return std::make_unique<RiskSession>(g_max_rounds); },
-           .make_builtin = MakeRiskBuiltin,
-       }},
+      {"risk2", RiskDescriptor<2>()},
+      {"risk3", RiskDescriptor<3>()},
   };
   return *registry;
 }

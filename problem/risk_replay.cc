@@ -1,5 +1,5 @@
-// Replays recorded risk2 games (the referee's GameRecord .pb files) in the
-// terminal.
+// Replays recorded risk2 and risk3 games (the referee's GameRecord .pb files)
+// in the terminal.
 //
 //   bazel run //problem:risk_replay -- ~/.arena/risk2/games/*.pb | less -R
 //   bazel run //problem:risk_replay -- --mode=full --play --delay_ms=300 g.pb
@@ -37,9 +37,6 @@ ABSL_FLAG(int, max_rounds, 40, "The round cap the game was played with");
 
 namespace {
 
-using state_t = tournament_broker::RiskSession::state_t;
-using traits = mcts::GameSerializationTraits<state_t>;
-
 struct Stats {
   std::size_t captions_ = 0;
   std::size_t views_ = 0;
@@ -47,13 +44,16 @@ struct Stats {
 };
 
 // The step taken from |before| was a player's first of their turn.
-bool TurnStart(const state_t &before) {
+template <size_t N>
+bool TurnStart(const risk_game::RiskState<N> &before) {
   return !before.initial_placement_ && before.current_player_ >= 0 &&
          !before.queued_attack_.has_value() && before.first_attack_of_turn_ &&
          before.reserves_[before.current_player_] > 0;
 }
 
-std::string Board(const state_t &state, const risk_game::BoardMarks &marks) {
+template <size_t N>
+std::string Board(const risk_game::RiskState<N> &state,
+                  const risk_game::BoardMarks &marks) {
   return "Round " + std::to_string(tournament_broker::Rounds(state)) + "\n" +
          risk_game::RenderBoard(state, marks);
 }
@@ -68,20 +68,18 @@ void Show(const std::string &text) {
   }
 }
 
-bool Replay(const std::string &path) {
-  tournament_broker::proto::GameRecord record;
-  std::ifstream in(path, std::ios::binary);
-  if (!record.ParseFromIstream(&in)) {
-    std::cerr << path << ": not a GameRecord\n";
-    return false;
-  }
-  traits::state_proto_t initial;
+template <size_t N>
+bool ReplayAs(const tournament_broker::proto::GameRecord &record,
+              const std::string &path) {
+  using state_t = risk_game::RiskState<N>;
+  using traits = mcts::GameSerializationTraits<state_t>;
+  typename traits::state_proto_t initial;
   if (!initial.ParseFromString(record.initial_state())) {
-    std::cerr << path << ": initial state is not a risk2 state\n";
+    std::cerr << path << ": initial state is not a Risk state\n";
     return false;
   }
-  tournament_broker::RiskSession session(absl::GetFlag(FLAGS_max_rounds),
-                                         traits::StateFromProto(initial));
+  tournament_broker::RiskSession<N> session(absl::GetFlag(FLAGS_max_rounds),
+                                            traits::StateFromProto(initial));
   const bool full = absl::GetFlag(FLAGS_mode) == "full";
   const bool stats = absl::GetFlag(FLAGS_stats);
   std::string title = record.game_id() + ": ";
@@ -112,7 +110,7 @@ bool Replay(const std::string &path) {
     }
     std::string text = "Move " + std::to_string(i + 1) + ": " + caption + "\n";
     if (full || TurnStart(before)) {
-      traits::action_proto_t proto;
+      typename traits::action_proto_t proto;
       proto.ParseFromString(record.steps(i).action());
       text +=
           Board(session.State(),
@@ -129,6 +127,17 @@ bool Replay(const std::string &path) {
         (counts.captions_ + counts.views_) / 1024);
   }
   return true;
+}
+
+bool Replay(const std::string &path) {
+  tournament_broker::proto::GameRecord record;
+  std::ifstream in(path, std::ios::binary);
+  if (!record.ParseFromIstream(&in)) {
+    std::cerr << path << ": not a GameRecord\n";
+    return false;
+  }
+  return record.player_names_size() == 3 ? ReplayAs<3>(record, path)
+                                         : ReplayAs<2>(record, path);
 }
 
 }  // namespace

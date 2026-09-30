@@ -103,7 +103,7 @@ class RiskMatch {
   std::mt19937 gen_;
   bool fast_defense_ = false;
   state_t state_;
-  tournament_broker::StepRenderer renderer_;
+  tournament_broker::StepRenderer<2> renderer_;
   std::string view_;
   std::vector<Event> events_;  // since the last answer
 };

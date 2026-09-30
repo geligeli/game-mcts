@@ -1,4 +1,4 @@
-"""risk_map.svg has what risk2_replay.js draws on: one outline per territory,
+"""risk_map.svg has what risk_replay.js draws on: one outline per territory,
 in Country order, with its army count's anchor inside it, and the sea links
 between territories that border across water."""
 

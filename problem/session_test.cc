@@ -64,8 +64,7 @@ TEST(GameSessionTest, TicTacToeDetectsWin) {
   }
   const auto outcome = session.Outcome();
   ASSERT_TRUE(outcome.has_value());
-  EXPECT_FALSE(outcome->is_draw);
-  EXPECT_EQ(outcome->winning_player, 0);
+  EXPECT_EQ(outcome->places, (std::vector{0, 1}));
 }
 
 TEST(GameSessionTest, TicTacToeHasNoChanceNodes) {
@@ -132,7 +131,7 @@ TEST(GameSessionTest, TicTacToeMinimaxNeverLosesToRandomThroughBytes) {
           << error;
     }
     const auto outcome = session.Outcome();
-    EXPECT_TRUE(outcome->is_draw || outcome->winning_player == 1)
+    EXPECT_EQ(outcome->places[1], 0)
         << "random (seat 0) beat minimax in game " << game_index;
   }
 }

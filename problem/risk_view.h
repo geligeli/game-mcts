@@ -1,29 +1,34 @@
 #ifndef GAME_MCTS_PROBLEM_RISK_VIEW_H
 #define GAME_MCTS_PROBLEM_RISK_VIEW_H
 
-// risk2's replay view: the board after a step as JSON, with what the step
-// touched and its dice, for problem/risk2_replay.js to draw in the browser.
-// A few hundred bytes, so every step gets one.
+// The replay view of risk2 and risk3: the board after a step as JSON, with
+// what the step touched and its dice, for problem/risk_replay.js to draw in
+// the browser. A few hundred bytes, so every step gets one.
 //
-//   {"r":12,"m":40,"p":0,"o":"0110-...","u":[3,1,...],"rv":[7,0],
-//    "h":[1,20],"a":[1,20],"d":[[6,5,4],[5,3]],"c":20,"w":"..."}
+//   {"r":12,"m":40,"p":0,"o":"0112-...","u":[3,1,...],"rv":[7,0,0],
+//    "h":[1,20],"a":[1,20],"d":[[6,5,4],[5,3]],"df":2,"c":20,"w":"..."}
 //
 // r: the round, and m its cap (absent when uncapped). p: the player to move,
 // -1 at dice. o: each territory's owner by Country index, '-' for none.
-// u: armies. rv: reserves. h: the territories the step touched. a: an arrow,
-// from and to. d: the dice, highest first, as they are compared. c: the
-// territory a roll conquered. w: how the game ended, on its last step.
+// u: armies. rv: reserves, one per seat. h: the territories the step touched.
+// a: an arrow, from and to. d: the dice, highest first, as they are compared,
+// and df the defending seat. c: the territory a roll conquered. w: how the
+// game ended, on its last step.
 //
-// Also the rest of what risk2 adds to the rules without protobuf, so the
-// referee's session and web/'s in-browser engine share one implementation:
-// the round cap's verdict (ResultOf) and every step's caption and view
-// (StepRenderer).
+// Also the rest of what the tournament adds to the rules without protobuf, so
+// the referee's session and web/'s in-browser engine share one implementation:
+// the verdict, a place per seat (ResultOf), and every step's caption and view
+// (StepRenderer, which also keeps the order seats were knocked out in).
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <functional>
+#include <numeric>
 #include <string>
+#include <tuple>
 #include <variant>
+#include <vector>
 
 #include "game_mcts/core/mcts/game_traits.h"
 #include "game_mcts/games/risk/risk_game.h"
@@ -35,12 +40,14 @@ namespace tournament_broker {
 struct StepView {
   risk_game::BoardMarks marks_;
   const risk_game::RollDiceAction *roll_ = nullptr;
+  int defender_ = -1;  // the seat that rolled against |roll_|
   int conquered_ = -1;
   std::string result_;  // non-empty on the game's last step
 };
 
-inline std::string ViewJson(const risk_game::RiskState<2> &state, int round,
-                            int max_rounds, const StepView &step) {
+template <size_t N>
+std::string ViewJson(const risk_game::RiskState<N> &state, int round,
+                     int max_rounds, const StepView &step) {
   const auto ints = [](auto &&values) {
     std::string out = "[";
     for (const int value : values) {
@@ -87,7 +94,8 @@ inline std::string ViewJson(const risk_game::RiskState<2> &state, int round,
       }
       return out + "]";
     };
-    json += ",\"d\":[" + rolled(attacker) + "," + rolled(defender) + "]";
+    json += ",\"d\":[" + rolled(attacker) + "," + rolled(defender) +
+            "],\"df\":" + std::to_string(step.defender_);
   }
   if (step.conquered_ >= 0) {
     json += ",\"c\":" + std::to_string(step.conquered_);
@@ -106,9 +114,10 @@ inline std::string ViewJson(const risk_game::RiskState<2> &state, int round,
 }
 
 // Full rounds (every player one turn) since initial placement ended.
-inline int Rounds(const risk_game::RiskState<2> &state) {
+template <size_t N>
+int Rounds(const risk_game::RiskState<N> &state) {
   const auto placement_rounds =
-      static_cast<int>(state.num_initial_placements_ / 2);
+      static_cast<int>(state.num_initial_placements_ / N);
   return state.initial_placement_
              ? 0
              : static_cast<int>(state.turn_count_) - placement_rounds;
@@ -116,60 +125,85 @@ inline int Rounds(const risk_game::RiskState<2> &state) {
 
 struct RiskResult {
   bool over_ = false;
-  bool draw_ = false;
-  int winner_ = -1;   // meaningful iff over_ && !draw_
-  std::string text_;  // how it ended; empty while it goes on
+  // By seat, 0 first; tied seats share the better place. Empty while the
+  // game goes on.
+  std::vector<int> places_ = {};
+  std::string text_ = {};  // how it ended; empty while it goes on
 };
 
-// The whole map, or after |max_rounds| full rounds (<= 0: no cap) the side
-// holding more territories, then more armies; an exact tie is a draw.
-inline RiskResult ResultOf(const risk_game::RiskState<2> &state,
-                           int max_rounds) {
+// Over on the whole map, or after |max_rounds| full rounds (<= 0: no cap).
+// Survivors place by territories, then armies, and a seat knocked out below
+// every survivor, the last of |eliminated| to go best; an exact tie is left
+// level. |over| false still places the seats: how they stand now.
+template <size_t N>
+RiskResult ResultOf(const risk_game::RiskState<N> &state, int max_rounds,
+                    const std::vector<int> &eliminated, bool over = false) {
   const mcts::game_state_t rules = state.current_state();
-  if (const auto *win = std::get_if<mcts::win_t>(&rules)) {
-    return {.over_ = true,
-            .winner_ = win->winning_player,
-            .text_ = "P" + std::to_string(win->winning_player) +
-                     " wins: the whole map"};
-  }
-  if (max_rounds <= 0 || Rounds(state) < max_rounds) {
+  const auto *win = std::get_if<mcts::win_t>(&rules);
+  if (!over && win == nullptr &&
+      (max_rounds <= 0 || Rounds(state) < max_rounds)) {
     return {};
   }
-  std::array<int, 2> territories{};
-  std::array<int, 2> armies{};
+  std::array<int, N> territories{};
+  std::array<int, N> armies{};
   for (const risk_game::Territory &t : state.map_) {
-    if (t.owner == 0 || t.owner == 1) {
+    if (t.owner >= 0) {
       ++territories[t.owner];
       armies[t.owner] += static_cast<int>(t.units);
     }
   }
-  // The seat ahead on |score|, or -1 when level.
-  const auto ahead = [](const std::array<int, 2> &score) {
-    return score[0] == score[1] ? -1 : score[0] > score[1] ? 0 : 1;
+  const auto rank = [&](int seat) {
+    const auto out = std::ranges::find(eliminated, seat);
+    return std::tuple(static_cast<int>(eliminated.end() - out),
+                      -territories[seat], -armies[seat]);
   };
-  const bool on_territories = ahead(territories) >= 0;
-  const auto &by = on_territories ? territories : armies;
-  if (ahead(by) < 0) {
-    return {.over_ = true,
-            .draw_ = true,
-            .text_ = "Round cap: a draw, territories and armies level"};
+  std::vector<int> order(N);
+  std::iota(order.begin(), order.end(), 0);
+  std::ranges::stable_sort(order, {}, rank);
+  static constexpr const char *kOrdinal[] = {"1st", "2nd", "3rd",
+                                             "4th", "5th", "6th"};
+  RiskResult result{.over_ = true, .places_ = std::vector<int>(N)};
+  std::string standing;
+  for (std::size_t i = 0; i < N; ++i) {
+    const int seat = order[i];
+    const int place = i > 0 && rank(seat) == rank(order[i - 1])
+                          ? result.places_[order[i - 1]]
+                          : static_cast<int>(i);
+    result.places_[seat] = place;
+    standing +=
+        std::string(i > 0 ? ", " : "") + kOrdinal[place] + " P" +
+        std::to_string(seat) +
+        (std::get<0>(rank(seat)) > 0
+             ? " (out)"
+             : " (" + std::to_string(territories[seat]) + " territories, " +
+                   std::to_string(armies[seat]) + " armies)");
   }
-  return {.over_ = true,
-          .winner_ = ahead(by),
-          .text_ = "Round cap: P" + std::to_string(ahead(by)) + " wins on " +
-                   (on_territories ? "territories " : "armies ") +
-                   std::to_string(by[0]) + ":" + std::to_string(by[1])};
+  result.text_ = win != nullptr ? "P" + std::to_string(win->winning_player) +
+                                      " wins: the whole map"
+                                : "Round cap: " + standing;
+  return result;
 }
 
 // Every step's caption (what it did; a turn's last also sums the turn up) and
-// view (ViewJson of the board it left).
+// view (ViewJson of the board it left), and who was knocked out, in order.
+template <size_t N>
 class StepRenderer {
  public:
   explicit StepRenderer(int max_rounds) : max_rounds_(max_rounds) {}
 
-  void Render(const risk_game::RiskState<2> &before,
+  void Render(const risk_game::RiskState<N> &before,
               const risk_game::RiskAction &action,
-              const risk_game::RiskState<2> &after) {
+              const risk_game::RiskState<N> &after) {
+    const auto owns = [](const risk_game::RiskState<N> &state, int seat) {
+      return std::ranges::any_of(
+          state.map_,
+          [&](const risk_game::Territory &t) { return t.owner == seat; });
+    };
+    for (int seat = 0; seat < static_cast<int>(N); ++seat) {
+      if (owns(before, seat) && !owns(after, seat)) {
+        eliminated_.push_back(seat);
+      }
+    }
     caption_ = risk_game::DescribeStep(before, action, after);
     tally_.Add(before, action, after);
     if (std::holds_alternative<risk_game::FortifyAction>(action)) {
@@ -181,22 +215,25 @@ class StepRenderer {
     step.roll_ = std::get_if<risk_game::RollDiceAction>(&action);
     if (step.roll_ != nullptr && before.queued_attack_.has_value()) {
       const int target = before.queued_attack_->target;
+      step.defender_ = before.map_[target].owner;
       if (after.map_[target].owner != before.map_[target].owner) {
         step.conquered_ = target;
       }
     }
-    step.result_ = ResultOf(after, max_rounds_).text_;
+    step.result_ = ResultOf(after, max_rounds_, eliminated_).text_;
     view_ = ViewJson(after, Rounds(after), max_rounds_, step);
   }
 
   const std::string &caption() const { return caption_; }
   const std::string &view() const { return view_; }
+  const std::vector<int> &eliminated() const { return eliminated_; }
 
  private:
   const int max_rounds_;
   std::string caption_;
   std::string view_;
   risk_game::TurnTally tally_;
+  std::vector<int> eliminated_;
 };
 
 }  // namespace tournament_broker

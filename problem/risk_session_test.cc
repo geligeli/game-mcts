@@ -1,9 +1,11 @@
 #include "problem/risk_session.h"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <random>
 #include <string>
+#include <vector>
 
 #include "game_mcts/core/mcts/serialization.h"
 #include "game_mcts/games/risk/risk_game.h"
@@ -48,36 +50,34 @@ TEST(RiskSessionTest, CountsRoundsFromTheEndOfPlacement) {
 }
 
 TEST(RiskSessionTest, UncappedOrBeforeTheCapTheGameGoesOn) {
-  EXPECT_FALSE(RiskSession(0, Board(10000, 30)).Outcome().has_value());
-  EXPECT_FALSE(RiskSession(100, Board(99, 30)).Outcome().has_value());
+  EXPECT_FALSE(RiskSession<2>(0, Board(10000, 30)).Outcome().has_value());
+  EXPECT_FALSE(RiskSession<2>(100, Board(99, 30)).Outcome().has_value());
 }
 
 TEST(RiskSessionTest, AtTheCapMoreTerritoriesWinsOverMoreArmies) {
   // Player 1 holds 22 territories with 2 armies each against player 0's 20
   // with 9: territory first.
-  const auto outcome = RiskSession(100, Board(100, 20, 9, 2)).Outcome();
+  const auto outcome = RiskSession<2>(100, Board(100, 20, 9, 2)).Outcome();
   ASSERT_TRUE(outcome.has_value());
-  EXPECT_FALSE(outcome->is_draw);
-  EXPECT_EQ(outcome->winning_player, 1);
+  EXPECT_EQ(outcome->places, (std::vector{1, 0}));
 }
 
 TEST(RiskSessionTest, AtTheCapEqualTerritoriesGoToMoreArmies) {
-  const auto outcome = RiskSession(100, Board(100, 21, 3, 2)).Outcome();
+  const auto outcome = RiskSession<2>(100, Board(100, 21, 3, 2)).Outcome();
   ASSERT_TRUE(outcome.has_value());
-  EXPECT_FALSE(outcome->is_draw);
-  EXPECT_EQ(outcome->winning_player, 0);
+  EXPECT_EQ(outcome->places, (std::vector{0, 1}));
 }
 
-TEST(RiskSessionTest, AtTheCapAnExactTieIsADraw) {
-  const auto outcome = RiskSession(100, Board(100, 21)).Outcome();
+TEST(RiskSessionTest, AtTheCapAnExactTieIsLeftLevel) {
+  const auto outcome = RiskSession<2>(100, Board(100, 21)).Outcome();
   ASSERT_TRUE(outcome.has_value());
-  EXPECT_TRUE(outcome->is_draw);
+  EXPECT_EQ(outcome->places, (std::vector{0, 0}));
 }
 
 TEST(RiskSessionTest, AWholeBoardStillWinsBeforeTheCap) {
-  const auto outcome = RiskSession(100, Board(5, 42)).Outcome();
+  const auto outcome = RiskSession<2>(100, Board(5, 42)).Outcome();
   ASSERT_TRUE(outcome.has_value());
-  EXPECT_EQ(outcome->winning_player, 0);
+  EXPECT_EQ(outcome->places, (std::vector{0, 1}));
 }
 
 // Player 0 (Alaska 5, Alberta 1) against player 1 (everything else, Kamchatka
@@ -90,7 +90,8 @@ RiskState<2> Skirmish() {
   return state;
 }
 
-void Apply(RiskSession &session, const RiskAction &action) {
+template <size_t N>
+void Apply(RiskSession<N> &session, const RiskAction &action) {
   std::string error;
   ASSERT_TRUE(session.ApplySerializedAction(
       traits::ActionToProto(action).SerializeAsString(), &error))
@@ -113,7 +114,7 @@ bool Has(const std::string &view, const std::string &part) {
 // Every step has a caption and a view: the board it left as JSON, with what
 // the step touched and its dice, for the browser replay to draw.
 TEST(RiskSessionTest, EachStepGetsACaptionAndAJsonView) {
-  RiskSession session(100, Skirmish());
+  RiskSession<2> session(100, Skirmish());
   const std::string start = session.RenderState();
   EXPECT_TRUE(start.starts_with("{\"r\":4,\"m\":100,\"p\":0,\"o\":\"100" +
                                 std::string(39, '1') + "\",\"u\":[2,5,1,"))
@@ -155,13 +156,15 @@ TEST(RiskSessionTest, EachStepGetsACaptionAndAJsonView) {
 
 // The last view says how the game ended.
 TEST(RiskSessionTest, TheLastViewHasTheResult) {
-  RiskSession session(5, Board(4, 21));
+  RiskSession<2> session(5, Board(4, 21));
   Apply(session, risk_game::FortifyAction{0, 0, 1});  // P0 ends its turn
   EXPECT_FALSE(Has(session.RenderState(), "\"w\""));
   Apply(session, risk_game::FortifyAction{0, 0, 1});  // P1 ends round 4
   ASSERT_TRUE(session.Outcome().has_value());
-  EXPECT_TRUE(Has(session.RenderState(),
-                  "\"w\":\"Round cap: a draw, territories and armies level\""))
+  EXPECT_TRUE(
+      Has(session.RenderState(),
+          "\"w\":\"Round cap: 1st P0 (21 territories, 42 armies), 1st P1 "
+          "(21 territories, 42 armies)\""))
       << session.RenderState();
 }
 
@@ -170,7 +173,7 @@ TEST(RiskSessionTest, TheLastViewHasTheResult) {
 TEST(RiskSessionTest, AWholeCappedGameStaysSmall) {
   risk_game::RiskProposer<2> proposer;
   for (const uint32_t seed : {1u, 2u, 3u}) {
-    RiskSession session(40);
+    RiskSession<2> session(40);
     std::mt19937 gen(seed);
     std::size_t total = session.RenderState().size();
     std::size_t largest = 0;
@@ -188,6 +191,56 @@ TEST(RiskSessionTest, AWholeCappedGameStaysSmall) {
     EXPECT_LT(largest, 400u) << "seed " << seed;
     EXPECT_LT(total, 1u << 20) << "seed " << seed;
   }
+}
+
+// Three seats, |territories| of the map each in seat order and 2 armies on
+// each, |rounds| past placement, player 0 to place 3.
+RiskState<3> Board3(int rounds, std::array<int, 3> territories) {
+  RiskState<3> state;
+  state.initial_placement_ = false;
+  state.num_initial_placements_ = 105;
+  state.turn_count_ = 35 + rounds;
+  state.reserves_ = {3, 0, 0};
+  int t = 0;
+  for (int seat = 0; seat < 3; ++seat) {
+    for (int i = 0; i < territories[seat]; ++i, ++t) {
+      state.map_[t] = {.owner = static_cast<int8_t>(seat), .units = 2};
+    }
+  }
+  return state;
+}
+
+TEST(RiskSessionTest, ThreeSeatsPlaceByTerritoriesAtTheCap) {
+  EXPECT_EQ(Rounds(Board3(7, {14, 14, 14})), 7);
+  const auto outcome = RiskSession<3>(40, Board3(40, {12, 20, 10})).Outcome();
+  ASSERT_TRUE(outcome.has_value());
+  EXPECT_EQ(outcome->places, (std::vector{1, 0, 2}));
+  const auto level = RiskSession<3>(40, Board3(40, {16, 13, 13})).Outcome();
+  ASSERT_TRUE(level.has_value());
+  EXPECT_EQ(level->places, (std::vector{0, 1, 1}));
+}
+
+// Knocked out is below every survivor, however the survivors stand; and a
+// game cut short stands as the cap would score it.
+TEST(RiskSessionTest, AKnockedOutSeatPlacesLast) {
+  // Player 2's last territory, Kamchatka, against player 0's Alaska.
+  RiskState<3> state = Board3(4, {21, 21, 0});
+  state.map_[kKamchatka] = {.owner = 2, .units = 1};
+  state.map_[kAlaska] = {.owner = 0, .units = 9};
+  RiskSession<3> session(40, state);
+  EXPECT_EQ(session.Standing().places, (std::vector{1, 0, 2}));
+  risk_game::ReinforceAction reinforce{};
+  reinforce.units_to_place_[kAlaska] = 3;
+  Apply(session,
+        risk_game::PlayerAction{.reinforce_action_ = reinforce,
+                                .attack_action_ = risk_game::QueueAttackAction{
+                                    kAlaska, kKamchatka, 3}});
+  Apply(session, risk_game::QueueDefenseAction{1});
+  Apply(session, Roll({6, 6, 6}, {1, 0}));
+  EXPECT_TRUE(Has(session.RenderState(), "\"df\":2")) << session.RenderState();
+  EXPECT_FALSE(session.Outcome().has_value());
+  // Level on territories, player 0 has more armies; player 2 has none.
+  EXPECT_EQ(session.Standing().places, (std::vector{0, 1, 2}));
 }
 
 }  // namespace
