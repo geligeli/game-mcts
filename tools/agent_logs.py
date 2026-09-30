@@ -57,6 +57,8 @@ def containers(image):
         "secrets": [v for k, v in env.items()
                     if SECRET_ENV.search(k) and len(v) >= 8],
     })
+  for a in agents:
+    a["peers"] = [b["name"] for b in agents if b["kind"] == a["kind"]]
   return sorted(agents, key=lambda a: a["name"])
 
 
@@ -91,12 +93,21 @@ def ev(time, kind, title, body):
   return {"time": iso(time), "kind": kind, "title": title, "body": body}
 
 
+def records(out):
+  # A line cut off by a full disk, or still being written, is skipped: one bad
+  # line must not take down every page.
+  for line in out.splitlines():
+    try:
+      yield json.loads(line)
+    except ValueError:
+      pass
+
+
 def claude_events(agent):
   out = exec_in(agent["container"],
                 f"ls -tr {HOME}/.claude/projects/*/*.jsonl | xargs -r cat")
   events = []
-  for line in out.splitlines():
-    d = json.loads(line)
+  for d in records(out):
     if d.get("type") not in ("user", "assistant") or d.get("isMeta"):
       continue
     t = d.get("timestamp")
@@ -119,14 +130,17 @@ def claude_events(agent):
 
 def kimi_events(agent):
   # Every kit shares the host's ~/.kimi-code: an agent's sessions are the ones
-  # it was told its name in.
+  # that name it more than any other Kimi agent, however it was prompted.
+  names = " ".join(shlex.quote(n) for n in agent["peers"])
   out = exec_in(agent["container"],
-                f"ls -tr {HOME}/.kimi-code/sessions/*/session_*"
-                "/agents/main/wire.jsonl | xargs -r grep -l "
-                f"{shlex.quote('You are ' + agent['name'] + ' ')} | xargs -r cat")
+                f"for f in $(ls -tr {HOME}/.kimi-code/sessions/*/session_*"
+                "/agents/main/wire.jsonl); do "
+                f"best=$(for n in {names}; do "
+                'echo "$(grep -ow -- "$n" "$f" | wc -l) $n"; done | sort -rn | head -1); '
+                f'[ "${{best#* }}" = {shlex.quote(agent["name"])} ] && '
+                '[ "${best%% *}" -gt 0 ] && cat "$f"; done; true')
   events = []
-  for line in out.splitlines():
-    d = json.loads(line)
+  for d in records(out):
     t = d.get("time")
     if d["type"] == "context.append_message":
       m = d["message"]
@@ -154,8 +168,7 @@ def opencode_events(agent):
   out = run("docker", "exec", agent["container"], "python3", "-c",
             OPENCODE_QUERY)
   events = []
-  for line in out.splitlines():
-    role, t, p = json.loads(line)
+  for role, t, p in records(out):
     if p["type"] == "text":
       events.append(ev(t, "user" if role == "user" else "text", "", p["text"]))
     elif p["type"] == "reasoning":
