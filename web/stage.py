@@ -20,6 +20,8 @@ import shutil
 WEB = pathlib.Path(__file__).resolve().parent
 BOTS = WEB / "bots"
 REFERENCE = WEB.parent / "bots" / "reference"
+# The referee's builtins as one candidate, which params choose among.
+BUILTINS = WEB / "builtins"
 
 
 def ratings(data_dir):
@@ -53,7 +55,7 @@ def main():
     args = parser.parse_args()
     only = set(filter(None, args.only.split(",")))
 
-    sources = {"reference": REFERENCE}
+    sources = {"reference": REFERENCE, "builtin": BUILTINS}
     for d in sorted((args.data_dir / "candidates").iterdir()):
         if d.is_dir() and not d.name.endswith(".staged"):
             sources[d.name] = d / "src" / "bots" / d.name

@@ -72,7 +72,7 @@
 <main>
   <section class="panel">
     <h2>Challenge a commander</h2>
-    <div class="sub">The live leaderboard's top 10 (TrueSkill μ ± σ), each compiled into your browser as it gets there, and the starter bot.</div>
+    <div class="sub">The live leaderboard's top 10 (TrueSkill μ ± σ), each compiled into your browser as it gets there, the starter bot and the arena's builtins. Pick one; the second seat is theirs too unless you pick it below.</div>
     <div class="chips" id="participants"></div>
     <div class="bots" id="bots"><div class="empty">Loading the roster…</div></div>
     <div class="options">
@@ -99,6 +99,8 @@
           <option value="20">20 rounds (a quick game)</option>
           <option value="0">None: to the last territory</option>
         </select></label>
+      <label>Second opponent
+        <select id="second"><option value="">The same commander</option></select></label>
     </div>
     <button class="btn primary start" id="start" disabled>Choose an opponent</button>
   </section>
@@ -147,7 +149,7 @@ function renderBots() {
     who.className = 'who';
     who.textContent = bot.participant;
     const small = document.createElement('small');
-    small.textContent = bot.version ? `v${bot.version}` : 'the starter bot';
+    small.textContent = bot.note || (bot.version ? `v${bot.version}` : 'the starter bot');
     who.append(small);
     if (bot.rank) {
       const rank = document.createElement('span');
@@ -197,8 +199,9 @@ $('start').onclick = () => {
   if (!chosen) return;
   let seat = $('seat').value;
   if (seat === 'r') seat = String(Math.floor(Math.random() * ($('seat').options.length - 1)));
-  const q = new URLSearchParams({bot: chosen, seat, setup: $('setup').value,
-                                 fast: $('fast').value, rounds: $('rounds').value});
+  const q = new URLSearchParams({bots: `${chosen},${$('second').value || chosen}`, seat,
+                                 setup: $('setup').value, fast: $('fast').value,
+                                 rounds: $('rounds').value});
   location.href = `play.html?${q}`;
 };
 
@@ -264,6 +267,9 @@ $('dir').onchange = () => loadGames(true);
 $('more').onclick = () => loadGames(false);
 
 bots = await fetch('api/bots').then((r) => r.json());
+for (const bot of bots.filter((b) => b.built !== false)) {
+  $('second').append(Object.assign(document.createElement('option'), {value: bot.id, textContent: bot.id}));
+}
 renderParticipants();
 renderBots();
 loadGames(true);

@@ -1,9 +1,11 @@
-// The play page: a person against a candidate in every other seat, whose own
-// policy runs as WebAssembly in engine_worker.js. The engine
-// (web/risk_match.h) is the referee; this page only turns clicks into its
-// calls and its answers into animation.
+// The play page: a person against a candidate in each other seat, whose own
+// policy runs as WebAssembly in engine_worker.js. The first opponent's module
+// holds the engine (web/risk_match.h), the referee; a second opponent's
+// decides for its seat, the engine's outside seat. This page only turns
+// clicks into their calls and the engine's answers into animation.
 //
-// ?bot=<id>&seat=0|1|2&setup=quick|draft&fast=1|0&rounds=40[&autoplay=1]
+// ?bots=<id>,<id>&seat=0|1|2&setup=quick|draft&fast=1|0&rounds=40[&autoplay=1]
+// (?bot=<id> seats one in both), an id a candidate or builtin:<name>.
 //
 // The engine answers at once and never waits for the board: a presenter plays
 // its steps back, faster the more are waiting, so clicking through a battle
@@ -17,14 +19,20 @@ import {$, updateSeats, showDice, setCaption, banner, hideBanner, soundButtons,
         progress, doneLoading, failLoading, holdings} from './hud.js';
 
 const params = new URLSearchParams(location.search);
-const botId = params.get('bot') || 'reference';
 const seat = Number(params.get('seat') || 0);
+// The other seats' opponents, in seat order.
+const opponents = (params.get('bots') || params.get('bot') || 'reference').split(',');
+if (opponents.length < 2) opponents.push(opponents[0]);
+// The builtins are one module, which params choose among.
+const moduleOf = (id) => (id.startsWith('builtin:') ? 'builtin' : id);
+const paramsOf = (id) => (id.startsWith('builtin:') ? `builtin=${id.slice(8)}` : '');
 const rounds = Number(params.get('rounds') ?? 40);
 const autoplay = params.get('autoplay') === '1';
 
 const world = new World($('stage'));
 window.world = world;  // for the console, and tests
 let engine, board;
+let outside = null;        // the second opponent's module, if it is another
 let state = null;          // the engine's latest answer's state: the truth
 let placement = {};        // armies placed but not yet sent
 let selected = -1;         // attack source, or fortify source
@@ -36,7 +44,11 @@ let moveAll = true;
 try { moveAll = localStorage.getItem('risk2.moveAll') !== '0'; } catch {}
 const MOVE_ALL = 1 << 16;  // QueueAttackAction::kMoveAll
 let busy = false;          // an engine call is out
-const names = TEAMS.map((_, s) => (s === seat ? 'You' : botId));
+const others = TEAMS.map((_, s) => s).filter((s) => s !== seat);
+const names = TEAMS.map((_, s) => (s === seat ? 'You' : opponents[others.indexOf(s)]));
+// The second opponent's seat, when another module plays it.
+const outsideSeat = opponents[1] !== opponents[0] ? others[1] : -1;
+const botsTurn = () => state.phase === 'bot' || state.phase === 'outside';
 
 // ---- The presenter: plays engine steps on the board, in order. ----
 
@@ -124,8 +136,8 @@ function refresh() {
   if (phase === 'over') {
     title.textContent = 'The war is over';
     hint.textContent = state.result;
-  } else if (phase === 'bot') {
-    title.textContent = `${botId}'s turn`;
+  } else if (botsTurn()) {
+    title.textContent = `${names[state.view.p]}'s turn`;
     hint.textContent = 'Its own code is choosing, in your browser.';
   } else if (phase === 'place') {
     title.textContent = 'Claim the land';
@@ -167,7 +179,7 @@ function refresh() {
 
 async function afterMove() {
   if (!state) return;
-  if (state.phase === 'bot') await botTurn();
+  if (botsTurn()) await botTurn();
   if (state.phase === 'over') return finish();
   if (myTurn() && state.phase !== 'place' && mode !== 'attack') mode = 'attack';
   refresh();
@@ -179,10 +191,16 @@ async function botTurn() {
   selected = -1;
   mode = 'attack';
   refresh();
-  banner(`${botId} is thinking…`, 'its own C++, as WebAssembly');
-  $('banner').prepend(Object.assign(document.createElement('span'), {className: 'spinner'}));
-  while (state.phase === 'bot') {
-    await call('bot_step');
+  while (botsTurn()) {
+    banner(`${names[state.view.p]} is thinking…`, 'its own C++, as WebAssembly');
+    $('banner').prepend(Object.assign(document.createElement('span'), {className: 'spinner'}));
+    if (state.phase === 'outside') {
+      const snapshot = await engine.call('snapshot');
+      const decision = await outside.call('decide', snapshot.bytes);
+      await call('act', decision.bytes);
+    } else {
+      await call('bot_step');
+    }
   }
   hideBanner();
   await presenting;
@@ -340,7 +358,7 @@ function onMove(e) {
   const title = document.createElement('b');
   title.textContent = nameOf(t);
   const line = document.createElement('div');
-  line.textContent = `${o < 0 ? 'Unclaimed' : o === seat ? 'Yours' : botId} · ${state.view.u[t]} armies` +
+  line.textContent = `${o < 0 ? 'Unclaimed' : o === seat ? 'Yours' : names[o]} · ${state.view.u[t]} armies` +
                      (placement[t] ? ` (+${placement[t]})` : '');
   const cont = document.createElement('div');
   cont.className = 'muted';
@@ -440,11 +458,12 @@ async function autoMove() {
 // ---- Start ----
 
 async function main() {
-  $('loadtitle').textContent = `Summoning ${botId}…`;
+  $('loadtitle').textContent = `Summoning ${[...new Set(opponents)].join(' and ')}…`;
   let fraction = 0;
-  const loading = Engine.load(botId).then((e) => { progress((fraction += 0.3)); return e; });
+  const load = (id) => Engine.load(moduleOf(id)).then((e) => { progress((fraction += 0.15)); return e; });
+  const loading = Promise.all([load(opponents[0]), outsideSeat >= 0 ? load(opponents[1]) : null]);
   await world.load((f) => progress(Math.min(0.99, f * 0.7 + fraction)));
-  engine = await loading;
+  [engine, outside] = await loading;
   board = engine.board;
   progress(1);
   soundButtons(world);
@@ -452,11 +471,12 @@ async function main() {
   engine.call('fast_defense', params.get('fast') === '0' ? 0 : 1);
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
   // A new game answers its state alone: nothing has been played.
-  state = await engine.call('new', seat, rounds, seed, '');
+  state = await engine.call('new', seat, rounds, seed, paramsOf(opponents[0]), outsideSeat);
+  if (outside) await outside.call('policy', (seed ^ 0x9e3779b9) >>> 0, paramsOf(opponents[1]));
   presented = state.view;
   world.setView(state.view);
   updateSeats(state.view, names);
-  document.title = `You vs ${botId} · risk3`;
+  document.title = `You vs ${[...new Set(opponents)].join(' & ')} · risk3`;
   doneLoading();
   sfx.loop('drums', true);
 

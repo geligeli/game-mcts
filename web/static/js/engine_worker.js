@@ -9,7 +9,11 @@
 let bot = null;
 
 const SIGNATURES = {
-  new: ['number', 'number', 'number', 'string'],
+  new: ['number', 'number', 'number', 'string', 'number'],
+  snapshot: [],
+  policy: ['number', 'string'],
+  decide: ['string'],
+  act: ['string'],
   state: [],
   place: ['number'],
   quick_setup: [],

@@ -67,9 +67,10 @@ std::string KindOf(const RiskAction &action) {
 }  // namespace
 
 RiskMatch::RiskMatch(std::vector<policy_t> bots, int human_seat, int max_rounds,
-                     uint32_t seed)
+                     uint32_t seed, int outside_seat)
     : bots_(std::move(bots)),
       human_(human_seat),
+      outside_(outside_seat),
       max_rounds_(max_rounds),
       gen_(seed),
       renderer_(max_rounds),
@@ -102,7 +103,8 @@ void RiskMatch::Settle() {
       Apply(state_.sample_chance_action(gen_), &ignored);
     } else if (state_.queued_attack_.has_value() &&
                !state_.queued_defense_.has_value() &&
-               state_.current_player_ == human_) {
+               (state_.current_player_ == human_ ||
+                (state_.current_player_ == outside_ && fast_defense_))) {
       const int target = state_.queued_attack_->target;
       Apply(QueueDefenseAction{.num_defend_dice_ =
                                    std::min<int>(2, state_.map_[target].units)},
@@ -114,7 +116,8 @@ void RiskMatch::Settle() {
 }
 
 RiskAction RiskMatch::BotAction() {
-  if (fast_defense_ && state_.queued_attack_.has_value() &&
+  if ((fast_defense_ || state_.current_player_ == outside_) &&
+      state_.queued_attack_.has_value() &&
       !state_.queued_defense_.has_value()) {
     const int target = state_.queued_attack_->target;
     return QueueDefenseAction{.num_defend_dice_ =
@@ -145,6 +148,8 @@ std::string RiskMatch::State() const {
       tournament_broker::ResultOf(state_, max_rounds_, renderer_.eliminated());
   if (result.over_) {
     phase = "over";
+  } else if (state_.current_player_ == outside_) {
+    phase = "outside";
   } else if (state_.current_player_ != human_) {
     phase = "bot";
   } else if (state_.initial_placement_) {
@@ -260,8 +265,19 @@ std::string RiskMatch::Fortify(int source, int target, int units,
   return Answer(error);
 }
 
+std::string RiskMatch::Act(const RiskAction &action) {
+  if (state_.current_player_ != outside_) {
+    return Answer("not the outside seat's move");
+  }
+  std::string error;
+  Apply(action, &error);
+  Settle();
+  return Answer(error);
+}
+
 std::string RiskMatch::BotStep() {
-  if (state_.current_player_ == human_ || state_.is_chance_node() ||
+  if (state_.current_player_ == human_ || state_.current_player_ == outside_ ||
+      state_.is_chance_node() ||
       tournament_broker::ResultOf(state_, max_rounds_, renderer_.eliminated())
           .over_) {
     Settle();

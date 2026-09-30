@@ -41,6 +41,7 @@ def wasm_bot(name, header = "strategy.h"):
         srcs = native.glob([name + "/*.cc"], allow_empty = True),
         deps = [
             "//bots:bot_api",
+            "//problem:risk_builtins",
             "@abseil-cpp//absl/log",
             "@abseil-cpp//absl/log:check",
             "@abseil-cpp//absl/strings",

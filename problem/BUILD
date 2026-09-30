@@ -47,18 +47,31 @@ cc_library(
     ],
 )
 
+# The builtins as policies, without protobuf or the arena: the registry
+# serves them and web/ compiles them for the play page.
+cc_library(
+    name = "risk_builtins",
+    hdrs = ["risk_builtins.h"],
+    deps = [
+        "//game_mcts/core/mcts:policies",
+        "//game_mcts/core/mcts:tournament",
+        "//game_mcts/games/risk:risk_game",
+        "//game_mcts/games/risk/strategies:risk_proposer",
+        "//game_mcts/games/risk/strategies:risk_rollout_shortcuts",
+    ],
+)
+
 # alwayslink: nothing depends on it by label; it defines a symbol the arena declares.
 cc_library(
     name = "registry",
     srcs = ["registry.cc"],
     alwayslink = 1,
     deps = [
+        ":risk_builtins",
         ":risk_session",
         "//game_mcts/core/mcts:policies",
         "//game_mcts/games/risk:risk_game",
         "//game_mcts/games/risk:risk_serialization",
-        "//game_mcts/games/risk/strategies:risk_proposer",
-        "//game_mcts/games/risk/strategies:risk_rollout_shortcuts",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/strings",
         "@game_arena//game_arena/referee:game_registry",

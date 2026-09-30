@@ -20,8 +20,9 @@
 //
 // phase is the person's: place (initial placement), reinforce (reserves to
 // place before the first attack), attack (which a fortify ends), bot (the
-// policy's move: call BotStep) or over. places, once it is over, is each
-// seat's, 0 first (problem/risk_view.h's ResultOf). error explains a refused
+// policy's move: call BotStep), outside (the outside seat's: call Act) or
+// over. places, once it is over, is each seat's, 0 first
+// (problem/risk_view.h's ResultOf). error explains a refused
 // move, which leaves the game as it was.
 //
 // A person never picks dice: they attack and defend with the most allowed,
@@ -51,9 +52,11 @@ using placement_t = std::array<uint16_t, risk_game::kNumTerritories>;
 class RiskMatch {
  public:
   // |bots| play the other seats, in seat order; |seed| drives the dice and
-  // the policies; |max_rounds| <= 0: no cap.
+  // the policies; |max_rounds| <= 0: no cap. |outside_seat|, if one, is
+  // another candidate's: its decisions come in through Act(), and it defends
+  // against the person with the most dice allowed.
   RiskMatch(std::vector<policy_t> bots, int human_seat, int max_rounds,
-            uint32_t seed);
+            uint32_t seed, int outside_seat = -1);
 
   // Nothing played: just where the game stands.
   std::string State() const;
@@ -75,8 +78,12 @@ class RiskMatch {
   std::string Fortify(int source, int target, int units,
                       const placement_t &reinforce);
   // The next policy's decision, and whatever follows it that needs no one
-  // (dice, the person's defence), up to the next decision.
+  // (dice, the person's defence), up to the next decision. Not the outside
+  // seat's: see Act().
   std::string BotStep();
+  // The outside seat's decision, decided elsewhere, and what follows it as
+  // BotStep() plays it.
+  std::string Act(const risk_game::RiskAction &action);
 
   // The policies decide their own defence dice by default; with |fast| they
   // roll the most allowed, which is almost always right and costs no thinking.
@@ -106,6 +113,7 @@ class RiskMatch {
 
   std::vector<policy_t> bots_;  // the other seats', in seat order
   const int human_;
+  const int outside_;
   const int max_rounds_;
   std::mt19937 gen_;
   bool fast_defense_ = false;

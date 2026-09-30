@@ -1,6 +1,8 @@
 #include "web/risk_match.h"
 
+#include <random>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include "game_mcts/core/mcts/policies.h"
@@ -159,6 +161,38 @@ TEST(RiskMatchTest, AWholeGameEndsWithAResult) {
     EXPECT_FALSE(Has(state, "\"result\":\"\"")) << state;
     EXPECT_FALSE(Has(state, "\"places\":[]")) << state;
   }
+}
+
+// Seat 2 is another module's: the page brings its decisions in through Act(),
+// here straight from a policy of its own.
+TEST(RiskMatchTest, AnOutsideSeatPlaysThroughAct) {
+  static_assert(std::is_trivially_copyable_v<state_t>,
+                "states cross between modules as bytes");
+  static_assert(std::is_trivially_copyable_v<risk_game::RiskAction>);
+  RiskMatch match(Bots(), /*human_seat=*/0, /*max_rounds=*/6, 21,
+                  /*outside_seat=*/2);
+  const policy_t outside = Bots().front();
+  std::mt19937 gen(3);
+  match.QuickSetup();
+  int acts = 0;
+  for (int step = 0; step < 5000 && !Has(match.State(), "\"phase\":\"over\"");
+       ++step) {
+    if (Has(match.State(), "\"phase\":\"outside\"")) {
+      EXPECT_FALSE(Has(match.BotStep(), "\"k\":")) << "BotStep leaves it";
+      const std::string answer = match.Act(outside(match.state(), gen).action);
+      EXPECT_FALSE(Has(answer, "\"error\"")) << answer;
+      ++acts;
+    } else if (Has(match.State(), "\"phase\":\"bot\"")) {
+      match.BotStep();
+    } else {
+      EXPECT_TRUE(Has(match.Act(risk_game::FortifyAction{}), "\"error\""));
+      placement_t reinforce{};
+      reinforce[Front(match.state(), 0).first] = match.state().reserves_[0];
+      match.Fortify(0, 0, 0, reinforce);
+    }
+  }
+  EXPECT_TRUE(Has(match.State(), "\"phase\":\"over\""));
+  EXPECT_GT(acts, 0);
 }
 
 TEST(BoardJsonTest, NamesNeighboursAndContinents) {

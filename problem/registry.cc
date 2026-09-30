@@ -18,8 +18,7 @@
 #include "game_mcts/core/mcts/policies.h"
 #include "game_mcts/games/risk/risk_game.h"
 #include "game_mcts/games/risk/risk_serialization.h"
-#include "game_mcts/games/risk/strategies/risk_proposer.h"
-#include "game_mcts/games/risk/strategies/risk_rollout_shortcuts.h"
+#include "problem/risk_builtins.h"
 #include "problem/risk_session.h"
 
 namespace tournament_broker {
@@ -40,46 +39,26 @@ bool ParseNonNegative(std::string_view text, int *value) {
 template <size_t N>
 std::optional<BuiltinFn> MakeRiskBuiltin(std::string_view spec,
                                          std::string *error) {
-  using mcts::tournament::MctsPolicy;
-  using mcts::tournament::SerializedPolicy;
-  using risk_game_t = risk_game::RiskState<N>;
-  using risk_proposer_t = risk_game::RiskProposer<N>;
-  // tuning_result.md's strongest: reinforce the borders, attack only at an
-  // advantage -- in the tree only; rollouts keep the stock proposer, whose
-  // indiscriminate attacks keep playouts short.
-  using smart_proposer_t = risk_game::RiskProposer<N, true, true>;
-  if (spec == "random") {
-    return SerializedPolicy<risk_game_t>(
-        mcts::tournament::ProposerPolicy<risk_game_t, risk_proposer_t>{});
-  }
   const std::string_view name = spec.substr(0, spec.find(':'));
-  if (name != "mcts" && name != "mcts_smart") {
-    *error = "unknown builtin spec '" + std::string(spec) +
-             "': random, mcts or mcts_smart";
-    return std::nullopt;
-  }
   int iterations = g_default_mcts_iterations;
+  // Only a search takes a knob.
   if (name.size() < spec.size()) {
     std::string_view rest = spec.substr(name.size() + 1);
-    if (!absl::ConsumePrefix(&rest, "iterations=") ||
+    if (name == "random" || !absl::ConsumePrefix(&rest, "iterations=") ||
         !ParseNonNegative(rest, &iterations) || iterations == 0) {
       *error = "want " + std::string(name) + ":iterations=N, N > 0, not '" +
                std::string(spec) + "'";
       return std::nullopt;
     }
   }
-  // Battles in rollouts resolve to their expected outcome, as the reference
-  // bot's do.
-  auto rollout = mcts::MakeShortcutRollout<risk_game_t, risk_proposer_t>(
-      &risk_game::ResolveBattleWithExpectationInPlace<N>);
-  if (name == "mcts") {
-    return SerializedPolicy<risk_game_t>(
-        MctsPolicy<risk_game_t, risk_proposer_t, decltype(rollout)>{
-            .iterations_ = iterations, .rollout = rollout});
+  auto policy = risk_builtins::Make<N>(name, iterations);
+  if (!policy.has_value()) {
+    *error = "unknown builtin spec '" + std::string(spec) +
+             "': random, mcts or mcts_smart";
+    return std::nullopt;
   }
-  return SerializedPolicy<risk_game_t>(
-      MctsPolicy<risk_game_t, smart_proposer_t, decltype(rollout)>{
-          .iterations_ = iterations, .rollout = rollout});
+  return mcts::tournament::SerializedPolicy<risk_game::RiskState<N>>(
+      std::move(*policy));
 }
 
 // A forfeiter's seat is played on by the strongest builtin, so its armies stay

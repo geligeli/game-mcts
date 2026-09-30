@@ -96,6 +96,19 @@ class Games:
         return path.read_bytes() if path.exists() else None
 
 
+# The referee's builtins, one module (web/builtins) that params choose among.
+BUILTINS = {"mcts_smart": "the strongest", "mcts": "stock MCTS",
+            "random": "legal moves at random"}
+
+
+def builtins(bots_dir):
+    if not (bots_dir / "builtin.wasm").exists():
+        return []
+    return [{"id": f"builtin:{name}", "participant": "builtin", "version": 0,
+             "note": f"{name}, {note}", "built": True}
+            for name, note in BUILTINS.items()]
+
+
 class TopBots:
     """The coordinator's top N by its leaderboard, kept compiled."""
 
@@ -110,8 +123,9 @@ class TopBots:
         with urllib.request.urlopen(self.url, timeout=10) as response:
             rows = json.load(response)["rows"][:self.top]
         self.rows = rows
-        missing = [r["candidate_id"] for r in rows
-                   if not (self.bots_dir / (r["candidate_id"] + ".wasm")).exists()]
+        wanted = [r["candidate_id"] for r in rows] + ["reference", "builtin"]
+        missing = [i for i in wanted
+                   if not (self.bots_dir / (i + ".wasm")).exists()]
         if not missing:
             return
         self.building = set(missing)
@@ -147,7 +161,7 @@ class TopBots:
         if (self.bots_dir / "reference.wasm").exists():
             entries.append({"id": "reference", "participant": "reference",
                             "version": 0, "built": True})
-        return entries
+        return entries + builtins(self.bots_dir)
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -222,8 +236,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if route == "/api/bots":
             manifest = WEB / "bots" / "manifest.json"
             entries = json.loads(manifest.read_text()) if manifest.exists() else []
-            built = [e for e in entries
-                     if (self.bots_dir / (e["id"] + ".wasm")).exists()]
+            built = [e for e in entries if e["id"] != "builtin" and
+                     (self.bots_dir / (e["id"] + ".wasm")).exists()]
             # The re-rank may still be running: its latest ratings, not the
             # ones stage.py saw.
             live = {}
@@ -232,7 +246,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             for e in built:
                 e["mu"], e["sigma"] = live.get(e["id"], (e["mu"], e["sigma"]))
             built.sort(key=lambda e: -(e["mu"] if e["mu"] is not None else -1e9))
-            return self.send(json.dumps(built).encode(), TYPES[".json"])
+            return self.send(json.dumps(built + builtins(self.bots_dir)).encode(),
+                             TYPES[".json"])
         if route == "/api/games":
             result = self.games.query(query.get("player", ""),
                                       query.get("dir", ""),
