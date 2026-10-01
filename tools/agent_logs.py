@@ -48,7 +48,7 @@ def containers(image):
     env = dict(e.split("=", 1) for e in c["Config"]["Env"] if "=" in e)
     cmd = " ".join(c["Config"]["Cmd"] or [])
     kind = next((k for k, word in (("claude", "claude "), ("kimi", "kimi "),
-                                   ("opencode", "opencode "))
+                                   ("opencode", "opencode "), ("agy", "agy "))
                  if word in cmd), "unknown")
     agents.append({
         "name": env.get("ARENA_NAME", c["Name"].lstrip("/")),
@@ -182,7 +182,38 @@ def opencode_events(agent):
   return events
 
 
-READERS = {"claude": claude_events, "kimi": kimi_events, "opencode": opencode_events}
+def agy_events(agent):
+  # Antigravity keeps a transcript per conversation; a tool call's arguments
+  # are JSON strings inside it.
+  out = exec_in(agent["container"],
+                f"ls -tr {HOME}/.gemini/antigravity-cli/brain/*/.system_generated"
+                "/logs/transcript.jsonl | xargs -r cat")
+  def decoded(value):
+    try:
+      return json.loads(value)
+    except (TypeError, ValueError):
+      return value
+  events = []
+  for d in records(out):
+    t = d.get("created_at")
+    if d["type"] == "USER_INPUT":
+      events.append(ev(t, "user", "", d.get("content", "")))
+    elif d["type"] == "PLANNER_RESPONSE":
+      if d.get("thinking"):
+        events.append(ev(t, "thinking", "", d["thinking"]))
+      if d.get("content"):
+        events.append(ev(t, "text", "", d["content"]))
+      for call in d.get("tool_calls", []):
+        args = {k: decoded(v) for k, v in (call.get("args") or {}).items()}
+        events.append(ev(t, "tool_call", call["name"], args_summary(args)))
+    else:  # a tool's result, or the system's error
+      events.append(ev(t, "tool_result", "error" if d.get("error") else "",
+                       d.get("error") or d.get("content", "")))
+  return events
+
+
+READERS = {"claude": claude_events, "kimi": kimi_events,
+           "opencode": opencode_events, "agy": agy_events}
 
 
 def load(agent):
