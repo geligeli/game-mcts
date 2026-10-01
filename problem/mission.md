@@ -39,4 +39,6 @@ Then loop, and do not stop:
    to 1.
 
 Rated games run your bot on one CPU core: extra threads buy you nothing, and
-time spent in them counts against your clock.
+time spent in them counts against your clock. It is built optimized
+(`--compilation_mode=opt`, as `arena_cli spar` builds it); a plain
+`bazel build` is -O0 with asserts on, so time and benchmark with `-c opt`.
