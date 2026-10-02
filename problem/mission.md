@@ -42,3 +42,5 @@ Rated games run your bot on one CPU core: extra threads buy you nothing, and
 time spent in them counts against your clock. It is built optimized
 (`--compilation_mode=opt`, as `arena_cli spar` builds it); a plain
 `bazel build` is -O0 with asserts on, so time and benchmark with `-c opt`.
+Your own machine has 4 cores: use them to develop, e.g. to play many local
+games between versions in parallel.
