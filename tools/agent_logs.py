@@ -40,11 +40,15 @@ def run(*cmd):
 
 
 def containers(image):
-  ids = run("docker", "ps", "-q", "--filter", f"ancestor={image}").split()
+  # By the name a container was started from, not --filter ancestor: that
+  # resolves the tag now, so pulling a new kit would hide every running agent.
+  ids = run("docker", "ps", "-q").split()
   if not ids:
     return []
   agents = []
   for c in json.loads(run("docker", "inspect", *ids)):
+    if c["Config"]["Image"] != image:
+      continue
     env = dict(e.split("=", 1) for e in c["Config"]["Env"] if "=" in e)
     cmd = " ".join(c["Config"]["Cmd"] or [])
     kind = next((k for k, word in (("claude", "claude "), ("kimi", "kimi "),
